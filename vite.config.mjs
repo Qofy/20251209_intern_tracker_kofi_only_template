@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
 		server: {
 			proxy: {
 				"/api": {
-					target: "https://intern.intuivo.com",
+					target: "http://127.0.0.1:8080",
 					changeOrigin: true,
 					secure: false,
 					ws: true,
@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
 							console.log("[Proxy Request]", req.method, req.url);
 							console.log(
 								"[Proxy Target]",
-								"https://intern.intuivo.com" + req.url,
+								"http://127.0.0.1:8080" + req.url,
 							);
 							console.log("[Proxy Headers]", JSON.stringify(headers, null, 2));
 							console.log(
@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
 					},
 				},
 				"/auth": {
-					target: "https://intern.intuivo.com",
+					target: "http://127.0.0.1:8080",
 					changeOrigin: true,
 					secure: false,
 					ws: true,
