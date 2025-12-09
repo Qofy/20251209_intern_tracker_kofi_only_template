@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { getAliases } from "vite-aliases";
+import { sveltePreprocess } from 'svelte-preprocess';
 import path from "path";
 const aliases = getAliases();
 
@@ -55,11 +56,15 @@ export default defineConfig(({ mode }) => {
 				$lib: path.resolve("./src/lib"),
 			},
 		},
-		plugins: [getAliases(), svelte()],
-		// plugins: [svelte()]
+		plugins: [
+			getAliases(),
+			svelte({
+				preprocess: sveltePreprocess()
+			})
+		],
 		optimizeDeps: {
 			include: ["date-fns", "chart.js", "svelte-chartjs"],
-			exclude: ["recharts"],
+			exclude: ["recharts", "react", "react-dom", "@hello-pangea/dnd", "react-redux"],
 			force: true,
 		},
 		build: {

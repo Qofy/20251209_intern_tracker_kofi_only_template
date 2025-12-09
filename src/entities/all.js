@@ -125,12 +125,48 @@ export class StudentDocument {
   static async list(params = {}) {
     return apiClient.getDocuments(params);
   }
-  
+
   static async create(data) {
     return apiClient.uploadDocument(data);
   }
-  
+
   static async delete(id) {
     return apiClient.deleteDocument(id);
+  }
+}
+
+export class Application {
+  static async list(params = {}) {
+    return apiClient.request('/applications', { method: 'GET', params });
+  }
+
+  static async create(data) {
+    return apiClient.request('/applications', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  static async update(id, data) {
+    return apiClient.request(`/applications/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  static async delete(id) {
+    return apiClient.request(`/applications/${id}`, { method: 'DELETE' });
+  }
+}
+
+export class ContractTemplate {
+  static async list(params = {}) {
+    return apiClient.request('/contract-templates', { method: 'GET', params });
+  }
+
+  static async create(data) {
+    return apiClient.request('/contract-templates', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  static async update(id, data) {
+    return apiClient.request(`/contract-templates/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  }
+
+  static async delete(id) {
+    return apiClient.request(`/contract-templates/${id}`, { method: 'DELETE' });
   }
 }
