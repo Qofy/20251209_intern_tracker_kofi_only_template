@@ -1,0 +1,676 @@
+### Internship Tracker API - REST Client Examples
+### This file contains example API calls for all endpoints
+### Use with REST Client extensions (VS Code REST Client, Thunder Client, etc.)
+
+@baseUrl = http://127.0.0.1:8080
+@api = /api
+
+### =====================================================
+### AUTHENTICATION ENDPOINTS (NO JWT REQUIRED)
+### =====================================================
+
+### Health Check
+GET {{baseUrl}}/
+
+### Register New User (Student)
+POST {{baseUrl}}{{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePassword123!",
+  "role": "Student",
+  "full_name": "John Doe"
+}
+
+### Register New User (Mentor)
+POST {{baseUrl}}{{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "mentor@example.com",
+  "password": "MentorPass123!",
+  "role": "Mentor",
+  "full_name": "Jane Mentor"
+}
+
+### Register New User (Admin)
+POST {{baseUrl}}{{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "AdminPass123!",
+  "role": "Admin",
+  "full_name": "Admin User"
+}
+
+### Login - Get JWT Token
+POST {{baseUrl}}{{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "john.doe@example.com",
+  "password": "SecurePassword123!"
+}
+
+### Login as Mentor
+POST {{baseUrl}}{{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "mentor@example.com",
+  "password": "MentorPass123!"
+}
+
+### Login as Admin
+POST {{baseUrl}}{{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "password": "AdminPass123!"
+}
+
+### =====================================================
+### STUDENTS MANAGEMENT
+### =====================================================
+
+### Get All Students (Requires JWT)
+GET {{baseUrl}}{{api}}/students
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+
+### Create New Student (Admin/Mentor)
+POST {{baseUrl}}{{api}}/students
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "full_name": "Alice Johnson",
+  "student_email": "alice.johnson@example.com",
+  "contract_hours": 40,
+  "start_date": "2025-02-01",
+  "end_date": "2025-06-01",
+  "mentor_email": "mentor@example.com",
+  "status": "Active"
+}
+
+### Create Another Student
+POST {{baseUrl}}{{api}}/students
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJBZG1pbiJ9.SIGNATURE
+Content-Type: application/json
+
+{
+  "full_name": "Bob Smith",
+  "student_email": "bob.smith@example.com",
+  "contract_hours": 35,
+  "start_date": "2025-03-01",
+  "end_date": "2025-07-01",
+  "mentor_email": "mentor@example.com",
+  "status": "Active"
+}
+
+### Update Student
+PUT {{baseUrl}}{{api}}/students/student_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "full_name": "Alice Johnson Updated",
+  "contract_hours": 50,
+  "status": "Completed"
+}
+
+### Delete Student (Admin only)
+DELETE {{baseUrl}}{{api}}/students/student_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJBZG1pbiJ9.SIGNATURE
+
+### =====================================================
+### TASKS MANAGEMENT
+### =====================================================
+
+### Get All Tasks
+GET {{baseUrl}}{{api}}/tasks
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+
+### Get Tasks for Specific Student
+GET {{baseUrl}}{{api}}/tasks?student_email=john.doe@example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+
+### Create Task (Mentor/Admin)
+POST {{baseUrl}}{{api}}/tasks
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "task_number": 1,
+  "title": "Setup Development Environment",
+  "description": "Install Node.js, npm, and configure development tools",
+  "due_date": "2025-02-15",
+  "student_email": "john.doe@example.com"
+}
+
+### Create Another Task
+POST {{baseUrl}}{{api}}/tasks
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "task_number": 2,
+  "title": "Learn React Basics",
+  "description": "Complete React tutorial and understand component lifecycle",
+  "due_date": "2025-03-01",
+  "student_email": "john.doe@example.com"
+}
+
+### Update Task as Student (completion info only)
+PUT {{baseUrl}}{{api}}/tasks/task_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: application/json
+
+{
+  "status": "InProgress",
+  "completion_notes": "Started setup, installed Node.js v18",
+  "completion_files": ["setup_screenshot.png"]
+}
+
+### Update Task Completion
+PUT {{baseUrl}}{{api}}/tasks/task_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: application/json
+
+{
+  "status": "Completed",
+  "completion_notes": "Environment setup complete. All tools installed and configured.",
+  "completion_files": ["env_setup_screenshot.png", "npm_version.png"],
+  "code_snippet": "npm --version\n18.12.0"
+}
+
+### Update Task as Mentor/Admin (full update)
+PUT {{baseUrl}}{{api}}/tasks/task_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "title": "Setup Development Environment - Updated",
+  "description": "Install Node.js v18+, npm, and Git configuration",
+  "due_date": "2025-02-20",
+  "status": "Reviewed",
+  "attached_files": ["setup_guide.pdf", "requirements.txt"]
+}
+
+### Delete Task
+DELETE {{baseUrl}}{{api}}/tasks/task_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+
+### =====================================================
+### TIME ENTRIES MANAGEMENT
+### =====================================================
+
+### Get All Time Entries
+GET {{baseUrl}}{{api}}/time-entries
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+
+### Get Time Entries for Specific User
+GET {{baseUrl}}{{api}}/time-entries?user_email=john.doe@example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+
+### Create Time Entry with Time Range
+POST {{baseUrl}}{{api}}/time-entries
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: application/json
+
+{
+  "date": "2025-01-20",
+  "start_time": "09:00:00",
+  "end_time": "17:00:00",
+  "break_start": "12:00:00",
+  "break_end": "13:00:00",
+  "proof_type": "Git",
+  "proof_files": ["github_commit_screenshot.png"],
+  "user_email": "john.doe@example.com"
+}
+
+### Create Time Entry with Manual Hours
+POST {{baseUrl}}{{api}}/time-entries
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: application/json
+
+{
+  "date": "2025-01-21",
+  "manually_inputted_hours": 8.5,
+  "proof_type": "Document",
+  "proof_files": ["timesheet.pdf"],
+  "user_email": "john.doe@example.com"
+}
+
+### Update Time Entry as Student (Draft status only)
+PUT {{baseUrl}}{{api}}/time-entries/entry_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: application/json
+
+{
+  "start_time": "08:30:00",
+  "end_time": "17:30:00"
+}
+
+### Update Time Entry as Mentor (Approve and Comment)
+PUT {{baseUrl}}{{api}}/time-entries/entry_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "status": "Approved",
+  "approved_hours": 8.5,
+  "mentor_comments": "Hours approved. Good work on the feature implementation."
+}
+
+### Submit Time Entry (Change from Draft to Submitted)
+PUT {{baseUrl}}{{api}}/time-entries/entry_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: application/json
+
+{
+  "status": "Submitted"
+}
+
+### Delete Time Entry
+DELETE {{baseUrl}}{{api}}/time-entries/entry_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+
+### =====================================================
+### SCHEDULES MANAGEMENT
+### =====================================================
+
+### Get All Schedules
+GET {{baseUrl}}{{api}}/schedules
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+
+### Get Schedules for Specific Student
+GET {{baseUrl}}{{api}}/schedules?student_email=john.doe@example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+
+### Create Monday Schedule
+POST {{baseUrl}}{{api}}/schedules
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "student_email": "john.doe@example.com",
+  "day_of_week": "Monday",
+  "start_time": "09:00:00",
+  "end_time": "17:00:00"
+}
+
+### Create Tuesday Schedule
+POST {{baseUrl}}{{api}}/schedules
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "student_email": "john.doe@example.com",
+  "day_of_week": "Tuesday",
+  "start_time": "08:30:00",
+  "end_time": "16:30:00"
+}
+
+### Create Wednesday Schedule
+POST {{baseUrl}}{{api}}/schedules
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "student_email": "john.doe@example.com",
+  "day_of_week": "Wednesday",
+  "start_time": "09:00:00",
+  "end_time": "17:00:00"
+}
+
+### Update Schedule
+PUT {{baseUrl}}{{api}}/schedules/schedule_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "start_time": "08:00:00",
+  "end_time": "16:00:00"
+}
+
+### Delete Schedule
+DELETE {{baseUrl}}{{api}}/schedules/schedule_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+
+### =====================================================
+### QUESTIONS & ANSWERS
+### =====================================================
+
+### Get All Questions
+GET {{baseUrl}}{{api}}/questions
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+
+### Create Question (Student only)
+POST {{baseUrl}}{{api}}/questions
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: application/json
+
+{
+  "question_text": "How do I set up the development environment?"
+}
+
+### Create Another Question
+POST {{baseUrl}}{{api}}/questions
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: application/json
+
+{
+  "question_text": "What are the project requirements?"
+}
+
+### Answer Question (Mentor/Admin)
+PUT {{baseUrl}}{{api}}/questions/question_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "answer": "Follow the setup guide in the repository README. Install Node.js v18+, npm, and Git.",
+  "status": "Answered"
+}
+
+### Delete Question (Student - pending only)
+DELETE {{baseUrl}}{{api}}/questions/question_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+
+### =====================================================
+### DOCUMENTS MANAGEMENT
+### =====================================================
+
+### Get All Documents
+GET {{baseUrl}}{{api}}/documents
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+
+### Get Documents for Specific Student
+GET {{baseUrl}}{{api}}/documents?student_email=john.doe@example.com
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+
+### Create Document - Contract Template
+POST {{baseUrl}}{{api}}/documents
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "student_email": "john.doe@example.com",
+  "document_type": "ContractTemplate",
+  "file_path": "/api/files/contract_uuid.pdf"
+}
+
+### Create Document - Confidentiality Agreement
+POST {{baseUrl}}{{api}}/documents
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+Content-Type: application/json
+
+{
+  "student_email": "john.doe@example.com",
+  "document_type": "ConfidentialityAgreement",
+  "file_path": "/api/files/nda_uuid.pdf"
+}
+
+### Create Document - Other
+POST {{baseUrl}}{{api}}/documents
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJhZG1pbkBleGFtcGxlLmNvbSIsInJvbGUiOiJBZG1pbiJ9.SIGNATURE
+Content-Type: application/json
+
+{
+  "student_email": "bob.smith@example.com",
+  "document_type": "Other",
+  "file_path": "/api/files/document_uuid.pdf"
+}
+
+### Delete Document
+DELETE {{baseUrl}}{{api}}/documents/doc_1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJtZW50b3JAZXhhbXBsZS5jb20iLCJyb2xlIjoiTWVudG9yIn0.SIGNATURE
+
+### =====================================================
+### FILE MANAGEMENT
+### =====================================================
+
+### Upload File (Multipart Form Data)
+### Note: The boundary and file content below are example format
+POST {{baseUrl}}{{api}}/files/upload
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="screenshot.png"
+Content-Type: image/png
+
+[Binary PNG file data here]
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Get Uploaded File (No auth required)
+GET {{baseUrl}}{{api}}/files/a1b2c3d4-e5f6-7890.png
+
+### Get PDF File
+GET {{baseUrl}}{{api}}/files/document-uuid.pdf
+
+### =====================================================
+### WORKFLOW EXAMPLES
+### =====================================================
+
+### === WORKFLOW 1: Complete Student Setup ===
+
+### Step 1: Register Student
+POST {{baseUrl}}{{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "newstudent@example.com",
+  "password": "StudentPass123!",
+  "role": "Student",
+  "full_name": "New Student"
+}
+
+### Step 2: Register as Mentor
+POST {{baseUrl}}{{api}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "newmentor@example.com",
+  "password": "MentorPass123!",
+  "role": "Mentor",
+  "full_name": "New Mentor"
+}
+
+### Step 3: Login Student and save token
+POST {{baseUrl}}{{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "newstudent@example.com",
+  "password": "StudentPass123!"
+}
+
+### Step 4: Login Mentor and save token
+POST {{baseUrl}}{{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "newmentor@example.com",
+  "password": "MentorPass123!"
+}
+
+### Step 5: Mentor creates student record
+POST {{baseUrl}}{{api}}/students
+Authorization: Bearer MENTOR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "full_name": "New Student",
+  "student_email": "newstudent@example.com",
+  "contract_hours": 40,
+  "start_date": "2025-02-01",
+  "end_date": "2025-06-01",
+  "mentor_email": "newmentor@example.com",
+  "status": "Active"
+}
+
+### Step 6: Mentor creates student schedule
+POST {{baseUrl}}{{api}}/schedules
+Authorization: Bearer MENTOR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "student_email": "newstudent@example.com",
+  "day_of_week": "Monday",
+  "start_time": "09:00:00",
+  "end_time": "17:00:00"
+}
+
+### Step 7: Mentor creates first task
+POST {{baseUrl}}{{api}}/tasks
+Authorization: Bearer MENTOR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "task_number": 1,
+  "title": "Project Setup",
+  "description": "Setup project repository and development environment",
+  "due_date": "2025-02-15",
+  "student_email": "newstudent@example.com"
+}
+
+### Step 8: Mentor uploads contract document
+POST {{baseUrl}}{{api}}/documents
+Authorization: Bearer MENTOR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "student_email": "newstudent@example.com",
+  "document_type": "ContractTemplate",
+  "file_path": "/api/files/contract-uuid.pdf"
+}
+
+### === WORKFLOW 2: Student Logging Time ===
+
+### Step 1: Student logs time entry
+POST {{baseUrl}}{{api}}/time-entries
+Authorization: Bearer STUDENT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "date": "2025-01-20",
+  "start_time": "09:00:00",
+  "end_time": "17:00:00",
+  "break_start": "12:00:00",
+  "break_end": "13:00:00",
+  "proof_type": "Git",
+  "proof_files": ["commit-screenshot.png"],
+  "user_email": "newstudent@example.com"
+}
+
+### Step 2: Student submits time entry
+PUT {{baseUrl}}{{api}}/time-entries/entry_id
+Authorization: Bearer STUDENT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "status": "Submitted"
+}
+
+### Step 3: Mentor approves time entry
+PUT {{baseUrl}}{{api}}/time-entries/entry_id
+Authorization: Bearer MENTOR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "status": "Approved",
+  "approved_hours": 8,
+  "mentor_comments": "Hours approved"
+}
+
+### === WORKFLOW 3: Task Completion ===
+
+### Step 1: Student updates task progress
+PUT {{baseUrl}}{{api}}/tasks/task_id
+Authorization: Bearer STUDENT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "status": "InProgress",
+  "completion_notes": "Started working on project setup"
+}
+
+### Step 2: Student completes task
+PUT {{baseUrl}}{{api}}/tasks/task_id
+Authorization: Bearer STUDENT_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "status": "Completed",
+  "completion_notes": "Repository setup complete with CI/CD pipeline",
+  "completion_files": ["setup-complete.png"],
+  "code_snippet": "Repository URL: https://github.com/example/repo"
+}
+
+### Step 3: Mentor reviews task
+PUT {{baseUrl}}{{api}}/tasks/task_id
+Authorization: Bearer MENTOR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "status": "Reviewed"
+}
+
+### =====================================================
+### ERROR CASES
+### =====================================================
+
+### Attempt to access without token (401)
+GET {{baseUrl}}{{api}}/students
+
+### Attempt student-only endpoint as mentor (403)
+POST {{baseUrl}}{{api}}/questions
+Authorization: Bearer MENTOR_TOKEN_HERE
+Content-Type: application/json
+
+{
+  "question_text": "This should fail - mentors cannot create questions"
+}
+
+### Attempt admin-only endpoint as student (403)
+DELETE {{baseUrl}}{{api}}/students/student_id
+Authorization: Bearer STUDENT_TOKEN_HERE
+
+### Invalid login credentials (401)
+POST {{baseUrl}}{{api}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "wrong_password"
+}
+
+### =====================================================
+### NOTES
+### =====================================================
+
+### Replace JWT tokens in Authorization headers with real tokens from login responses
+### The example tokens above are placeholder format only
+
+### Base URL should be adjusted based on deployment:
+### - Development: http://127.0.0.1:8080
+### - Production: https://api.yourdomain.com
+
+### All timestamps are in ISO 8601 format with UTC timezone
+### Date format: YYYY-MM-DD
+### Time format: HH:MM:SS
+
+### Document types: ContractTemplate, ConfidentialityAgreement, Other
+### Task status: Assigned, InProgress, Completed, Reviewed
+### Time entry status: Draft, Submitted, Approved
+### Question status: Pending, Answered
+### Proof types: Git, Document, Photo
+### User roles: Student, Mentor, Admin
+
+### For file uploads, ensure proper multipart/form-data formatting
+### Supported file types: jpg, png, gif, pdf, txt, json, csv
+### Files are stored in ./uploads/ directory with unique UUID filenames

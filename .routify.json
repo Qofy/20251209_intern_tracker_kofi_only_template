@@ -1,0 +1,9 @@
+{
+  "pages": "src/routes",
+  "sourceDir": "public",
+  "routifyDir": ".routify",
+  "ignore": "",
+  "dynamicImports": true,
+  "singleBuild": false,
+  "noHashScroll": false
+}
