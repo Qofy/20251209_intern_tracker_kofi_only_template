@@ -1,0 +1,15 @@
+{
+  "$or": [
+    {
+      "applicant_email": "{{user.email}}"
+    },
+    {
+      "assigned_mentor": "{{user.email}}"
+    },
+    {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  ]
+}

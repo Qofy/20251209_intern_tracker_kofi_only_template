@@ -1,0 +1,3 @@
+full_name,contract_hours,start_date,end_date,mentor_email,status,id,created_date,updated_date,created_by_id,created_by,is_sample
+"Alex Johnson","600","2024-01-15","2024-06-15","mentor@university.edu","active","68aa08de89d2da1c859ab579","2025-08-23T18:30:54.466000","2025-08-23T18:30:54.466000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""
+"Kelvin","900","2025-05-01","2025-10-31","1@1.com","completed","68ac23ba8feca581a3e43b03","2025-08-25T08:50:02.970000","2025-09-03T16:38:06.345000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""

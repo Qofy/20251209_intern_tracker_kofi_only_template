@@ -1,0 +1,72 @@
+date,raw_text,parsed_schedule,materials,created_by_mentor,id,created_date,updated_date,created_by_id,created_by,is_sample
+"2025-08-25","Schedule Adil, August 22th I suggest the following
+8:00 to  11:00 START  Auto-GPT from Chapter 9
+11:00 to 11:30  TASK #078
+11:30 to 12:00 Lunch
+11:30 to 13:30 Task
+13:30 to 13:45 break
+13:45 to 13:00  Continue Task
+15:00 to 15:30 document upload your work , write questions
+15:30 to 16 Meet Present Question/Answer
+
+TASK #078","[{""start_time"":""08:00"",""end_time"":""11:00"",""activity"":""START Auto-GPT from Chapter 9"",""task_reference"":""""},{""start_time"":""11:00"",""end_time"":""11:30"",""activity"":"""",""task_reference"":""TASK #078""},{""start_time"":""11:30"",""end_time"":""12:00"",""activity"":""Lunch"",""task_reference"":""""},{""start_time"":""11:30"",""end_time"":""13:30"",""activity"":""Task"",""task_reference"":""""},{""start_time"":""13:30"",""end_time"":""13:45"",""activity"":""break"",""task_reference"":""""},{""start_time"":""13:45"",""end_time"":""13:00"",""activity"":""Continue Task"",""task_reference"":""""},{""start_time"":""15:00"",""end_time"":""15:30"",""activity"":""document upload your work , write questions"",""task_reference"":""""},{""start_time"":""15:30"",""end_time"":""16:00"",""activity"":""Meet Present Question/Answer"",""task_reference"":""""}]","[]","true","68aaad1ab332bf39707b8fff","2025-08-24T06:11:38.149000","2025-08-24T06:11:38.149000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""
+"2025-08-25","Schedule Kelvin, August 26th, I suggest the following
+6:00 to 9:30 Start GPT course from Chapter 9
+9:30 to 9:45 break
+9:45 Learn TASK #056
+11:45 Break
+12:00 Learn RUST Machine Learning Course 
+13:00 to 13:30 Lunch
+13:30 to 14:00 document upload your work , write questions
+14:00 Meet Present Question/Answer
+TASK #056","[{""start_time"":""06:00"",""end_time"":""09:30"",""activity"":""Start GPT course from Chapter 9"",""task_reference"":null},{""start_time"":""09:30"",""end_time"":""09:45"",""activity"":""break"",""task_reference"":null},{""start_time"":""09:45"",""end_time"":""11:45"",""activity"":""Learn"",""task_reference"":""TASK #056""},{""start_time"":""11:45"",""end_time"":""12:00"",""activity"":""Break"",""task_reference"":null},{""start_time"":""12:00"",""end_time"":""13:00"",""activity"":""Learn RUST Machine Learning Course"",""task_reference"":null},{""start_time"":""13:00"",""end_time"":""13:30"",""activity"":""Lunch"",""task_reference"":null},{""start_time"":""13:30"",""end_time"":""14:00"",""activity"":""document upload your work , write questions"",""task_reference"":null},{""start_time"":""14:00"",""end_time"":""null"",""activity"":""Meet Present Question/Answer"",""task_reference"":null},{""start_time"":""null"",""end_time"":""null"",""activity"":""TASK #056"",""task_reference"":null}]","[]","true","68add4918a07682f621e4ef7","2025-08-26T15:36:49.964000","2025-08-26T15:36:49.964000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""
+"2025-08-26","Schedule Kelvin, August 26th, I suggest the following
+6:00 to 9:30 Start GPT course from Chapter 9
+9:30 to 9:45 break
+9:45 Learn TASK #056
+11:45 Break
+12:00 Learn RUST Machine Learning Course 
+13:00 to 13:30 Lunch
+13:30 to 14:00 document upload your work , write questions
+14:00 Meet Present Question/Answer
+TASK #056","[{""start_time"":""06:00"",""end_time"":""09:30"",""activity"":""Start GPT course from Chapter 9"",""task_reference"":""""},{""start_time"":""09:30"",""end_time"":""09:45"",""activity"":""break"",""task_reference"":""""},{""start_time"":""09:45"",""end_time"":"""",""activity"":""Learn TASK #056"",""task_reference"":""TASK #056""},{""start_time"":""11:45"",""end_time"":"""",""activity"":""Break"",""task_reference"":""""},{""start_time"":""12:00"",""end_time"":"""",""activity"":""Learn RUST Machine Learning Course"",""task_reference"":""""},{""start_time"":""13:00"",""end_time"":""13:30"",""activity"":""Lunch"",""task_reference"":""""},{""start_time"":""13:30"",""end_time"":""14:00"",""activity"":""document upload your work , write questions"",""task_reference"":""""},{""start_time"":""14:00"",""end_time"":"""",""activity"":""Meet Present Question/Answer"",""task_reference"":""""}]","[]","true","68addc26abdf0c3e4a89de06","2025-08-26T16:09:10.333000","2025-08-26T16:53:36.191000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""
+"2025-08-26","Schedule Kelvin, August 26th, I suggest the following
+6:00 to 9:30 Start GPT course from Chapter 9
+9:30 to 9:45 break
+9:45 Learn TASK #056
+11:45 Break
+12:00 Learn RUST Machine Learning Course 
+13:00 to 13:30 Lunch
+13:30 to 14:00 document upload your work , write questions
+14:00 Meet Present Question/Answer
+TASK #056","[]","[]","true","68addc3348d57c445f11faa7","2025-08-26T16:09:23.978000","2025-08-26T16:09:23.978000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""
+"2025-08-26","Schedule Kelvin, August 26th, I suggest the following
+6:00 to 9:30 Start GPT course from Chapter 9
+9:30 to 9:45 break
+9:45 Learn TASK #056
+11:45 Break
+12:00 Learn RUST Machine Learning Course 
+13:00 to 13:30 Lunch
+13:30 to 14:00 document upload your work , write questions
+14:00 Meet Present Question/Answer
+TASK #056","[{""start_time"":""06:00"",""end_time"":""09:30"",""activity"":""Start GPT course from Chapter 9"",""task_reference"":""""},{""start_time"":""09:30"",""end_time"":""09:45"",""activity"":""break"",""task_reference"":""""},{""start_time"":""09:45"",""end_time"":""11:45"",""activity"":""Learn"",""task_reference"":""TASK #056""},{""start_time"":""11:45"",""end_time"":""12:00"",""activity"":""Break"",""task_reference"":""""},{""start_time"":""12:00"",""end_time"":""13:00"",""activity"":""Learn RUST Machine Learning Course"",""task_reference"":""""},{""start_time"":""13:00"",""end_time"":""13:30"",""activity"":""Lunch"",""task_reference"":""""},{""start_time"":""13:30"",""end_time"":""14:00"",""activity"":""document upload your work, write questions"",""task_reference"":""""},{""start_time"":""14:00"",""end_time"":""14:00"",""activity"":""Meet Present Question/Answer"",""task_reference"":""""}]","[]","true","68addc39d30efbe08cb9eb77","2025-08-26T16:09:29.106000","2025-08-26T16:09:29.106000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""
+"2025-08-27","Schedule Kelvin, August 27th, I suggest the following
+6:00 to 9:30 Start GPT course from Chapter 9
+9:30 to 9:45 break
+9:45 Learn TASK #057
+11:45 Break
+12:00 Learn RUST Machine Learning Course 
+13:00 to 13:30 Lunch
+13:30 to 14:00 document upload your work , write questions
+14:00 Meet Present Question/Answer
+TASK #057","[{""start_time"":""06:00"",""end_time"":""09:30"",""activity"":""Start GPT course from Chapter 9"",""task_reference"":""""},{""start_time"":""09:30"",""end_time"":""09:45"",""activity"":""break"",""task_reference"":""""},{""start_time"":""09:45"",""end_time"":"""",""activity"":""Learn TASK #057"",""task_reference"":""TASK #057""},{""start_time"":""11:45"",""end_time"":"""",""activity"":""Break"",""task_reference"":""""},{""start_time"":""12:00"",""end_time"":"""",""activity"":""Learn RUST Machine Learning Course"",""task_reference"":""""},{""start_time"":""13:00"",""end_time"":""13:30"",""activity"":""Lunch"",""task_reference"":""""},{""start_time"":""13:30"",""end_time"":""14:00"",""activity"":""document upload your work , write questions"",""task_reference"":""""},{""start_time"":""14:00"",""end_time"":"""",""activity"":""Meet Present Question/Answer"",""task_reference"":""""}]","[]","true","68ade482854f3bcf1f75d781","2025-08-26T16:44:50.126000","2025-08-26T16:44:50.126000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""
+"2025-09-03","Schedule Kelvin, August 29th, I suggest the following
+6:00 to 9:30 Start GPT course from Chapter 9
+9:30 to 9:45 break
+9:45 Learn TASK #059
+11:45 Break
+12:00 Learn RUST Machine Learning Course 
+13:00 to 13:30 Lunch
+13:30 to 14:00 document upload your work , write questions
+14:00 Meet Present Question/Answer
+TASK #059","[{""start_time"":""06:00"",""end_time"":""09:30"",""activity"":""Start GPT course from Chapter 9"",""task_reference"":""""},{""start_time"":""09:30"",""end_time"":""09:45"",""activity"":""break"",""task_reference"":""""},{""start_time"":""09:45"",""end_time"":"""",""activity"":""Learn TASK #059"",""task_reference"":""TASK #059""},{""start_time"":""11:45"",""end_time"":"""",""activity"":""Break"",""task_reference"":""""},{""start_time"":""12:00"",""end_time"":"""",""activity"":""Learn RUST Machine Learning Course"",""task_reference"":""""},{""start_time"":""13:00"",""end_time"":""13:30"",""activity"":""Lunch"",""task_reference"":""""},{""start_time"":""13:30"",""end_time"":""14:00"",""activity"":""document upload your work , write questions"",""task_reference"":""""},{""start_time"":""14:00"",""end_time"":"""",""activity"":""Meet Present Question/Answer"",""task_reference"":""""}]","[]","true","68b85c4811615aa8ed38d61f","2025-09-03T15:18:32.998000","2025-09-03T15:18:47.836000","68aa064a35402563e7b92f61","jesusalc@tuta.com",""

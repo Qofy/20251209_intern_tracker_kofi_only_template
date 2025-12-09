@@ -1,0 +1,140 @@
+{
+  "name": "TimeEntry",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date",
+      "description": "Work date"
+    },
+    "start_time": {
+      "type": "string",
+      "description": "Start time (HH:mm format)"
+    },
+    "end_time": {
+      "type": "string",
+      "description": "End time (HH:mm format)"
+    },
+    "break_start": {
+      "type": "string",
+      "description": "Break start time"
+    },
+    "break_end": {
+      "type": "string",
+      "description": "Break end time"
+    },
+    "manually_inputted_hours": {
+      "type": "number",
+      "description": "Hours manually entered by student"
+    },
+    "claimed_hours": {
+      "type": "number",
+      "description": "Hours claimed by student for approval"
+    },
+    "approved_hours": {
+      "type": "number",
+      "description": "Hours approved by mentor"
+    },
+    "work_description": {
+      "type": "string",
+      "description": "Description of work completed"
+    },
+    "task_reference": {
+      "type": "string",
+      "description": "Reference to related task (e.g., TASK #056)"
+    },
+    "proof_type": {
+      "type": "string",
+      "enum": [
+        "git",
+        "history",
+        "professor_proof",
+        "materials",
+        "meeting"
+      ],
+      "description": "Type of proof provided"
+    },
+    "proof_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "URLs of proof files"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected"
+      ],
+      "default": "draft",
+      "description": "Overall entry status"
+    },
+    "claimed_status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "approved",
+        "rejected"
+      ],
+      "default": "draft",
+      "description": "Status of claimed hours"
+    },
+    "tracking_ended": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether daily tracking has been ended"
+    },
+    "submitted_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When submitted for approval"
+    },
+    "mentor_comments": {
+      "type": "string",
+      "description": "Mentor feedback and comments"
+    }
+  },
+  "required": [
+    "date"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

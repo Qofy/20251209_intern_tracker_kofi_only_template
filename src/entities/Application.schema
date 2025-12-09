@@ -1,0 +1,87 @@
+Schema Editor
+
+    applicant_email
+    (
+
+text, required)
+
+The email of the applying user.
+status
+(
+text)
+
+The current status of the application.
+Default: "draft"
+Options: draft, submitted, viewed, approved, rejected
+student_data
+(
+object)
+
+Personal information of the student applicant.
+
+    full_name
+    (
+
+text)
+address
+(
+text)
+phone_number
+(
+
+    text)
+
+documents
+(
+object)
+
+Uploaded documents for the application.
+
+    passport
+    (
+
+text)
+
+URL to the passport file
+permit_to_stay
+(
+text)
+
+URL to the Permit to Stay file
+student_id
+(
+text)
+
+URL to the Student ID file
+university_form
+(
+text)
+
+URL to the University Internship Form file
+signed_contract
+(
+text)
+
+URL to the signed contract file
+anmeldung
+(
+text)
+
+URL to the Anmeldung file
+confirmation_letter
+(
+text)
+
+URL to the Letter of Confirmation as Student file
+visa
+(
+
+    text)
+
+    URL to the VISA ID file
+
+assigned_mentor
+(
+text)
+
+Email of the mentor assigned to review this application.

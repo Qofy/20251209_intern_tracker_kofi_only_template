@@ -1,0 +1,72 @@
+{
+  "name": "Question",
+  "type": "object",
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "description": "Related task ID"
+    },
+    "question": {
+      "type": "string",
+      "description": "Student question"
+    },
+    "answer": {
+      "type": "string",
+      "description": "Mentor answer"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "answered"
+      ],
+      "default": "pending"
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Question attachment file URLs"
+    }
+  },
+  "required": [
+    "question"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

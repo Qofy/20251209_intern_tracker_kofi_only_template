@@ -1,0 +1,41 @@
+Schema Editor
+
+    date
+    (
+
+date, required)
+student_email
+(
+text, required)
+
+The email of the student this schedule is for.
+raw_text
+(
+text)
+parsed_schedule
+(
+array)
+
+    start_time
+    (
+
+text)
+end_time
+(
+text)
+activity
+(
+text)
+task_reference
+(
+
+    text)
+
+materials
+(
+array)
+
+created_by_mentor
+(
+boolean)
+Default: true

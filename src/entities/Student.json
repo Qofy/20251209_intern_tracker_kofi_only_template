@@ -1,0 +1,84 @@
+{
+  "name": "Student",
+  "type": "object",
+  "properties": {
+    "full_name": {
+      "type": "string",
+      "description": "Student's full name"
+    },
+    "student_email": {
+      "type": "string",
+      "description": "Student's email address"
+    },
+    "contract_hours": {
+      "type": "number",
+      "description": "Total contracted hours to complete"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Internship start date"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Internship end date"
+    },
+    "mentor_email": {
+      "type": "string",
+      "description": "Mentor/professor email"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "applicant",
+        "active",
+        "completed",
+        "paused"
+      ],
+      "default": "active"
+    }
+  },
+  "required": [
+    "full_name",
+    "student_email",
+    "contract_hours",
+    "start_date",
+    "mentor_email"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "mentor_email": "{{user.email}}"
+        },
+        {
+          "student_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "mentor_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

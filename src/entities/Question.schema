@@ -1,0 +1,28 @@
+Schema Editor
+
+    task_id
+    (
+
+text)
+
+Related task ID
+question
+(
+text, required)
+
+Student question
+answer
+(
+text)
+
+Mentor answer
+status
+(
+text)
+Default: "pending"
+Options: pending, answered
+attachments
+(
+array)
+
+Question attachment file URLs

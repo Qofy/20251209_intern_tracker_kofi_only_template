@@ -1,0 +1,94 @@
+{
+  "name": "Task",
+  "type": "object",
+  "properties": {
+    "task_number": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "due_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "assigned",
+        "in_progress",
+        "completed",
+        "reviewed"
+      ],
+      "default": "assigned"
+    },
+    "student_email": {
+      "type": "string",
+      "description": "The email of the student this task is assigned to."
+    },
+    "attached_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "completion_files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "completion_notes": {
+      "type": "string"
+    },
+    "code_snippet": {
+      "type": "string",
+      "description": "A code snippet or example related to the task."
+    }
+  },
+  "required": [
+    "task_number",
+    "title",
+    "description",
+    "student_email"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "student_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "student_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,41 @@
+Schema Editor
+
+    task_number
+    (
+
+text, required)
+title
+(
+text, required)
+description
+(
+text, required)
+due_date
+(
+date)
+status
+(
+text)
+Default: "assigned"
+Options: assigned, in_progress, completed, reviewed
+student_email
+(
+text, required)
+
+The email of the student this task is assigned to.
+attached_files
+(
+array)
+
+completion_files
+(
+array)
+
+completion_notes
+(
+text)
+code_snippet
+(
+text)
+
+A code snippet or example related to the task.

@@ -1,0 +1,35 @@
+Schema Editor
+
+    title
+    (
+
+text, required)
+
+The internal title for this contract template.
+description
+(
+text)
+
+A brief description of when to use this template.
+paragraphs
+(
+array, required)
+
+The paragraphs of the contract, allowing for reordering and editing.
+
+    id
+    (
+
+text)
+title_en
+(
+text)
+title_de
+(
+text)
+content_en
+(
+text)
+content_de
+(
+text)

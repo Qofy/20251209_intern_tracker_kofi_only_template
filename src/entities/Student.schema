@@ -1,0 +1,38 @@
+Schema Editor
+
+    full_name
+    (
+
+text, required)
+
+Student's full name
+student_email
+(
+text, required)
+
+Student's email address
+contract_hours
+(
+number, required)
+
+Total contracted hours to complete
+start_date
+(
+date, required)
+
+Internship start date
+end_date
+(
+date)
+
+Internship end date
+mentor_email
+(
+text, required)
+
+Mentor/professor email
+status
+(
+text)
+Default: "active"
+Options: applicant, active, completed, paused

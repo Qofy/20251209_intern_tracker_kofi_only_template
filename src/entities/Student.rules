@@ -1,0 +1,18 @@
+{
+  "$or": [
+    {
+      "created_by": "{{user.email}}"
+    },
+    {
+      "mentor_email": "{{user.email}}"
+    },
+    {
+      "student_email": "{{user.email}}"
+    },
+    {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  ]
+}

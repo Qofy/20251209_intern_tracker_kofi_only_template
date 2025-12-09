@@ -1,0 +1,84 @@
+{
+  "name": "Schedule",
+  "type": "object",
+  "properties": {
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "student_email": {
+      "type": "string",
+      "description": "The email of the student this schedule is for."
+    },
+    "raw_text": {
+      "type": "string"
+    },
+    "parsed_schedule": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "start_time": {
+            "type": "string"
+          },
+          "end_time": {
+            "type": "string"
+          },
+          "activity": {
+            "type": "string"
+          },
+          "task_reference": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "materials": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "created_by_mentor": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "date",
+    "student_email"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "student_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

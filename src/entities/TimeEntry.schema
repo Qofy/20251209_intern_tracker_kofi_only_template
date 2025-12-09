@@ -1,0 +1,95 @@
+Schema Editor
+
+    date
+    (
+
+date, required)
+
+Work date
+start_time
+(
+text)
+
+Start time (HH:mm format)
+end_time
+(
+text)
+
+End time (HH:mm format)
+break_start
+(
+text)
+
+Break start time
+break_end
+(
+text)
+
+Break end time
+manually_inputted_hours
+(
+number)
+
+Hours manually entered by student
+claimed_hours
+(
+number)
+
+Hours claimed by student for approval
+approved_hours
+(
+number)
+
+Hours approved by mentor
+work_description
+(
+text)
+
+Description of work completed
+task_reference
+(
+text)
+
+Reference to related task (e.g., TASK #056)
+proof_type
+(
+text)
+
+Type of proof provided
+Options: git, history, professor_proof, materials, meeting
+proof_files
+(
+array)
+
+URLs of proof files
+
+status
+(
+text)
+
+Overall entry status
+Default: "draft"
+Options: draft, submitted, approved, rejected
+claimed_status
+(
+text)
+
+Status of claimed hours
+Default: "draft"
+Options: draft, submitted, approved, rejected
+tracking_ended
+(
+boolean)
+
+Whether daily tracking has been ended
+Default: false
+submitted_at
+(
+date-time)
+
+When submitted for approval
+mentor_comments
+(
+text)
+
+Mentor feedback and comments

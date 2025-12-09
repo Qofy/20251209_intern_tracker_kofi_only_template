@@ -1,0 +1,24 @@
+Schema Editor
+
+    student_email
+    (
+
+text, required)
+
+The email of the student this document belongs to.
+document_type
+(
+text, required)
+
+The type of the document.
+Options: id, contract, visa, other
+description
+(
+text)
+
+A brief description of the document.
+file_url
+(
+text, required)
+
+URL of the uploaded file.

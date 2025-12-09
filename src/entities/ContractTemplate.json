@@ -1,0 +1,72 @@
+{
+  "name": "ContractTemplate",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "The internal title for this contract template."
+    },
+    "description": {
+      "type": "string",
+      "description": "A brief description of when to use this template."
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title_en": {
+            "type": "string"
+          },
+          "title_de": {
+            "type": "string"
+          },
+          "content_en": {
+            "type": "string"
+          },
+          "content_de": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "The paragraphs of the contract, allowing for reordering and editing."
+    }
+  },
+  "required": [
+    "title",
+    "paragraphs"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "mentor"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "name": "Application",
+  "type": "object",
+  "properties": {
+    "applicant_email": {
+      "type": "string",
+      "description": "The email of the applying user."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "viewed",
+        "approved",
+        "rejected"
+      ],
+      "default": "draft",
+      "description": "The current status of the application."
+    },
+    "student_data": {
+      "type": "object",
+      "properties": {
+        "full_name": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string"
+        },
+        "phone_number": {
+          "type": "string"
+        }
+      },
+      "description": "Personal information of the student applicant."
+    },
+    "documents": {
+      "type": "object",
+      "properties": {
+        "passport": {
+          "type": "string",
+          "description": "URL to the passport file"
+        },
+        "permit_to_stay": {
+          "type": "string",
+          "description": "URL to the Permit to Stay file"
+        },
+        "student_id": {
+          "type": "string",
+          "description": "URL to the Student ID file"
+        },
+        "university_form": {
+          "type": "string",
+          "description": "URL to the University Internship Form file"
+        },
+        "signed_contract": {
+          "type": "string",
+          "description": "URL to the signed contract file"
+        },
+        "anmeldung": {
+          "type": "string",
+          "description": "URL to the Anmeldung file"
+        },
+        "confirmation_letter": {
+          "type": "string",
+          "description": "URL to the Letter of Confirmation as Student file"
+        },
+        "visa": {
+          "type": "string",
+          "description": "URL to the VISA ID file"
+        }
+      },
+      "description": "Uploaded documents for the application."
+    },
+    "assigned_mentor": {
+      "type": "string",
+      "description": "Email of the mentor assigned to review this application."
+    }
+  },
+  "required": [
+    "applicant_email"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "applicant_email": "{{user.email}}"
+        },
+        {
+          "assigned_mentor": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "applicant_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
