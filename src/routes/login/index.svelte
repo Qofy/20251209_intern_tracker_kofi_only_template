@@ -1,317 +1,223 @@
 <script>
-  import { onMount } from 'svelte';
-  import { goto, page } from '@roxi$lib/routify-adapter.js';
-  import { validateEmail, RateLimiter } from '$lib/utils/validation';
-  import { AUTH_BASE_URL } from '$lib/utils/constants';
-  import { persistAuthSession } from '$lib/utils/auth';
-  import { User } from '$lib/services/user.service';
-  import { fetchPublicRegistrationStatus } from '$lib/services/securityService';
-  import { sha256Hex } from '$lib/utils/hash';
-
-  // Client-side rate limiting
-  const loginRateLimiter = new RateLimiter(5, 60000); // 5 attempts per minute
+  import { userStore } from '../../stores/userStore';
+  import { goto } from '@roxi/routify';
 
   let email = '';
   let password = '';
-  let loading = false;
+  let isLoading = false;
   let error = '';
-  let fieldErrors = {};
-  let registrationStatus = {
-    loading: true,
-    canRegister: true,
-    inviteRequired: false,
-    message: '',
-    mode: 'public'
-  };
-  let registrationStatusError = '';
-  let legacyUpgradeRequired = false;
-
-  $: redirectTo = $page?.params?.redirectTo || '/dashboard';
-
-  onMount(() => {
-    let active = true;
-
-    const loadRegistrationStatus = async () => {
-      registrationStatus = { ...registrationStatus, loading: true };
-      try {
-        const data = await fetch('auth/registration-settings',{
-          headers: {Accept: 'application/json'}
-        }).then(r =>r.json());
-       if (!active) return;
- registrationStatus = {
-  loading: false,
-  canRegister: data?.can_register !== false,
-  inviteRequired: !!data?.invite_required,
-  message: data?.message || '',
-  mode:
-    data?.mode ||
-    (data?.invite_required
-      ? 'invite_only'
-      : data?.registration_open !== false
-        ? 'public'
-        : 'closed')
-};
-
-registrationStatusError = ''; 
-      } catch (statusErr) {
-        if (!active) return;
-        registrationStatus = { ...registrationStatus, loading: false };
-        registrationStatusError = statusErr.message || 'Unable to verify registration status.';
-      }
-    };
-
-    loadRegistrationStatus();
-    return () => {
-      active = false;
-    };
-  });
-
-  function validateForm() {
-    const errors = {};
-
-    // Validate email
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.valid) {
-      errors.email = emailValidation.error;
-    }
-
-    // Basic password validation for login (not strength, just presence)
-    if (!password) {
-      errors.password = 'Password is required';
-    } else if (password.length > 128) {
-      errors.password = 'Password is too long';
-    }
-
-    fieldErrors = errors;
-    return Object.keys(errors).length === 0;
-  }
-
-  async function attemptLogin({ useLegacy, sanitizedEmail }) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    const loginUrl = '/auth/login';
-    const payload =
-      useLegacy || legacyUpgradeRequired
-        ? {
-            email: sanitizedEmail,
-            password
-          }
-        : {
-            hashed_email: await sha256Hex(sanitizedEmail),
-            hashed_password: await sha256Hex(password)
-          };
-
-    const res = await fetch(loginUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal
-    });
-    clearTimeout(timeoutId);
-    const data = await res.json().catch(() => ({ error: 'Login failed' }));
-
-    if (!res.ok) {
-      if (!useLegacy && res.status === 409 && data?.upgrade_required) {
-        legacyUpgradeRequired = true;
-        return attemptLogin({ useLegacy: true, sanitizedEmail });
-      }
-      throw new Error(data.error || 'Login failed');
-    }
-
-    if (!data.token) {
-      throw new Error('No token received');
-    }
-
-    legacyUpgradeRequired = useLegacy || legacyUpgradeRequired;
-    return data;
-  }
+  let showSignup = false;
+  let signupData = { email: '', password: '', full_name: '', role: 'student' };
 
   async function handleSubmit(e) {
     e.preventDefault();
+    isLoading = true;
     error = '';
-    fieldErrors = {};
-
-    // Client-side validation
-    if (!validateForm()) {
-      return;
-    }
-
-    const sanitizedEmail = validateEmail(email).value;
-
-    // Rate limiting
-    if (!loginRateLimiter.canAttempt()) {
-      const remainingTime = Math.ceil(loginRateLimiter.getRemainingTime() / 1000);
-      error = `Too many login attempts. Please wait ${remainingTime} seconds.`;
-      return;
-    }
-
-    loading = true;
 
     try {
-      loginRateLimiter.recordAttempt();
-      const data = await attemptLogin({ useLegacy: false, sanitizedEmail });
-      persistAuthSession({
-        token: data.token,
-        email: validateEmail(email).value,
-        claims: data.claims,
-        user: data.user
-      });
-      if (data.user || data.claims) {
-        await User.syncAuthUser({
-          id: data.user?.id || data.claims?.sub,
-          email: data.user?.email || validateEmail(email).value,
-          name: data.user?.name,
-          roles: data.user?.roles || data.claims?.roles
-        });
-      }
-      loginRateLimiter.reset();
-      $goto(redirectTo);
+      await userStore.login(email, password);
+      await userStore.loadUserAndRole();
+      $goto('/dashboard');
     } catch (err) {
-      if (err.name === 'AbortError') {
-        error = 'Request timed out. Please check your connection and try again.';
-      } else {
-        error = err.message;
-      }
+      error = err.message || 'Login failed';
     } finally {
-      loading = false;
+      isLoading = false;
     }
   }
 
-  $: registrationMode = registrationStatus.mode;
-  $: registrationClosed = registrationMode === 'closed';
-  $: inviteOnlyMode = registrationMode === 'invite_only';
-  $: registrationUnavailable =
-    !registrationStatus.loading && (registrationClosed || !registrationStatus.canRegister);
-  $: registerButtonLabel = registrationClosed
-    ? 'Registration Closed'
-    : inviteOnlyMode
-      ? 'Invite Only'
-      : 'Register account';
-  $: registrationMessage = registrationClosed
-    ? registrationStatus.message || 'Registration is currently disabled.'
-    : inviteOnlyMode
-      ? registrationStatus.message || 'Registration is by private invite only.'
-      : registrationStatus.message || 'Registration is currently disabled.';
+  async function handleSignup(e) {
+    e.preventDefault();
+    isLoading = true;
+    error = '';
+
+    try {
+      await userStore.register(signupData);
+      showSignup = false;
+      await userStore.loadUserAndRole();
+      $goto('/dashboard');
+    } catch (err) {
+      error = err.message || 'Registration failed';
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function quickLogin(userType) {
+    const credentials = {
+      admin: { email: 'admin@example.com', password: 'admin123' },
+      mentor: { email: 'mentor@example.com', password: 'mentor123' },
+      student: { email: 'student@example.com', password: 'student123' }
+    };
+
+    const cred = credentials[userType];
+    email = cred.email;
+    password = cred.password;
+  }
 </script>
 
-<svelte:head>
-  <title>Login - QuoteFlow</title>
-</svelte:head>
-
-<div class="min-h-screen bg-[#e0e0e0] flex items-center justify-center p-6">
-  <div class="neumorphic-card p-8 max-w-md w-full">
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+  <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl w-full max-w-md">
     <div class="text-center mb-8">
-      <h1 class="text-3xl font-bold text-primary mb-2">Login</h1>
-      <p class="text-secondary">Please sign in to continue</p>
+      <h1 class="text-3xl font-bold text-white mb-2">WorkTracker</h1>
+      <p class="text-white/70">Intern Hours Manager</p>
     </div>
-
-    {#if error}
-      <div class="neumorphic-inset bg-red-50 text-red-500 p-4 mb-6 rounded-xl text-sm">
-        {error}
-      </div>
-    {/if}
-    {#if legacyUpgradeRequired}
-      <div class="neumorphic-inset bg-amber-50 text-amber-700 p-3 mb-4 rounded-xl text-xs">
-        We detected an older credential format. Click Sign In again to perform a one-time secure
-        upgrade.
-      </div>
-    {/if}
 
     <form on:submit={handleSubmit} class="space-y-6">
       <div>
-        <label class="block text-sm font-medium text-primary mb-2"> Email Address </label>
-        <div class="neumorphic-inset p-3 {fieldErrors.email ? 'border-2 border-red-400' : ''}">
-          <input
-            type="email"
-            bind:value={email}
-            on:input={() => {
-              fieldErrors = { ...fieldErrors, email: null };
-              legacyUpgradeRequired = false;
-            }}
-            on:blur={() => {
-              const validation = validateEmail(email);
-              if (!validation.valid) {
-                fieldErrors = { ...fieldErrors, email: validation.error };
-              }
-            }}
-            class="w-full bg-transparent outline-none text-primary placeholder-secondary"
-            placeholder="you@example.com"
-            required
-            autocomplete="email"
-            maxlength="254"
-          />
-        </div>
-        {#if fieldErrors.email}
-          <p class="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
-        {/if}
+        <label class="block text-white/80 text-sm font-medium mb-2">
+          Email
+        </label>
+        <input
+          type="email"
+          bind:value={email}
+          class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          placeholder="Enter your email"
+          required
+        />
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-primary mb-2"> Password </label>
-        <div class="neumorphic-inset p-3 {fieldErrors.password ? 'border-2 border-red-400' : ''}">
-          <input
-            type="password"
-            bind:value={password}
-            on:input={() => {
-              fieldErrors = { ...fieldErrors, password: null };
-              legacyUpgradeRequired = false;
-            }}
-            class="w-full bg-transparent outline-none text-primary placeholder-secondary"
-            placeholder="••••••••"
-            required
-            autocomplete="current-password"
-            maxlength="128"
-          />
-        </div>
-        {#if fieldErrors.password}
-          <p class="text-red-500 text-xs mt-1">{fieldErrors.password}</p>
-        {/if}
+        <label class="block text-white/80 text-sm font-medium mb-2">
+          Password
+        </label>
+        <input
+          type="password"
+          bind:value={password}
+          class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+          placeholder="Enter your password"
+          required
+        />
       </div>
+
+      {#if error}
+        <div class="text-red-400 text-sm text-center">
+          {error}
+        </div>
+      {/if}
 
       <button
         type="submit"
-        disabled={loading}
-        class="neumorphic-button w-full py-3 text-primary font-medium transition-all duration-200"
+        disabled={isLoading}
+        class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-6 rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50"
       >
-        {loading ? 'Signing in...' : 'Sign In'}
+        {isLoading ? 'Signing in...' : 'Sign In'}
       </button>
+    </form>
 
-      <p class="text-sm text-secondary text-center mt-4">
+    <div class="mt-6 text-center">
+      <p class="text-white/60 text-sm mb-4">
+        Don't have an account?{' '}
         <button
-          type="button"
-          on:click={() => $goto('/register')}
-          class="text-primary hover:underline {registrationUnavailable
-            ? 'opacity-60 cursor-not-allowed'
-            : ''}"
-          disabled={registrationClosed || registrationUnavailable}
-          title={registrationUnavailable ? registrationMessage : undefined}
+          on:click={() => showSignup = true}
+          class="text-purple-300 hover:text-purple-200 underline"
         >
-          {registerButtonLabel}
-        </button>
-        {' · '}
-        <button
-          type="button"
-          on:click={() => $goto('/forgot-password')}
-          class="text-primary hover:underline"
-        >
-          Forgot Password?
+          Sign up here
         </button>
       </p>
-    </form>
-  </div>
-  {#if registrationStatus.loading}
-    <p class="text-xs text-secondary text-center mt-4">Checking registration availability...</p>
-  {/if}
-  {#if !registrationStatus.loading && registrationUnavailable}
-    <div
-      class="neumorphic-inset bg-amber-50 text-amber-700 p-4 mt-4 rounded-xl text-sm text-center"
-    >
-      {registrationMessage}
     </div>
-  {/if}
-  {#if registrationStatusError}
-    <p class="text-xs text-amber-600 text-center mt-3">
-      {registrationStatusError}
-    </p>
+
+    <div class="mt-4 pt-6 border-t border-white/20">
+      <p class="text-white/60 text-sm text-center mb-4">Quick Login (Demo)</p>
+      <div class="grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          on:click={() => quickLogin('admin')}
+          class="bg-red-500/20 text-red-300 px-3 py-2 rounded-lg text-xs hover:bg-red-500/30 transition-colors"
+        >
+          Admin
+        </button>
+        <button
+          type="button"
+          on:click={() => quickLogin('mentor')}
+          class="bg-blue-500/20 text-blue-300 px-3 py-2 rounded-lg text-xs hover:bg-blue-500/30 transition-colors"
+        >
+          Mentor
+        </button>
+        <button
+          type="button"
+          on:click={() => quickLogin('student')}
+          class="bg-green-500/20 text-green-300 px-3 py-2 rounded-lg text-xs hover:bg-green-500/30 transition-colors"
+        >
+          Student
+        </button>
+      </div>
+    </div>
+  </div>
+
+  {#if showSignup}
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl w-full max-w-md mx-4">
+        <h2 class="text-2xl font-bold text-white mb-6 text-center">Create Account</h2>
+
+        <form on:submit={handleSignup} class="space-y-4">
+          <div>
+            <label class="block text-white/80 text-sm font-medium mb-2">Full Name</label>
+            <input
+              type="text"
+              bind:value={signupData.full_name}
+              class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Enter your full name"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-white/80 text-sm font-medium mb-2">Email</label>
+            <input
+              type="email"
+              bind:value={signupData.email}
+              class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Enter your email"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-white/80 text-sm font-medium mb-2">Password</label>
+            <input
+              type="password"
+              bind:value={signupData.password}
+              class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              placeholder="Enter your password"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-white/80 text-sm font-medium mb-2">Role</label>
+            <select
+              bind:value={signupData.role}
+              class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+            >
+              <option value="student" class="bg-gray-800">Student</option>
+              <option value="mentor" class="bg-gray-800">Mentor</option>
+            </select>
+          </div>
+
+          {#if error}
+            <div class="text-red-400 text-sm text-center">
+              {error}
+            </div>
+          {/if}
+
+          <div class="flex gap-3">
+            <button
+              type="button"
+              on:click={() => showSignup = false}
+              class="flex-1 bg-gray-600 text-white font-semibold py-3 px-6 rounded-xl hover:bg-gray-700 transition-all duration-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isLoading}
+              class="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold py-3 px-6 rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all duration-200 disabled:opacity-50"
+            >
+              {isLoading ? 'Creating...' : 'Sign Up'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   {/if}
 </div>
