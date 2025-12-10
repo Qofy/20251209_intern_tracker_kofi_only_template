@@ -4,12 +4,15 @@
   import { userStore } from '../stores/userStore';
 
   onMount(async () => {
-    // Wait a moment for the store to initialize
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Check if already logged in
+    const token = localStorage.getItem('auth_token');
+    const offlineRole = localStorage.getItem('offline_role');
 
-    if ($userStore.user) {
+    if (token || offlineRole) {
+      // User is logged in, go to dashboard
       goto('/dashboard');
     } else {
+      // No auth, go to login
       goto('/login');
     }
   });
