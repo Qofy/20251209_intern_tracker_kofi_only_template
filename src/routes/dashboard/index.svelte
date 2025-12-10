@@ -1,7 +1,21 @@
 <script>
   import { userStore, isMentor, isStudent } from '../../stores/userStore';
   import { AlertTriangle } from 'lucide-svelte';
+
+  $: console.log('Dashboard - userStore:', $userStore);
+  $: console.log('Dashboard - isMentor:', $isMentor);
+  $: console.log('Dashboard - isStudent:', $isStudent);
 </script>
+
+<!-- Debug Info -->
+<div class="mb-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+  <p class="text-white text-sm">
+    <strong>Debug:</strong> Role = {$userStore.role || 'none'} |
+    User = {$userStore.user?.email || 'none'} |
+    isMentor = {$isMentor} |
+    isStudent = {$isStudent}
+  </p>
+</div>
 
 <div class="max-w-4xl">
   <!-- Mentor Dashboard -->

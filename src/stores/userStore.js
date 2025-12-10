@@ -19,7 +19,7 @@ function createUserStore() {
       update(state => ({ ...state, isLoading: true }));
 
       // Check for offline mode
-      const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+      const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
 
       if (offlineMode) {
         console.log('Running in offline mode with mock data');
@@ -129,7 +129,7 @@ function createUserStore() {
     },
 
     login: async (email, password) => {
-      const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+      const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
 
       if (offlineMode) {
         console.log('Offline mode login with:', email);

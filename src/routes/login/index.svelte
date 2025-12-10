@@ -11,13 +11,17 @@
 
   const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
 
+  console.log('Login page - VITE_OFFLINE_MODE:', import.meta.env.VITE_OFFLINE_MODE);
+  console.log('Login page - offlineMode:', offlineMode);
+
   async function handleSubmit(e) {
     e.preventDefault();
     isLoading = true;
     error = '';
 
     try {
-      console.log('Login: Starting login...');
+      console.log('Login: Starting login with email:', email);
+      console.log('Login: offlineMode =', offlineMode);
       await userStore.login(email, password);
       console.log('Login: Login complete, loading user...');
       await userStore.loadUserAndRole();
@@ -50,7 +54,7 @@
     }
   }
 
-  function quickLogin(userType) {
+  async function quickLogin(userType) {
     const credentials = {
       admin: { email: 'admin@example.com', password: 'admin123' },
       mentor: { email: 'mentor@example.com', password: 'mentor123' },
@@ -60,6 +64,28 @@
     const cred = credentials[userType];
     email = cred.email;
     password = cred.password;
+
+    // Auto-submit after setting credentials
+    console.log('Quick login clicked for:', userType);
+    isLoading = true;
+    error = '';
+
+    try {
+      console.log('Login: Starting login with email:', email);
+      console.log('Login: offlineMode =', offlineMode);
+      await userStore.login(email, password);
+      console.log('Login: Login complete, loading user...');
+      await userStore.loadUserAndRole();
+      console.log('Login: User loaded, user store:', $userStore);
+
+      // Use window.location for navigation to force a full page load
+      window.location.href = '/dashboard';
+    } catch (err) {
+      console.error('Login error:', err);
+      error = err.message || 'Login failed';
+    } finally {
+      isLoading = false;
+    }
   }
 </script>
 

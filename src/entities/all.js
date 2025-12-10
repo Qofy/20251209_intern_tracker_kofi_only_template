@@ -4,7 +4,7 @@ import apiClient from '../api/client';
 export class User {
   static async me() {
     // Return mock user data for offline mode
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return {
         id: 1,
@@ -20,7 +20,7 @@ export class User {
 export class Student {
   static async list() {
     // Return mock data for offline mode
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return [];
     }
@@ -29,7 +29,7 @@ export class Student {
 
   static async filter(params) {
     // Return mock data for offline mode
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return [];
     }
@@ -51,7 +51,7 @@ export class Student {
 
 export class Task {
   static async list(params = {}) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return [
         { id: 1, title: 'Complete project documentation', description: 'Write comprehensive docs', status: 'in_progress', due_date: '2024-12-15', priority: 'high' },
@@ -64,7 +64,7 @@ export class Task {
   }
 
   static async create(data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock create task', data);
       return { id: Date.now(), ...data, status: 'pending' };
@@ -73,7 +73,7 @@ export class Task {
   }
 
   static async update(id, data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock update task', id, data);
       return { id, ...data };
@@ -82,10 +82,10 @@ export class Task {
   }
 
   static async delete(id) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock delete task', id);
-      return { success: true };
+      return { success: false };
     }
     return apiClient.deleteTask(id);
   }
@@ -93,7 +93,7 @@ export class Task {
 
 export class TimeEntry {
   static async list(params = {}) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       // Generate mock time entries for the past 30 days
       const entries = [];
@@ -127,7 +127,7 @@ export class TimeEntry {
   }
 
   static async filter(params = {}) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       const allEntries = await this.list();
       // Simple filter by status if provided
@@ -140,7 +140,7 @@ export class TimeEntry {
   }
 
   static async create(data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock create time entry', data);
       return { id: Date.now(), ...data, status: 'draft' };
@@ -149,7 +149,7 @@ export class TimeEntry {
   }
 
   static async update(id, data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock update time entry', id, data);
       return { id, ...data };
@@ -158,10 +158,10 @@ export class TimeEntry {
   }
 
   static async delete(id) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock delete time entry', id);
-      return { success: true };
+      return { success: false };
     }
     return apiClient.deleteTimeEntry(id);
   }
@@ -169,7 +169,7 @@ export class TimeEntry {
 
 export class Schedule {
   static async list(params = {}) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return [
         { id: 1, title: 'Team Meeting', date: '2024-12-15', start_time: '10:00', end_time: '11:00', type: 'meeting' },
@@ -181,7 +181,7 @@ export class Schedule {
   }
 
   static async create(data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock create schedule', data);
       return { id: Date.now(), ...data };
@@ -190,7 +190,7 @@ export class Schedule {
   }
 
   static async update(id, data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock update schedule', id, data);
       return { id, ...data };
@@ -199,10 +199,10 @@ export class Schedule {
   }
 
   static async delete(id) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock delete schedule', id);
-      return { success: true };
+      return { success: false };
     }
     return apiClient.deleteSchedule(id);
   }
@@ -210,7 +210,7 @@ export class Schedule {
 
 export class Question {
   static async list() {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return [
         { id: 1, question: 'How was your day?', type: 'daily' },
@@ -222,7 +222,7 @@ export class Question {
   }
 
   static async create(data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock create question', data);
       return { id: Date.now(), ...data };
@@ -231,7 +231,7 @@ export class Question {
   }
 
   static async update(id, data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock update question', id, data);
       return { id, ...data };
@@ -240,10 +240,10 @@ export class Question {
   }
 
   static async delete(id) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock delete question', id);
-      return { success: true };
+      return { success: false };
     }
     return apiClient.deleteQuestion(id);
   }
@@ -251,7 +251,7 @@ export class Question {
 
 export class StudentDocument {
   static async list(params = {}) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return [
         { id: 1, name: 'Contract.pdf', type: 'contract', uploaded_date: '2024-12-01', size: '245 KB' },
@@ -263,7 +263,7 @@ export class StudentDocument {
   }
 
   static async create(data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock upload document', data);
       return { id: Date.now(), ...data, uploaded_date: new Date().toISOString() };
@@ -272,10 +272,10 @@ export class StudentDocument {
   }
 
   static async delete(id) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock delete document', id);
-      return { success: true };
+      return { success: false };
     }
     return apiClient.deleteDocument(id);
   }
@@ -283,7 +283,7 @@ export class StudentDocument {
 
 export class Application {
   static async list(params = {}) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return [
         { id: 1, company: 'Tech Corp', position: 'Software Intern', status: 'pending', applied_date: '2024-11-20' },
@@ -295,7 +295,7 @@ export class Application {
   }
 
   static async create(data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock create application', data);
       return { id: Date.now(), ...data, status: 'pending' };
@@ -304,7 +304,7 @@ export class Application {
   }
 
   static async update(id, data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock update application', id, data);
       return { id, ...data };
@@ -313,10 +313,10 @@ export class Application {
   }
 
   static async delete(id) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock delete application', id);
-      return { success: true };
+      return { success: false };
     }
     return apiClient.request(`/applications/${id}`, { method: 'DELETE' });
   }
@@ -324,7 +324,7 @@ export class Application {
 
 export class ContractTemplate {
   static async list(params = {}) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       return [
         { id: 1, name: 'Standard Internship Contract', hours: 600, duration: '6 months' },
@@ -335,7 +335,7 @@ export class ContractTemplate {
   }
 
   static async create(data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock create contract template', data);
       return { id: Date.now(), ...data };
@@ -344,7 +344,7 @@ export class ContractTemplate {
   }
 
   static async update(id, data) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock update contract template', id, data);
       return { id, ...data };
@@ -353,7 +353,7 @@ export class ContractTemplate {
   }
 
   static async delete(id) {
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
     if (offlineMode) {
       console.log('Offline mode: mock delete contract template', id);
       return { success: true };
