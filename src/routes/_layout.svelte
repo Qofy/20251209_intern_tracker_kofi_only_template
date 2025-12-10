@@ -108,75 +108,71 @@
   </div>
 {:else}
   <!-- Main layout -->
-  <div class="min-h-screen relative overflow-hidden">
-    <!-- Background gradients -->
-    <div class="fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
-      <div class="absolute inset-0 bg-gradient-to-tr from-cyan-400/20 via-transparent to-emerald-400/20"></div>
-      <div class="absolute top-20 left-20 w-96 h-96 bg-blue-400/30 rounded-full blur-3xl"></div>
-      <div class="absolute bottom-20 right-20 w-80 h-80 bg-purple-400/30 rounded-full blur-3xl"></div>
-      <div class="absolute top-1/2 left-1/2 w-64 h-64 bg-pink-400/20 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
-    </div>
-
-    <div class="relative z-10 flex min-h-screen">
-      <!-- Sidebar -->
-      <aside class="w-64 p-6">
-        <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl h-full flex flex-col">
-          <!-- Logo and user info -->
-          <div class="mb-8 text-center">
-            <div class="w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-              <Clock class="w-8 h-8 text-white" />
-            </div>
-            <h1 class="text-xl font-bold text-white">WorkTracker</h1>
-            <p class="text-white/70 text-sm">Intern Hours Manager</p>
-            {#if user}
-              <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
-                <p class="text-white/80 text-sm font-medium">
-                  {user.full_name || user.email}
-                </p>
-                <p class="text-white/60 text-xs capitalize">
-                  {role} Account
-                </p>
-              </div>
-            {/if}
+  <div class="min-h-screen bg-gray-100 flex">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white shadow-lg flex flex-col">
+      <!-- Logo and branding -->
+      <div class="p-6 border-b border-gray-200">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+            <Clock class="w-6 h-6 text-white" />
           </div>
-
-          <!-- Student Selector -->
-          <StudentSelector />
-
-          <!-- Navigation -->
-          <nav class="space-y-2 flex-1">
-            {#if !isLoading}
-              {#each visibleNavItems as item (item.title)}
-                <a
-                  href={item.url}
-                  on:click|preventDefault={() => $goto(item.url)}
-                  class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {$isActive(item.url)
-                    ? 'bg-white/20 text-white border border-white/30 shadow-lg'
-                    : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-                >
-                  <svelte:component this={item.icon} class="w-5 h-5" />
-                  <span class="font-medium">{item.title}</span>
-                </a>
-              {/each}
-            {/if}
-          </nav>
-
-          <!-- Logout Button -->
-          {#if user}
-            <div class="mt-4 pt-4 border-t border-white/20">
-              <LogoutButton />
-            </div>
-          {/if}
+          <div>
+            <h1 class="text-lg font-bold text-gray-900">WorkTracker</h1>
+            <p class="text-xs text-gray-500">Intern Manager</p>
+          </div>
         </div>
-      </aside>
 
-      <!-- Main Content -->
-      <main class="flex-1 p-6">
-        <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full overflow-auto">
-          <slot />
+        {#if user}
+          <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <p class="text-sm font-semibold text-gray-900 truncate">
+              {user.full_name || user.email}
+            </p>
+            <p class="text-xs text-gray-500 capitalize">
+              {role} Account
+            </p>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Student Selector -->
+      <div class="px-4 py-3 border-b border-gray-200">
+        <StudentSelector />
+      </div>
+
+      <!-- Navigation -->
+      <nav class="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
+        {#if !isLoading}
+          {#each visibleNavItems as item (item.title)}
+            <a
+              href={item.url}
+              on:click|preventDefault={() => $goto(item.url)}
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {$isActive(item.url)
+                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
+                : 'text-gray-700 hover:bg-gray-100'}"
+            >
+              <svelte:component this={item.icon} class="w-5 h-5" />
+              <span class="font-medium text-sm">{item.title}</span>
+            </a>
+          {/each}
+        {/if}
+      </nav>
+
+      <!-- Logout Button -->
+      {#if user}
+        <div class="p-4 border-t border-gray-200">
+          <LogoutButton />
         </div>
-      </main>
-    </div>
+      {/if}
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 overflow-auto">
+      <div class="p-8">
+        <slot />
+      </div>
+    </main>
+  </div>
 
     <!-- Debug Info -->
     <DebugInfo />
