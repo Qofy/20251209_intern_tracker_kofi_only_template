@@ -3,7 +3,6 @@
   import { TimeEntry } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import { format, subDays, parseISO, differenceInBusinessDays } from 'date-fns';
-  import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
   import Button from '../../lib/components/ui/button/button.svelte';
   import Input from '../../lib/components/ui/input/input.svelte';
   import Label from '../../lib/components/ui/label/label.svelte';
@@ -106,7 +105,6 @@
         text-shadow: none !important;
         border-color: #ccc !important;
       }
-      .recharts-wrapper { display: none; }
     }
     @page { size: A4; margin: 0; }
   </style>
@@ -165,24 +163,29 @@
       </div>
     </div>
 
-    <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg h-96 no-print">
-      <h3 class="text-xl font-bold text-white mb-4">Hours Overview</h3>
-      <ResponsiveContainer width="100%" height="90%">
-        <BarChart
-          data={filteredEntries.map(entry => ({ date: entry.date, hours: entry.approved_hours }))}
-          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-        >
-          <CartesianGrid strokeDasharray="3 3" stroke="#4a4a4a" />
-          <XAxis dataKey="date" stroke="#e0e0e0" />
-          <YAxis stroke="#e0e0e0" />
-          <Tooltip
-            contentStyle={{ backgroundColor: 'rgba(0,0,0,0.7)', border: 'none', color: 'white' }}
-            itemStyle={{ color: 'white' }}
-          />
-          <Legend />
-          <Bar dataKey="hours" fill="#facc15" name="Approved Hours" />
-        </BarChart>
-      </ResponsiveContainer>
+    <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg no-print">
+      <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <BarChart3 class="w-6 h-6 text-amber-400" />
+        Hours Overview
+      </h3>
+      <div class="space-y-3 max-h-80 overflow-y-auto">
+        {#each filteredEntries.slice(0, 30) as entry}
+          {@const maxHours = Math.max(...filteredEntries.map(e => e.approved_hours || 0), 8)}
+          {@const percentage = ((entry.approved_hours || 0) / maxHours) * 100}
+          <div class="group">
+            <div class="flex items-center gap-3">
+              <span class="text-white/60 text-sm w-24 shrink-0">{entry.date}</span>
+              <div class="flex-1 bg-white/5 rounded-lg h-8 relative overflow-hidden border border-white/10">
+                <div
+                  class="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-lg transition-all duration-500 group-hover:from-amber-300 group-hover:to-orange-400"
+                  style="width: {percentage}%"
+                ></div>
+              </div>
+              <span class="text-white font-semibold w-12 text-right">{entry.approved_hours || 0}h</span>
+            </div>
+          </div>
+        {/each}
+      </div>
     </div>
 
     <!-- Print Table -->

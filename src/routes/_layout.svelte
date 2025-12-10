@@ -1,4 +1,5 @@
 <script>
+  console.log('_layout.svelte: Script is executing!');
   import '../app.css';
   import { onMount } from 'svelte';
   import { goto, isActive } from '@roxi/routify';
@@ -64,15 +65,37 @@
   })();
 
   onMount(async () => {
-    await userStore.loadUserAndRole();
+    console.log('_layout onMount: START');
+    console.log('_layout onMount: localStorage.auth_token =', localStorage.getItem('auth_token'));
+    console.log('_layout onMount: localStorage.offline_role =', localStorage.getItem('offline_role'));
+    console.log('_layout onMount: current userStore =', $userStore);
 
+    // Always try to load user on mount if not logged in
     if (!$userStore.user) {
+      console.log('_layout: Loading user on mount...');
+      await userStore.loadUserAndRole();
+      console.log('_layout: User loaded, user =', $userStore.user);
+    } else {
+      console.log('_layout: User already loaded, skipping loadUserAndRole');
+    }
+
+    // Check if we need to redirect after loading completes
+    if (!$userStore.user) {
+      console.log('_layout: No user found, redirecting to login');
       $goto('/login');
+    } else {
+      console.log('_layout: User found, staying on current page');
     }
   });
 
   // Check if current path is login page
   $: isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
+
+  $: {
+    console.log('_layout: isLoginPage =', isLoginPage);
+    console.log('_layout: pathname =', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
+    console.log('_layout: userStore =', $userStore);
+  }
 </script>
 
 {#if isLoginPage}

@@ -6,7 +6,6 @@
   import ProgressCard from '../../lib/components/dashboard/ProgressCard.svelte';
   import QuickActions from '../../lib/components/dashboard/QuickActions.svelte';
   import { Clock, Calendar, CheckCircle2, TrendingUp, Star, AlertTriangle } from 'lucide-svelte';
-  import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
   let timeEntries = [];
   let currentStatus = 'not_started';
@@ -20,16 +19,32 @@
   };
   let isLoading = true;
 
+  console.log('Dashboard script: EXECUTING');
+
   $: selectedStudent = $userStore.selectedStudent;
   $: student = $isMentor ? selectedStudent : selectedStudent;
 
+  $: {
+    console.log('Dashboard reactive: userStore =', $userStore);
+    console.log('Dashboard reactive: selectedStudent =', selectedStudent);
+    console.log('Dashboard reactive: student =', student);
+    console.log('Dashboard reactive: isMentor =', $isMentor);
+    console.log('Dashboard reactive: isLoading =', $userStore.isLoading);
+  }
+
   onMount(() => {
+    console.log('Dashboard onMount: START');
+    console.log('Dashboard onMount: student =', student);
+    console.log('Dashboard onMount: userStore.isLoading =', $userStore.isLoading);
     if (student) {
       loadData();
+    } else {
+      console.log('Dashboard onMount: No student, skipping loadData');
     }
   });
 
   $: if (student) {
+    console.log('Dashboard reactive: student changed, loading data');
     loadData();
   }
 
@@ -120,7 +135,11 @@
   }
 </script>
 
-{#if isLoading}
+{#if $userStore.isLoading}
+  <div class="p-8 text-white text-center">
+    <p class="text-lg">Loading user data...</p>
+  </div>
+{:else if isLoading}
   <div class="p-8 text-white text-center">
     <p class="text-lg">Loading dashboard...</p>
   </div>

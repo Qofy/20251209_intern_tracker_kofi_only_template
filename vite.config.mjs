@@ -1,7 +1,6 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { getAliases } from "vite-aliases";
-import { sveltePreprocess } from 'svelte-preprocess';
 import path from "path";
 const aliases = getAliases();
 
@@ -58,9 +57,7 @@ export default defineConfig(({ mode }) => {
 		},
 		plugins: [
 			getAliases(),
-			svelte({
-				preprocess: sveltePreprocess()
-			})
+			svelte()
 		],
 		optimizeDeps: {
 			include: ["date-fns", "chart.js", "svelte-chartjs"],

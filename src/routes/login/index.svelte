@@ -9,16 +9,24 @@
   let showSignup = false;
   let signupData = { email: '', password: '', full_name: '', role: 'student' };
 
+  const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+
   async function handleSubmit(e) {
     e.preventDefault();
     isLoading = true;
     error = '';
 
     try {
+      console.log('Login: Starting login...');
       await userStore.login(email, password);
+      console.log('Login: Login complete, loading user...');
       await userStore.loadUserAndRole();
-      $goto('/dashboard');
+      console.log('Login: User loaded, user store:', $userStore);
+
+      // Use window.location for navigation to force a full page load
+      window.location.href = '/dashboard';
     } catch (err) {
+      console.error('Login error:', err);
       error = err.message || 'Login failed';
     } finally {
       isLoading = false;
@@ -56,10 +64,24 @@
 </script>
 
 <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+  {#if offlineMode}
+    <div class="fixed top-4 left-1/2 transform -translate-x-1/2 z-50">
+      <div class="bg-yellow-500/20 backdrop-blur-sm border border-yellow-500/30 text-yellow-100 px-4 py-2 rounded-lg text-sm flex items-center gap-2">
+        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+        <span>Offline Mode - Using Mock Data</span>
+      </div>
+    </div>
+  {/if}
+
   <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl w-full max-w-md">
     <div class="text-center mb-8">
       <h1 class="text-3xl font-bold text-white mb-2">WorkTracker</h1>
       <p class="text-white/70">Intern Hours Manager</p>
+      {#if offlineMode}
+        <p class="text-yellow-300 text-xs mt-2">Demo Mode - No Backend Required</p>
+      {/if}
     </div>
 
     <form on:submit={handleSubmit} class="space-y-6">

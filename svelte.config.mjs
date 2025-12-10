@@ -1,5 +1,3 @@
-import { sveltePreprocess } from 'svelte-preprocess';
-
 export default {
-  preprocess: sveltePreprocess()
+  // No preprocessor needed for basic Svelte 4 setup
 };
