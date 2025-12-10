@@ -51,9 +51,9 @@ function createUserStore() {
         };
 
         const mockStudents = [
-          { id: 1, student_email: 'student@example.com', full_name: 'Demo Student', mentor_email: 'mentor@example.com' },
-          { id: 2, student_email: 'john@example.com', full_name: 'John Doe', mentor_email: 'mentor@example.com' },
-          { id: 3, student_email: 'jane@example.com', full_name: 'Jane Smith', mentor_email: 'mentor@example.com' }
+          { id: 1, student_email: 'student@example.com', full_name: 'Demo Student', mentor_email: 'mentor@example.com', contract_hours: 600 },
+          { id: 2, student_email: 'john@example.com', full_name: 'John Doe', mentor_email: 'mentor@example.com', contract_hours: 600 },
+          { id: 3, student_email: 'jane@example.com', full_name: 'Jane Smith', mentor_email: 'mentor@example.com', contract_hours: 600 }
         ];
 
         const currentUser = mockUsers[storedRole];

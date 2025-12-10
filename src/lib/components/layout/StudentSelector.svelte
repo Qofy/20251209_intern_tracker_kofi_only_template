@@ -12,50 +12,35 @@
 </script>
 
 {#if ($isMentor || $isAdmin)}
-  {#if !studentsToShow || studentsToShow.length === 0}
-    <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-      <p class="text-gray-500 text-xs text-center">
-        {$isAdmin ? 'No students in system' : 'No students assigned'}
-      </p>
-    </div>
-  {:else}
-    <div>
-      <div class="flex items-center gap-2 mb-2">
-        {#if $isAdmin}
-          <Crown class="w-4 h-4 text-amber-600" />
-        {:else}
-          <Users class="w-4 h-4 text-gray-600" />
-        {/if}
-        <span class="text-gray-700 text-xs font-semibold">
-          {$isAdmin ? 'Admin View' : 'Select Student'}
+  <div class="space-y-3">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <User class="w-4 h-4 text-white/80" />
+        <span class="text-white/80 text-xs font-medium">
+          Student Management
         </span>
       </div>
+      <button class="text-white/60 hover:text-white text-xs">+ Add</button>
+    </div>
 
-      <div class="relative">
-        <select
-          value={selectedStudent?.id || ''}
-          on:change={handleChange}
-          class="w-full bg-white border border-gray-300 text-gray-900 rounded-lg px-3 py-2 pr-8 text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-        >
-          <option value="" disabled>Choose a student...</option>
-          {#each studentsToShow as student (student.id)}
-            <option value={student.id}>
-              {student.full_name}
-            </option>
-          {/each}
-        </select>
-        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-          <ChevronsUpDown class="w-4 h-4 text-gray-400" />
+    {#if !studentsToShow || studentsToShow.length === 0}
+      <div class="p-3 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm">
+        <div class="flex flex-col items-center gap-2">
+          <User class="w-8 h-8 text-white/40" />
+          <p class="text-white/60 text-xs text-center">
+            No students assigned
+          </p>
+          <button class="mt-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-lg transition-colors">
+            Create Contract
+          </button>
         </div>
       </div>
-
-      {#if $isAdmin && selectedStudent}
-        <div class="mt-2 p-2 bg-amber-50 rounded-lg border border-amber-200">
-          <p class="text-amber-700 text-xs font-medium">
-            Viewing as: {selectedStudent.full_name}
-          </p>
-        </div>
-      {/if}
-    </div>
-  {/if}
+    {:else}
+      <div>
+        <button class="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors">
+          Create Contract
+        </button>
+      </div>
+    {/if}
+  </div>
 {/if}

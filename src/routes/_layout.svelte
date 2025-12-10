@@ -108,27 +108,27 @@
   </div>
 {:else}
   <!-- Main layout -->
-  <div class="min-h-screen bg-gray-100 flex">
+  <div class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex">
     <!-- Sidebar -->
-    <aside class="w-64 bg-white shadow-lg flex flex-col">
+    <aside class="w-64 bg-gradient-to-b from-purple-900/40 to-purple-950/40 backdrop-blur-md border-r border-white/10 shadow-2xl flex flex-col">
       <!-- Logo and branding -->
-      <div class="p-6 border-b border-gray-200">
+      <div class="p-6 border-b border-white/10">
         <div class="flex items-center gap-3 mb-6">
-          <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-md" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-            <Clock class="w-6 h-6 text-white" />
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg bg-gradient-to-br from-orange-400 to-orange-500">
+            <Clock class="w-7 h-7 text-white" />
           </div>
           <div>
-            <h1 class="text-lg font-bold text-gray-900">WorkTracker</h1>
-            <p class="text-xs text-gray-500">Intern Manager</p>
+            <h1 class="text-lg font-bold text-white">WorkTracker</h1>
+            <p class="text-xs text-white/60">Intern Hours Manager</p>
           </div>
         </div>
 
         {#if user}
-          <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <p class="text-sm font-semibold text-gray-900 truncate">
+          <div class="p-3 bg-white/10 rounded-lg border border-white/20 backdrop-blur-sm">
+            <p class="text-sm font-semibold text-white truncate">
               {user.full_name || user.email}
             </p>
-            <p class="text-xs text-gray-500 capitalize">
+            <p class="text-xs text-white/60 capitalize">
               {role} Account
             </p>
           </div>
@@ -136,7 +136,7 @@
       </div>
 
       <!-- Student Selector -->
-      <div class="px-4 py-3 border-b border-gray-200">
+      <div class="px-4 py-3 border-b border-white/10">
         <StudentSelector />
       </div>
 
@@ -148,8 +148,8 @@
               href={item.url}
               on:click|preventDefault={() => $goto(item.url)}
               class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 {$isActive(item.url)
-                ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md'
-                : 'text-gray-700 hover:bg-gray-100'}"
+                ? 'bg-white/20 text-white shadow-md backdrop-blur-sm'
+                : 'text-white/80 hover:bg-white/10 hover:text-white'}"
             >
               <svelte:component this={item.icon} class="w-5 h-5" />
               <span class="font-medium text-sm">{item.title}</span>
@@ -160,7 +160,7 @@
 
       <!-- Logout Button -->
       {#if user}
-        <div class="p-4 border-t border-gray-200">
+        <div class="p-4 border-t border-white/10">
           <LogoutButton />
         </div>
       {/if}
@@ -172,9 +172,20 @@
         <slot />
       </div>
     </main>
+
+    <!-- Floating Action Buttons -->
+    <div class="fixed bottom-6 right-6 flex flex-col gap-3">
+      <button class="w-12 h-12 bg-orange-500 hover:bg-orange-600 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110">
+        <Settings class="w-6 h-6 text-white" />
+      </button>
+      <button class="w-12 h-12 bg-blue-500 hover:bg-blue-600 rounded-full flex items-center justify-center shadow-lg transition-all hover:scale-110">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+    </div>
   </div>
 
-    <!-- Debug Info -->
-    <DebugInfo />
-  </div>
+  <!-- Debug Info -->
+  <DebugInfo />
 {/if}
