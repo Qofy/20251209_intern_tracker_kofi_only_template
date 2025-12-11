@@ -1,41 +1,42 @@
 <script>
+  import { TrendingUp } from 'lucide-svelte';
+
+  export let title;
+  export let current;
+  export let total;
+  export let percentage;
   export let icon = null;
-  export let label = '';
-  export let value = '';
-  export let subtext = '';
-  export let color = 'blue';
+  export let color = 'bg-blue-500';
   export let trend = null;
-
-  const colorClasses = {
-    blue: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
-    green: 'bg-green-500/10 text-green-400 border-green-500/30',
-    purple: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
-    orange: 'bg-orange-500/10 text-orange-400 border-orange-500/30',
-    red: 'bg-red-500/10 text-red-400 border-red-500/30',
-    yellow: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30'
-  };
-
-  $: colorClass = colorClasses[color] || colorClasses.blue;
 </script>
 
-<div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 hover:border-white/20 transition-all">
+<div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg hover:shadow-xl transition-all duration-300">
   <div class="flex items-start justify-between mb-4">
-    <div class={`p-3 rounded-lg ${colorClass}`}>
+    <div class="{color} bg-opacity-20 border border-white/20 p-3 rounded-xl">
       {#if icon}
-        <svelte:component this={icon} class="w-6 h-6" />
+        <svelte:component this={icon} class="w-6 h-6 text-white" />
       {/if}
     </div>
     {#if trend}
-      <span class="text-sm {trend > 0 ? 'text-green-400' : trend < 0 ? 'text-red-400' : 'text-gray-400'}">
-        {trend > 0 ? '+' : ''}{trend}%
-      </span>
+      <div class="flex items-center gap-1 text-emerald-300 text-sm">
+        <TrendingUp class="w-4 h-4" />
+        <span>{trend}</span>
+      </div>
     {/if}
   </div>
-  <div>
-    <p class="text-white/60 text-sm mb-1">{label}</p>
-    <p class="text-2xl font-bold text-white mb-1">{value}</p>
-    {#if subtext}
-      <p class="text-white/40 text-xs">{subtext}</p>
-    {/if}
+
+  <h3 class="text-white/80 text-sm font-medium mb-2">{title}</h3>
+  <div class="flex items-baseline gap-2 mb-3">
+    <span class="text-2xl font-bold text-white">{current}</span>
+    <span class="text-white/60">/ {total}</span>
+    <span class="text-amber-400 text-lg font-semibold ml-2">{percentage}%</span>
+  </div>
+
+  <!-- Progress Bar -->
+  <div class="w-full bg-white/10 rounded-full h-2 border border-white/20">
+    <div
+      class="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full transition-all duration-500 shadow-lg"
+      style="width: {Math.min(percentage, 100)}%"
+    />
   </div>
 </div>
