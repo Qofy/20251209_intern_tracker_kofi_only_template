@@ -2,11 +2,10 @@
   import { onMount } from 'svelte';
   import { Student } from '../entities/all';
   import { userStore } from '../stores/userStore';
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Input from '../lib/components/ui/input/input.svelte';
-  import Label from '../lib/components/ui/label/label.svelte';
+  import Button from '$lib/components/ui/button/button.svelte';
+  import Input from '$lib/components/ui/input/input.svelte';
   import { Plus, User, Trash2, Edit } from 'lucide-svelte';
-  import Dialog from '../lib/components/ui/dialog/dialog.svelte';
+  import Dialog from '$lib/components/ui/dialog/dialog.svelte';
 
   $: user = $userStore.user;
 
@@ -184,14 +183,14 @@
         <div class="space-y-4 py-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <Label class="text-white/80">Full Name</Label>
+              <label class="text-white/80 block mb-2">Full Name</label>
               <Input
                 bind:value={formData.full_name}
                 class="bg-white/10 border-white/20 text-white"
               />
             </div>
             <div>
-              <Label class="text-white/80">Student Email</Label>
+              <label class="text-white/80 block mb-2">Student Email</label>
               <Input
                 type="email"
                 bind:value={formData.student_email}
@@ -201,7 +200,7 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <Label class="text-white/80">Contract Hours</Label>
+              <label class="text-white/80 block mb-2">Contract Hours</label>
               <Input
                 type="number"
                 bind:value={formData.contract_hours}
@@ -209,7 +208,7 @@
               />
             </div>
             <div>
-              <Label class="text-white/80">Mentor Email</Label>
+              <label class="text-white/80 block mb-2">Mentor Email</label>
               <Input
                 type="email"
                 bind:value={formData.mentor_email}
@@ -219,7 +218,7 @@
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <Label class="text-white/80">Start Date</Label>
+              <label class="text-white/80 block mb-2">Start Date</label>
               <Input
                 type="date"
                 bind:value={formData.start_date}
@@ -227,7 +226,7 @@
               />
             </div>
             <div>
-              <Label class="text-white/80">End Date</Label>
+              <label class="text-white/80 block mb-2">End Date</label>
               <Input
                 type="date"
                 bind:value={formData.end_date}

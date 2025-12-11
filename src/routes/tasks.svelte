@@ -2,11 +2,16 @@
   import { onMount } from 'svelte';
   import { Task, Question } from '../entities/all';
   import { userStore, isMentor } from '../stores/userStore';
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Input from '../lib/components/ui/input/input.svelte';
+  import Button from '$lib/components/ui/button.svelte';
+  import Input from '$lib/components/ui/input.svelte';
+  import Select from '$lib/components/ui/select.svelte';
+  import SelectTrigger from '../lib/components/ui/SelectTrigger.svelte';
+  import SelectContent from '../lib/components/ui/SelectContent.svelte';
+  import SelectItem from '../lib/components/ui/SelectItem.svelte';
+  import SelectValue from '$lib/components/ui/SelectValue.svelte';
   import { Plus, Search, Filter, CheckSquare } from 'lucide-svelte';
-  import TaskCard from '../lib/components/tasks/TaskCard.svelte';
-  import TaskForm from '../lib/components/tasks/TaskForm.svelte';
+  import TaskCard from '$lib/components/tasks/TaskCard.svelte';
+  import TaskForm from '$lib/components/tasks/Taskform.svelte';
 
   $: user = $userStore.user;
   $: selectedStudent = $userStore.selectedStudent;
@@ -136,13 +141,19 @@
           bind:value={searchTerm}
         />
       </div>
-      <select bind:value={statusFilter} class="w-[180px] bg-gray-700 border border-gray-600 text-white rounded-md p-2">
-        <option value="all">All ({statusCounts.all})</option>
-        <option value="assigned">Assigned ({statusCounts.assigned})</option>
-        <option value="in_progress">In Progress ({statusCounts.in_progress})</option>
-        <option value="completed">Completed ({statusCounts.completed})</option>
-        <option value="reviewed">Reviewed ({statusCounts.reviewed})</option>
-      </select>
+      <Select bind:value={statusFilter}>
+        <SelectTrigger class="w-[180px] bg-gray-700 border border-gray-600 text-white [&>span]:text-white">
+          <Filter class="w-4 h-4 mr-2 text-gray-400" />
+          <SelectValue placeholder="Filter by Status" />
+        </SelectTrigger>
+        <SelectContent class="bg-gray-800 border border-gray-700 text-white">
+          <SelectItem value="all">All ({statusCounts.all})</SelectItem>
+          <SelectItem value="assigned">Assigned ({statusCounts.assigned})</SelectItem>
+          <SelectItem value="in_progress">In Progress ({statusCounts.in_progress})</SelectItem>
+          <SelectItem value="completed">Completed ({statusCounts.completed})</SelectItem>
+          <SelectItem value="reviewed">Reviewed ({statusCounts.reviewed})</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   </div>
 

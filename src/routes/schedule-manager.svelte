@@ -3,12 +3,11 @@
   import { Schedule } from '../entities/all';
   import { userStore, isMentor, isStudent, isAdmin } from '../stores/userStore';
   import { format } from 'date-fns';
-  import Input from '../lib/components/ui/input/input.svelte';
-  import Label from '../lib/components/ui/label/label.svelte';
+  import Input from '$lib/components/ui/input.svelte';
   import { Calendar } from 'lucide-svelte';
-  import ScheduleParser from '../lib/components/schedule/ScheduleParser.svelte';
-  import ScheduleEditor from '../lib/components/schedule/ScheduleEditor.svelte';
-  import ScheduleClaimer from '../lib/components/schedule/ScheduleClaimer.svelte';
+  import ScheduleParser from '$lib/components/schedule/ScheduleParser.svelte';
+  import ScheduleEditor from '$lib/components/schedule/ScheduleEditor.svelte';
+  import ScheduleClaimer from '$lib/components/schedule/ScheduleClaimer.svelte';
 
   $: user = $userStore.user;
   $: selectedStudent = $userStore.selectedStudent;
@@ -85,7 +84,7 @@
 
   <div class="mb-8 max-w-sm">
     <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg">
-      <Label for="date" class="text-white font-medium mb-2 block">Select Date</Label>
+      <label for="date" class="text-white font-medium mb-2 block">Select Date</label>
       <Input
         id="date"
         type="date"
