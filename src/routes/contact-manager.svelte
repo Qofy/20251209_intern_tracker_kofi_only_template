@@ -1,12 +1,14 @@
 <script>
   import { onMount } from 'svelte';
   import { ContractTemplate } from '../entities/all';
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Input from '../lib/components/ui/input/input.svelte';
-  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
+  import Button from '$lib/components/ui/button.svelte';
+  import Input from '$lib/components/ui/input.svelte';
+  import Textarea from '$lib/components/ui/textarea.svelte';
+  import ParagraphEditor from '$lib/components/contract/ParagraphEditor.svelte';
+  import PlaceholderGuide from '$lib/components/contract/PlaceholderGuide.svelte';
+  import ContractPreview from '$lib/components/contract/ContractPreview.svelte';
   import { Plus, Edit, Trash2, BookOpen, Save, GripVertical, Eye, Download, HelpCircle } from 'lucide-svelte';
-  import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-  import { initialContractParagraphs } from '../lib/components/contracts/initialContractData';
+  import { initialContractParagraphs } from '$lib/components/contract/initialContractData';
 
   let templates = [];
   let selectedTemplate = null;
@@ -94,6 +96,30 @@
     const [reorderedItem] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reorderedItem);
     paragraphs = items;
+  }
+
+  // Drag and drop handlers (native HTML5)
+  let draggedIndex = null;
+
+  function handleDragStart(event, index) {
+    draggedIndex = index;
+    event.dataTransfer.effectAllowed = 'move';
+  }
+
+  function handleDragOver(event, index) {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }
+
+  function handleDrop(event, dropIndex) {
+    event.preventDefault();
+    if (draggedIndex === null || draggedIndex === dropIndex) return;
+
+    const items = [...paragraphs];
+    const [draggedItem] = items.splice(draggedIndex, 1);
+    items.splice(dropIndex, 0, draggedItem);
+    paragraphs = items;
+    draggedIndex = null;
   }
 
   function updateParagraph(index, updatedParagraph) {
@@ -228,63 +254,33 @@
 
           <div class="space-y-4">
             {#each paragraphs as paragraph, index (paragraph.id)}
-              <div class="space-y-4 p-4 bg-white/5 rounded-xl border border-white/10">
-                <div class="flex items-center gap-3 mb-4">
-                  <div class="w-8 h-8 bg-amber-500/20 rounded-full flex items-center justify-center border border-amber-400/30">
-                    <span class="text-amber-300 font-bold text-sm">§{index + 1}</span>
-                  </div>
-                  <h4 class="text-lg font-bold text-white">Paragraph {index + 1}</h4>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    on:click={() => deleteParagraph(index)}
-                    class="ml-auto text-red-400 hover:text-red-300"
-                  >
-                    <Trash2 class="w-4 h-4" />
-                  </Button>
+              <div
+                draggable="true"
+                on:dragstart={(e) => handleDragStart(e, index)}
+                on:dragover={(e) => handleDragOver(e, index)}
+                on:drop={(e) => handleDrop(e, index)}
+                class="flex items-start gap-3 transition-opacity {draggedIndex === index ? 'opacity-50' : ''}"
+              >
+                <div class="mt-6 p-2 text-white/40 hover:text-white/60 cursor-grab active:cursor-grabbing">
+                  <GripVertical class="w-5 h-5" />
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="text-sm font-medium text-white/80 mb-1 block">Title (German)</label>
-                    <Input
-                      bind:value={paragraph.title_de}
-                      on:blur={() => updateParagraph(index, paragraph)}
-                      class="bg-white/10 border-white/20 text-white"
-                      placeholder="German title..."
-                    />
-                  </div>
-                  <div>
-                    <label class="text-sm font-medium text-white/80 mb-1 block">Title (English)</label>
-                    <Input
-                      bind:value={paragraph.title_en}
-                      on:blur={() => updateParagraph(index, paragraph)}
-                      class="bg-white/10 border-white/20 text-white"
-                      placeholder="English title..."
-                    />
-                  </div>
+                <div class="flex-1">
+                  <ParagraphEditor
+                    {paragraph}
+                    {index}
+                    onUpdate={updateParagraph}
+                  />
                 </div>
 
-                <div class="grid grid-cols-2 gap-4">
-                  <div>
-                    <label class="text-sm font-medium text-white/80 mb-1 block">Content (German)</label>
-                    <Textarea
-                      bind:value={paragraph.content_de}
-                      on:blur={() => updateParagraph(index, paragraph)}
-                      class="bg-white/10 border-white/20 text-white min-h-[150px]"
-                      placeholder="German content with placeholders..."
-                    />
-                  </div>
-                  <div>
-                    <label class="text-sm font-medium text-white/80 mb-1 block">Content (English)</label>
-                    <Textarea
-                      bind:value={paragraph.content_en}
-                      on:blur={() => updateParagraph(index, paragraph)}
-                      class="bg-white/10 border-white/20 text-white min-h-[150px]"
-                      placeholder="English content with placeholders..."
-                    />
-                  </div>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  on:click={() => deleteParagraph(index)}
+                  class="mt-6 text-red-400 hover:text-red-300"
+                >
+                  <Trash2 class="w-4 h-4" />
+                </Button>
               </div>
             {/each}
           </div>
@@ -301,3 +297,15 @@
     {/if}
   </main>
 </div>
+
+<!-- Modals -->
+{#if showPreview && (selectedTemplate || title)}
+  <ContractPreview
+    template={selectedTemplate ? {...selectedTemplate, paragraphs} : { title, paragraphs }}
+    onClose={() => showPreview = false}
+  />
+{/if}
+
+{#if showGuide}
+  <PlaceholderGuide onClose={() => showGuide = false} />
+{/if}

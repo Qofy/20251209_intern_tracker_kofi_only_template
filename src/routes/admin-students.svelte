@@ -1,12 +1,12 @@
 <script>
   import { onMount } from 'svelte';
-  import { Student, StudentDocument } from '../entities/all';
+  import { Student } from '../entities/all';
   import { userStore } from '../stores/userStore';
   import { goto } from '@roxi/routify';
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Badge from '../lib/components/ui/badge/badge.svelte';
+  import Button from '../lib/components/ui/button.svelte';
+  import Badge from '../lib/components/ui/badget.svelte';
   import { Plus, User, Trash2, FileArchive, Eye } from 'lucide-svelte';
-  import RequirementsChecker from '../lib/components/students/RequirementsChecker.svelte';
+  import DocumentManager from '../lib/components/students/DocumentManager.svelte';
 
   let students = [];
   let managingDocuments = null;
@@ -151,12 +151,9 @@
   </div>
 
   {#if managingDocuments}
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center p-8 z-50">
-      <div class="bg-white/10 backdrop-blur-md border border-white/20 text-white rounded-xl p-6 max-w-6xl max-h-[80vh] overflow-y-auto">
-        <h2 class="text-2xl font-bold mb-4">Document Management - {managingDocuments.full_name}</h2>
-        <RequirementsChecker student={managingDocuments} />
-        <Button on:click={() => managingDocuments = null} class="mt-4">Close</Button>
-      </div>
-    </div>
+    <DocumentManager
+      student={managingDocuments}
+      onClose={() => managingDocuments = null}
+    />
   {/if}
 </div>

@@ -2,13 +2,17 @@
   import { onMount } from 'svelte';
   import { Application } from '../entities/all';
   import { userStore, isAdmin, isMentor } from '../stores/userStore';
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Input from '../lib/components/ui/input/input.svelte';
-  import Label from '../lib/components/ui/label/label.svelte';
-  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
-  import Badge from '../lib/components/ui/badge/badge.svelte';
+  import Button from '../lib/components/ui/button.svelte';
+  import Input from '../lib/components/ui/input.svelte';
+  import Textarea from '../lib/components/ui/textarea.svelte';
+  import Badge from '../lib/components/ui/badget.svelte';
+  import Select from '../lib/components/ui/select.svelte';
+  import SelectTrigger from '../lib/components/ui/SelectTrigger.svelte';
+  import SelectValue from '../lib/components/ui/SelectValue.svelte';
+  import SelectContent from '../lib/components/ui/SelectContent.svelte';
+  import SelectItem from '../lib/components/ui/SelectItem.svelte';
   import { FileText, Upload, Eye, Check, X, Plus, Edit, CheckCircle2, AlertCircle } from 'lucide-svelte';
-  import { UploadFile } from '../integrations/Core';
+  import { UploadFile } from '$lib/integrations/Core';
 
   $: user = $userStore.user;
 
@@ -134,6 +138,10 @@
     return config;
   }
 
+  $: missingRequired = documentTypes
+    .filter(doc => doc.required && !formData.documents[doc.key])
+    .map(doc => doc.label);
+
   function getCompletionRate() {
     const requiredDocs = documentTypes.filter(doc => doc.required);
     const uploadedRequired = requiredDocs.filter(doc => formData.documents[doc.key]);
@@ -152,14 +160,19 @@
     </div>
 
     <div class="flex items-center gap-4">
-      <select bind:value={statusFilter} class="w-48 bg-white/10 border-white/20 text-white rounded-md p-2">
-        <option value="all">All Applications</option>
-        <option value="draft">Draft</option>
-        <option value="submitted">Submitted</option>
-        <option value="viewed">Under Review</option>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
-      </select>
+      <Select bind:value={statusFilter}>
+        <SelectTrigger class="w-48 bg-white/10 border-white/20 text-white">
+          <SelectValue placeholder="Filter by status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Applications</SelectItem>
+          <SelectItem value="draft">Draft</SelectItem>
+          <SelectItem value="submitted">Submitted</SelectItem>
+          <SelectItem value="viewed">Under Review</SelectItem>
+          <SelectItem value="approved">Approved</SelectItem>
+          <SelectItem value="rejected">Rejected</SelectItem>
+        </SelectContent>
+      </Select>
 
       {#if !$isAdmin && !$isMentor}
         <Button
@@ -313,6 +326,91 @@
           </div>
         </div>
 
+        <!-- Document Uploads -->
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-white mb-4">Required Documents</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {#each documentTypes as docType}
+              {@const isUploaded = !!formData.documents[docType.key]}
+              <div class="bg-white/5 rounded-xl border border-white/10 p-4">
+                <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center gap-2">
+                    <span class="text-white font-medium">{docType.label}</span>
+                    {#if docType.required}
+                      <Badge class="bg-red-500/20 text-red-300 border-red-400/30 text-xs">
+                        Required
+                      </Badge>
+                    {/if}
+                  </div>
+                  {#if isUploaded}
+                    <CheckCircle2 class="w-5 h-5 text-emerald-400" />
+                  {:else}
+                    <AlertCircle class="w-5 h-5 text-red-400" />
+                  {/if}
+                </div>
+
+                {#if isUploaded}
+                  <div class="flex items-center gap-3">
+                    <a
+                      href={formData.documents[docType.key]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="flex-1 text-emerald-400 hover:text-emerald-300 text-sm"
+                    >
+                      ✓ View uploaded file
+                    </a>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      on:click={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = '.pdf,.png,.jpg,.jpeg,.doc,.docx';
+                        input.onchange = (e) => {
+                          if (e.target.files.length > 0) {
+                            handleFileUpload(docType.key, e.target.files[0]);
+                          }
+                        };
+                        input.click();
+                      }}
+                      class="text-blue-400 hover:bg-blue-500/20"
+                      disabled={uploadingDoc === docType.key}
+                    >
+                      Replace
+                    </Button>
+                  </div>
+                {:else}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    on:click={() => {
+                      const input = document.createElement('input');
+                      input.type = 'file';
+                      input.accept = '.pdf,.png,.jpg,.jpeg,.doc,.docx';
+                      input.onchange = (e) => {
+                        if (e.target.files.length > 0) {
+                          handleFileUpload(docType.key, e.target.files[0]);
+                        }
+                      };
+                      input.click();
+                    }}
+                    class="w-full text-white border-white/20 hover:bg-white/10"
+                    disabled={uploadingDoc === docType.key}
+                  >
+                    {#if uploadingDoc === docType.key}
+                      <div class="animate-spin w-4 h-4 border-2 border-white/20 border-t-white rounded-full mr-2"></div>
+                      Uploading...
+                    {:else}
+                      <Upload class="w-4 h-4 mr-2" />
+                      Upload {docType.label}
+                    {/if}
+                  </Button>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        </div>
+
         <div class="flex justify-end gap-4">
           <Button
             variant="ghost"
@@ -329,6 +427,18 @@
             {editingApplication ? 'Update Application' : 'Save Application'}
           </Button>
         </div>
+
+        <!-- Warnings -->
+        {#if missingRequired.length > 0}
+          <div class="mt-6 p-4 bg-red-500/20 rounded-xl border border-red-400/30">
+            <h4 class="text-red-300 font-medium mb-2">Missing Required Documents:</h4>
+            <ul class="text-red-300 text-sm space-y-1">
+              {#each missingRequired as doc}
+                <li>• {doc}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
       </div>
     </div>
   {/if}
