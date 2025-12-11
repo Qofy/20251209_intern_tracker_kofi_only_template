@@ -1,5 +1,5 @@
 {
-  "pages": "src/routes",
+  "pages": "src/pages",
   "sourceDir": "public",
   "routifyDir": ".routify",
   "ignore": "",

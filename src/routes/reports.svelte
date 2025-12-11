@@ -1,11 +1,11 @@
 <script>
   import { onMount } from 'svelte';
-  import { TimeEntry } from '../../entities/all';
-  import { userStore } from '../../stores/userStore';
+  import { TimeEntry } from '../entities/all';
+  import { userStore } from '../stores/userStore';
   import { format, subDays, parseISO, differenceInBusinessDays } from 'date-fns';
-  import Button from '../../lib/components/ui/button/button.svelte';
-  import Input from '../../lib/components/ui/input/input.svelte';
-  import Label from '../../lib/components/ui/label/label.svelte';
+  import Button from '../lib/components/ui/button/button.svelte';
+  import Input from '../lib/components/ui/input/input.svelte';
+  import Label from '../lib/components/ui/label/label.svelte';
   import { BarChart3, Download, Printer, QrCode, FileSpreadsheet } from 'lucide-svelte';
 
   $: selectedStudent = $userStore.selectedStudent;

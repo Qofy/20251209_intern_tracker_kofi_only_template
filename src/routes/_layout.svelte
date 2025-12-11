@@ -1,5 +1,5 @@
 <script>
-  console.log('_layout.svelte: Script is executing!');
+  // console.log('_layout.svelte: Script is executing!');
   import '../app.css';
   import { onMount } from 'svelte';
   import { goto, isActive } from '@roxi/routify';
@@ -15,87 +15,111 @@
     Settings,
     Users
   } from 'lucide-svelte';
-  import { userStore, isMentor, isStudent, isAdmin } from '../stores/userStore';
+  import { userStore} from '../stores/userStore';
   import LogoutButton from '../lib/components/LogoutButton.svelte';
-  import StudentSelector from '../lib/components/layout/StudentSelector.svelte';
-  import DebugInfo from '../lib/components/DebugInfo.svelte';
+  // import StudentSelector from '../lib/components/layout/StudentSelector.svelte';
+  // import DebugInfo from '../lib/components/DebugInfo.svelte';
 
-  const navItems = {
-    all: [
-      { title: 'Dashboard', url: '/dashboard', icon: Home },
-      { title: 'Daily Tracker', url: '/daily-tracker', icon: Clock },
-      { title: 'Schedule', url: '/schedule-manager', icon: Calendar },
-      { title: 'Tasks', url: '/tasks', icon: CheckSquare },
-      { title: 'Reports', url: '/reports', icon: BarChart3 }
-    ],
-    mentor: [
-      { title: 'Proof & Approval', url: '/proof-approval', icon: FileText },
-      { title: 'Student Contracts', url: '/students', icon: Users },
-      { title: 'Contract Manager', url: '/contact-manager', icon: FileSignature }
-    ],
-    student: [
-      { title: 'Claim Hours', url: '/claim-hours', icon: Clock },
-      { title: 'My Documents', url: '/my-documents', icon: FileArchive }
-    ],
-    admin: [
-      { title: 'Student Management', url: '/admin-students', icon: Users },
-      { title: 'System Overview', url: '/admin-overview', icon: Settings },
-      { title: 'Contract Manager', url: '/contact-manager', icon: FileSignature }
-    ]
-  };
-
-  $: user = $userStore.user;
-  $: role = $userStore.role;
-  $: isLoading = $userStore.isLoading;
-
-  $: visibleNavItems = (() => {
-    const items = [...navItems.all];
-    if ($isMentor) items.push(...navItems.mentor);
-    if ($isStudent) items.push(...navItems.student);
-    if ($isAdmin) items.push(...navItems.admin);
-
-    // Remove duplicates
-    const uniqueItems = items.reduce((acc, current) => {
-      if (!acc.find(item => item.title === current.title)) {
-        acc.push(current);
-      }
-      return acc;
-    }, []);
-    return uniqueItems;
-  })();
-
+ 
   onMount(async () => {
-    console.log('_layout onMount: START');
-    console.log('_layout onMount: localStorage.auth_token =', localStorage.getItem('auth_token'));
-    console.log('_layout onMount: localStorage.offline_role =', localStorage.getItem('offline_role'));
-    console.log('_layout onMount: current userStore =', $userStore);
+    await userStore.loadUserAndRole();
 
-    // Always try to load user on mount if not logged in
     if (!$userStore.user) {
-      console.log('_layout: Loading user on mount...');
-      await userStore.loadUserAndRole();
-      console.log('_layout: User loaded, user =', $userStore.user);
-    } else {
-      console.log('_layout: User already loaded, skipping loadUserAndRole');
-    }
-
-    // Check if we need to redirect after loading completes
-    if (!$userStore.user) {
-      console.log('_layout: No user found, redirecting to login');
-      $goto('/login');
-    } else {
-      console.log('_layout: User found, staying on current page');
+      window.location.href = '/login';
     }
   });
 
-  // Check if current path is login page
-  $: isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
+  $: ({ user, role } = $userStore);
+</script>
 
-  $: {
-    console.log('_layout: isLoginPage =', isLoginPage);
-    console.log('_layout: pathname =', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
-    console.log('_layout: userStore =', $userStore);
-  }
+{#if $userStore.isLoading}
+  <div class="flex items-center justify-center min-h-screen">
+    Loading...
+  </div>
+{:else}
+  <!-- Navigation + Slot for page content -->
+  <nav><!-- Nav items --></nav>
+  <slot />
+{/if}
+
+
+  //////////////////////////////////////////////////////////////////////////////////////
+  // const navItems = {
+  //   all: [
+  //     { title: 'Dashboard', url: '/dashboard', icon: Home },
+  //     { title: 'Daily Tracker', url: '/daily-tracker', icon: Clock },
+  //     { title: 'Schedule', url: '/schedule-manager', icon: Calendar },
+  //     { title: 'Tasks', url: '/tasks', icon: CheckSquare },
+  //     { title: 'Reports', url: '/reports', icon: BarChart3 }
+  //   ],
+  //   mentor: [
+  //     { title: 'Proof & Approval', url: '/proof-approval', icon: FileText },
+  //     { title: 'Student Contracts', url: '/students', icon: Users },
+  //     { title: 'Contract Manager', url: '/contact-manager', icon: FileSignature }
+  //   ],
+  //   student: [
+  //     { title: 'Claim Hours', url: '/claim-hours', icon: Clock },
+  //     { title: 'My Documents', url: '/my-documents', icon: FileArchive }
+  //   ],
+  //   admin: [
+  //     { title: 'Student Management', url: '/admin-students', icon: Users },
+  //     { title: 'System Overview', url: '/admin-overview', icon: Settings },
+  //     { title: 'Contract Manager', url: '/contact-manager', icon: FileSignature }
+  //   ]
+  // };
+
+  // $: user = $userStore.user;
+  // $: role = $userStore.role;
+  // $: isLoading = $userStore.isLoading;
+
+  // $: visibleNavItems = (() => {
+  //   const items = [...navItems.all];
+  //   if ($isMentor) items.push(...navItems.mentor);
+  //   if ($isStudent) items.push(...navItems.student);
+  //   if ($isAdmin) items.push(...navItems.admin);
+
+  //   // Remove duplicates
+  //   const uniqueItems = items.reduce((acc, current) => {
+  //     if (!acc.find(item => item.title === current.title)) {
+  //       acc.push(current);
+  //     }
+  //     return acc;
+  //   }, []);
+  //   return uniqueItems;
+  // })();
+
+  // onMount(async () => {
+  //   console.log('_layout onMount: START');
+  //   console.log('_layout onMount: localStorage.auth_token =', localStorage.getItem('auth_token'));
+  //   console.log('_layout onMount: localStorage.offline_role =', localStorage.getItem('offline_role'));
+  //   console.log('_layout onMount: current userStore =', $userStore);
+
+  //   // Always try to load user on mount if not logged in
+  //   if (!$userStore.user) {
+  //     console.log('_layout: Loading user on mount...');
+  //     await userStore.loadUserAndRole();
+  //     console.log('_layout: User loaded, user =', $userStore.user);
+  //   } else {
+  //     console.log('_layout: User already loaded, skipping loadUserAndRole');
+  //   }
+
+  //   // Check if we need to redirect after loading completes
+  //   if (!$userStore.user) {
+  //     console.log('_layout: No user found, redirecting to login');
+  //     $goto('/login');
+  //   } else {
+  //     console.log('_layout: User found, staying on current page');
+  //   }
+  // });
+
+  // // Check if current path is login page
+  // $: isLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
+
+  // $: {
+  //   console.log('_layout: isLoginPage =', isLoginPage);
+  //   console.log('_layout: pathname =', typeof window !== 'undefined' ? window.location.pathname : 'SSR');
+  //   console.log('_layout: userStore =', $userStore);
+  // }
 </script>
 
 {#if isLoginPage}

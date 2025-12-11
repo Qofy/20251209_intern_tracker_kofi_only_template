@@ -31,220 +31,101 @@ export const routes = {
     },
     {
       "meta": {},
-      "id": "_default_admin_overview",
+      "id": "_default_admin_overview_svelte",
       "name": "admin-overview",
-      "module": false,
       "file": {
-        "path": "src/routes/admin-overview",
+        "path": "src/routes/admin-overview.svelte",
         "dir": "src/routes",
-        "base": "admin-overview",
-        "ext": "",
+        "base": "admin-overview.svelte",
+        "ext": ".svelte",
         "name": "admin-overview"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_admin_overview_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/admin-overview/index.svelte",
-            "dir": "src/routes/admin-overview",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/admin-overview/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/admin-overview.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_admin_students",
+      "id": "_default_admin_students_svelte",
       "name": "admin-students",
-      "module": false,
       "file": {
-        "path": "src/routes/admin-students",
+        "path": "src/routes/admin-students.svelte",
         "dir": "src/routes",
-        "base": "admin-students",
-        "ext": "",
+        "base": "admin-students.svelte",
+        "ext": ".svelte",
         "name": "admin-students"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_admin_students_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/admin-students/index.svelte",
-            "dir": "src/routes/admin-students",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/admin-students/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/admin-students.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_application_tracker",
+      "id": "_default_application_tracker_svelte",
       "name": "application-tracker",
-      "module": false,
       "file": {
-        "path": "src/routes/application-tracker",
+        "path": "src/routes/application-tracker.svelte",
         "dir": "src/routes",
-        "base": "application-tracker",
-        "ext": "",
+        "base": "application-tracker.svelte",
+        "ext": ".svelte",
         "name": "application-tracker"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_application_tracker_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/application-tracker/index.svelte",
-            "dir": "src/routes/application-tracker",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/application-tracker/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/application-tracker.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_claim_hours",
+      "id": "_default_claim_hours_svelte",
       "name": "claim-hours",
-      "module": false,
       "file": {
-        "path": "src/routes/claim-hours",
+        "path": "src/routes/claim-hours.svelte",
         "dir": "src/routes",
-        "base": "claim-hours",
-        "ext": "",
+        "base": "claim-hours.svelte",
+        "ext": ".svelte",
         "name": "claim-hours"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_claim_hours_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/claim-hours/index.svelte",
-            "dir": "src/routes/claim-hours",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/claim-hours/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/claim-hours.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_contact_manager",
+      "id": "_default_contact_manager_svelte",
       "name": "contact-manager",
-      "module": false,
       "file": {
-        "path": "src/routes/contact-manager",
+        "path": "src/routes/contact-manager.svelte",
         "dir": "src/routes",
-        "base": "contact-manager",
-        "ext": "",
+        "base": "contact-manager.svelte",
+        "ext": ".svelte",
         "name": "contact-manager"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_contact_manager_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/contact-manager/index.svelte",
-            "dir": "src/routes/contact-manager",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/contact-manager/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/contact-manager.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_daily_tracker",
+      "id": "_default_daily_tracker_svelte",
       "name": "daily-tracker",
-      "module": false,
       "file": {
-        "path": "src/routes/daily-tracker",
+        "path": "src/routes/daily-tracker.svelte",
         "dir": "src/routes",
-        "base": "daily-tracker",
-        "ext": "",
+        "base": "daily-tracker.svelte",
+        "ext": ".svelte",
         "name": "daily-tracker"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_daily_tracker_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/daily-tracker/index.svelte",
-            "dir": "src/routes/daily-tracker",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/daily-tracker/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/daily-tracker.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_dashboard",
+      "id": "_default_dashboard_svelte",
       "name": "dashboard",
-      "module": false,
       "file": {
-        "path": "src/routes/dashboard",
+        "path": "src/routes/dashboard.svelte",
         "dir": "src/routes",
-        "base": "dashboard",
-        "ext": "",
+        "base": "dashboard.svelte",
+        "ext": ".svelte",
         "name": "dashboard"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_dashboard_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/dashboard/index.svelte",
-            "dir": "src/routes/dashboard",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/dashboard/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/dashboard.svelte'),
+      "children": []
     },
     {
       "meta": {
@@ -295,189 +176,87 @@ export const routes = {
     },
     {
       "meta": {},
-      "id": "_default_my_documents",
+      "id": "_default_my_documents_svelte",
       "name": "my-documents",
-      "module": false,
       "file": {
-        "path": "src/routes/my-documents",
+        "path": "src/routes/my-documents.svelte",
         "dir": "src/routes",
-        "base": "my-documents",
-        "ext": "",
+        "base": "my-documents.svelte",
+        "ext": ".svelte",
         "name": "my-documents"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_my_documents_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/my-documents/index.svelte",
-            "dir": "src/routes/my-documents",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/my-documents/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/my-documents.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_proof_approval",
+      "id": "_default_proof_approval_svelte",
       "name": "proof-approval",
-      "module": false,
       "file": {
-        "path": "src/routes/proof-approval",
+        "path": "src/routes/proof-approval.svelte",
         "dir": "src/routes",
-        "base": "proof-approval",
-        "ext": "",
+        "base": "proof-approval.svelte",
+        "ext": ".svelte",
         "name": "proof-approval"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_proof_approval_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/proof-approval/index.svelte",
-            "dir": "src/routes/proof-approval",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/proof-approval/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/proof-approval.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_reports",
+      "id": "_default_reports_svelte",
       "name": "reports",
-      "module": false,
       "file": {
-        "path": "src/routes/reports",
+        "path": "src/routes/reports.svelte",
         "dir": "src/routes",
-        "base": "reports",
-        "ext": "",
+        "base": "reports.svelte",
+        "ext": ".svelte",
         "name": "reports"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_reports_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/reports/index.svelte",
-            "dir": "src/routes/reports",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/reports/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/reports.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_schedule_manager",
+      "id": "_default_schedule_manager_svelte",
       "name": "schedule-manager",
-      "module": false,
       "file": {
-        "path": "src/routes/schedule-manager",
+        "path": "src/routes/schedule-manager.svelte",
         "dir": "src/routes",
-        "base": "schedule-manager",
-        "ext": "",
+        "base": "schedule-manager.svelte",
+        "ext": ".svelte",
         "name": "schedule-manager"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_schedule_manager_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/schedule-manager/index.svelte",
-            "dir": "src/routes/schedule-manager",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/schedule-manager/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/schedule-manager.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_students",
+      "id": "_default_students_svelte",
       "name": "students",
-      "module": false,
       "file": {
-        "path": "src/routes/students",
+        "path": "src/routes/students.svelte",
         "dir": "src/routes",
-        "base": "students",
-        "ext": "",
+        "base": "students.svelte",
+        "ext": ".svelte",
         "name": "students"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_students_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/students/index.svelte",
-            "dir": "src/routes/students",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/students/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/students.svelte'),
+      "children": []
     },
     {
       "meta": {},
-      "id": "_default_tasks",
+      "id": "_default_tasks_svelte",
       "name": "tasks",
-      "module": false,
       "file": {
-        "path": "src/routes/tasks",
+        "path": "src/routes/tasks.svelte",
         "dir": "src/routes",
-        "base": "tasks",
-        "ext": "",
+        "base": "tasks.svelte",
+        "ext": ".svelte",
         "name": "tasks"
       },
-      "children": [
-        {
-          "meta": {
-            "isDefault": true
-          },
-          "id": "_default_tasks_index_svelte",
-          "name": "index",
-          "file": {
-            "path": "src/routes/tasks/index.svelte",
-            "dir": "src/routes/tasks",
-            "base": "index.svelte",
-            "ext": ".svelte",
-            "name": "index"
-          },
-          "asyncModule": () => import('../src/routes/tasks/index.svelte'),
-          "children": []
-        }
-      ]
+      "asyncModule": () => import('../src/routes/tasks.svelte'),
+      "children": []
     },
     {
       "meta": {

@@ -1,12 +1,12 @@
 <script>
   import { onMount } from 'svelte';
-  import { StudentDocument } from '../../entities/all';
-  import { userStore } from '../../stores/userStore';
-  import Button from '../../lib/components/ui/button/button.svelte';
-  import Input from '../../lib/components/ui/input/input.svelte';
-  import Label from '../../lib/components/ui/label/label.svelte';
-  import Textarea from '../../lib/components/ui/textarea/textarea.svelte';
-  import { UploadFile } from '../../integrations/Core';
+  import { StudentDocument } from '../entities/all';
+  import { userStore } from '../stores/userStore';
+  import Button from '../lib/components/ui/button/button.svelte';
+  import Input from '../lib/components/ui/input/input.svelte';
+  import Label from '../lib/components/ui/label/label.svelte';
+  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
+  import { UploadFile } from '../integrations/Core';
   import { FileArchive, Upload, Trash2, Download } from 'lucide-svelte';
 
   $: user = $userStore.user;

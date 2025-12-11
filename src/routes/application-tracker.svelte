@@ -1,14 +1,14 @@
 <script>
   import { onMount } from 'svelte';
-  import { Application } from '../../entities/all';
-  import { userStore, isAdmin, isMentor } from '../../stores/userStore';
-  import Button from '../../lib/components/ui/button/button.svelte';
-  import Input from '../../lib/components/ui/input/input.svelte';
-  import Label from '../../lib/components/ui/label/label.svelte';
-  import Textarea from '../../lib/components/ui/textarea/textarea.svelte';
-  import Badge from '../../lib/components/ui/badge/badge.svelte';
+  import { Application } from '../entities/all';
+  import { userStore, isAdmin, isMentor } from '../stores/userStore';
+  import Button from '../lib/components/ui/button/button.svelte';
+  import Input from '../lib/components/ui/input/input.svelte';
+  import Label from '../lib/components/ui/label/label.svelte';
+  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
+  import Badge from '../lib/components/ui/badge/badge.svelte';
   import { FileText, Upload, Eye, Check, X, Plus, Edit, CheckCircle2, AlertCircle } from 'lucide-svelte';
-  import { UploadFile } from '../../integrations/Core';
+  import { UploadFile } from '../integrations/Core';
 
   $: user = $userStore.user;
 

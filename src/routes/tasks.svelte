@@ -1,12 +1,12 @@
 <script>
   import { onMount } from 'svelte';
-  import { Task, Question } from '../../entities/all';
-  import { userStore, isMentor } from '../../stores/userStore';
-  import Button from '../../lib/components/ui/button/button.svelte';
-  import Input from '../../lib/components/ui/input/input.svelte';
+  import { Task, Question } from '../entities/all';
+  import { userStore, isMentor } from '../stores/userStore';
+  import Button from '../lib/components/ui/button/button.svelte';
+  import Input from '../lib/components/ui/input/input.svelte';
   import { Plus, Search, Filter, CheckSquare } from 'lucide-svelte';
-  import TaskCard from '../../lib/components/tasks/TaskCard.svelte';
-  import TaskForm from '../../lib/components/tasks/TaskForm.svelte';
+  import TaskCard from '../lib/components/tasks/TaskCard.svelte';
+  import TaskForm from '../lib/components/tasks/TaskForm.svelte';
 
   $: user = $userStore.user;
   $: selectedStudent = $userStore.selectedStudent;

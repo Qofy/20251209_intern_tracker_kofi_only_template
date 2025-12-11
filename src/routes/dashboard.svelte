@@ -1,12 +1,14 @@
 <script>
-  import { userStore, isMentor, isStudent } from '../../stores/userStore';
+  import { userStore, isMentor, isStudent } from '../stores/userStore';
   import { AlertTriangle } from 'lucide-svelte';
+  
 
   $: console.log('Dashboard - userStore:', $userStore);
   $: console.log('Dashboard - isMentor:', $isMentor);
   $: console.log('Dashboard - isStudent:', $isStudent);
 </script>
 
+<h1 class="bg-red-500">Hello</h1>
 <!-- Debug Info -->
 <div class="mb-4 p-4 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
   <p class="text-white text-sm">

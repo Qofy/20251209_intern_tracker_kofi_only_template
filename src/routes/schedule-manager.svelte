@@ -1,14 +1,14 @@
 <script>
   import { onMount } from 'svelte';
-  import { Schedule } from '../../entities/all';
-  import { userStore, isMentor, isStudent, isAdmin } from '../../stores/userStore';
+  import { Schedule } from '../entities/all';
+  import { userStore, isMentor, isStudent, isAdmin } from '../stores/userStore';
   import { format } from 'date-fns';
-  import Input from '../../lib/components/ui/input/input.svelte';
-  import Label from '../../lib/components/ui/label/label.svelte';
+  import Input from '../lib/components/ui/input/input.svelte';
+  import Label from '../lib/components/ui/label/label.svelte';
   import { Calendar } from 'lucide-svelte';
-  import ScheduleParser from '../../lib/components/schedule/ScheduleParser.svelte';
-  import ScheduleEditor from '../../lib/components/schedule/ScheduleEditor.svelte';
-  import ScheduleClaimer from '../../lib/components/schedule/ScheduleClaimer.svelte';
+  import ScheduleParser from '../lib/components/schedule/ScheduleParser.svelte';
+  import ScheduleEditor from '../lib/components/schedule/ScheduleEditor.svelte';
+  import ScheduleClaimer from '../lib/components/schedule/ScheduleClaimer.svelte';
 
   $: user = $userStore.user;
   $: selectedStudent = $userStore.selectedStudent;

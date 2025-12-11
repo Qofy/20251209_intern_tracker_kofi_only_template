@@ -1,15 +1,15 @@
 <script>
   import { onMount } from 'svelte';
-  import { userStore, isStudent } from '../../stores/userStore';
-  import { TimeEntry } from '../../entities/all';
+  import { userStore, isStudent } from '../stores/userStore';
+  import { TimeEntry } from '../entities/all';
   import { format } from 'date-fns';
   import { Clock, Save, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-svelte";
-  import Button from '../../lib/components/ui/button/button.svelte';
-  import Input from '../../lib/components/ui/input/input.svelte';
-  import Label from '../../lib/components/ui/label/label.svelte';
-  import Textarea from '../../lib/components/ui/textarea/textarea.svelte';
-  import Select from '../../lib/components/ui/select/select.svelte';
-  import { UploadFile } from '../../integrations/Core';
+  import Button from '../lib/components/ui/button/button.svelte';
+  import Input from '../lib/components/ui/input/input.svelte';
+  import Label from '../lib/components/ui/label/label.svelte';
+  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
+  import Select from '../lib/components/ui/select/select.svelte';
+  import { UploadFile } from '../integrations/Core';
 
   $: selectedStudent = $userStore.selectedStudent;
 

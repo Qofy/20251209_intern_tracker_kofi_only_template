@@ -1,16 +1,16 @@
 <script>
   import { onMount } from 'svelte';
-  import { TimeEntry } from '../../entities/all';
-  import { userStore } from '../../stores/userStore';
+  import { TimeEntry } from '../entities/all';
+  import { userStore } from '../stores/userStore';
   import { format, parseISO } from 'date-fns';
-  import Button from '../../lib/components/ui/button/button.svelte';
-  import Input from '../../lib/components/ui/input/input.svelte';
-  import Label from '../../lib/components/ui/label/label.svelte';
-  import Textarea from '../../lib/components/ui/textarea/textarea.svelte';
-  import Badge from '../../lib/components/ui/badge/badge.svelte';
+  import Button from '../lib/components/ui/button/button.svelte';
+  import Input from '../lib/components/ui/input/input.svelte';
+  import Label from '../lib/components/ui/label/label.svelte';
+  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
+  import Badge from '../lib/components/ui/badge/badge.svelte';
   import { Clock, Calendar, Send, Plus, Edit, Trash2, FileText, Wand2, Loader2 } from 'lucide-svelte';
-  import { InvokeLLM } from '../../integrations/Core';
-  import HourClaimForm from '../../lib/components/claims/HourClaimForm.svelte';
+  import { InvokeLLM } from '../integrations/Core';
+  import HourClaimForm from '../lib/components/claims/HourClaimForm.svelte';
 
   $: user = $userStore.user;
   $: selectedStudent = $userStore.selectedStudent;

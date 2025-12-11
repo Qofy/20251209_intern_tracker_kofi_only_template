@@ -1,12 +1,12 @@
 <script>
   import { onMount } from 'svelte';
-  import { ContractTemplate } from '../../entities/all';
-  import Button from '../../lib/components/ui/button/button.svelte';
-  import Input from '../../lib/components/ui/input/input.svelte';
-  import Textarea from '../../lib/components/ui/textarea/textarea.svelte';
+  import { ContractTemplate } from '../entities/all';
+  import Button from '../lib/components/ui/button/button.svelte';
+  import Input from '../lib/components/ui/input/input.svelte';
+  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
   import { Plus, Edit, Trash2, BookOpen, Save, GripVertical, Eye, Download, HelpCircle } from 'lucide-svelte';
   import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-  import { initialContractParagraphs } from '../../lib/components/contracts/initialContractData';
+  import { initialContractParagraphs } from '../lib/components/contracts/initialContractData';
 
   let templates = [];
   let selectedTemplate = null;
