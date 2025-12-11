@@ -54,7 +54,7 @@
     }
   }
 
-  async function quickLogin(userType) {
+  function quickLogin(userType) {
     const credentials = {
       admin: { email: 'admin@example.com', password: 'admin123' },
       mentor: { email: 'mentor@example.com', password: 'mentor123' },
@@ -64,28 +64,6 @@
     const cred = credentials[userType];
     email = cred.email;
     password = cred.password;
-
-    // Auto-submit after setting credentials
-    console.log('Quick login clicked for:', userType);
-    isLoading = true;
-    error = '';
-
-    try {
-      console.log('Login: Starting login with email:', email);
-      console.log('Login: offlineMode =', offlineMode);
-      await userStore.login(email, password);
-      console.log('Login: Login complete, loading user...');
-      await userStore.loadUserAndRole();
-      console.log('Login: User loaded, user store:', $userStore);
-
-      // Use window.location for navigation to force a full page load
-      $goto('/dashboard');
-    } catch (err) {
-      console.error('Login error:', err);
-      error = err.message || 'Login failed';
-    } finally {
-      isLoading = false;
-    }
   }
 </script>
 

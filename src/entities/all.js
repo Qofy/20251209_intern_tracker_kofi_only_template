@@ -4,7 +4,7 @@ import apiClient from '../api/client';
 export class User {
   static async me() {
     // Return mock user data for offline mode
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
     if (offlineMode) {
       return {
         id: 1,
@@ -20,7 +20,7 @@ export class User {
 export class Student {
   static async list() {
     // Return mock data for offline mode
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
     if (offlineMode) {
       return [];
     }
@@ -29,7 +29,7 @@ export class Student {
 
   static async filter(params) {
     // Return mock data for offline mode
-    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'false';
+    const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
     if (offlineMode) {
       return [];
     }
