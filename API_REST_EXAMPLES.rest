@@ -2,9 +2,9 @@
 ### This file contains example API calls for all endpoints
 ### Use with REST Client extensions (VS Code REST Client, Thunder Client, etc.)
 
-@baseUrl = http://127.0.0.1:8080
+@baseUrl = https://intern.intuivo.com 
 @api = /api
-
+@token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0ZTI4ZTg1My02MWNhLTRjNTAtYmJiNy0zZjM4YzE0NGY1MmEiLCJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwicm9sZSI6Im1lbnRvciIsImV4cCI6MTc2NTU0MzcxOX0.XJi0eIZt6UsYMbFsFxXtrL_VeF32W7I0z_6Eweo0_4c
 ### =====================================================
 ### AUTHENTICATION ENDPOINTS (NO JWT REQUIRED)
 ### =====================================================
@@ -78,7 +78,7 @@ Content-Type: application/json
 
 ### Get All Students (Requires JWT)
 GET {{baseUrl}}{{api}}/students
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c2VyX2lkIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsInJvbGUiOiJTdHVkZW50In0.SIGNATURE
+Authorization: Bearer {{token}}
 
 ### Create New Student (Admin/Mentor)
 POST {{baseUrl}}{{api}}/students

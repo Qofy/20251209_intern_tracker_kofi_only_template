@@ -28,7 +28,7 @@
     selectedStudent = state.selectedStudent;
     isLoading = state.isLoading || false;
   });
-
+$: console.log("loading...", isLoading)
   onMount(() => {
     if (selectedStudent) {
       loadData();
@@ -124,18 +124,38 @@
   }
 </script>
 
-<h1 class="text-red-500">Hello</h1>
+<div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800">
+  <aside class="h-full">
+<h1>hi</h1>
+  </aside>
+  <main>
+    <h2>hello</h2>
+  </main>
+</div>
+<!-- 
 {#if isLoading}
   <div class="p-8 text-white text-center">
     <p class="text-lg">Loading dashboard...</p>
   </div>
+{:else if !selectedStudent}
+  <div class="p-8 text-red-500 text-center">
+    <p class="text-lg">No student profile found. Please select a student or check your profile settings.</p>
+  </div>
 {:else if isMentor}
-  <!-- Mentor Dashboard -->
-  <div class="p-8">
-    <h1 class="text-3xl font-bold text-white mb-2">Mentor Dashboard</h1>
-    <p class="text-white/70">
-      Welcome, Mentor! You can view your students' progress here.
-    </p>
+  <!-- Mentor Dashboard --
+  <div class="p-8 max-w-4xl mx-auto">
+    <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-xl">
+      <h1 class="text-3xl font-bold text-white mb-3">Mentor Dashboard</h1>
+      <p class="text-white/60 text-sm mb-8">
+        Welcome, Select a student to view their progress.
+      </p>
+
+      <div class="bg-purple-500/20 backdrop-blur-sm border border-purple-400/30 rounded-xl p-6 text-center">
+        <p class="text-white/80">
+          Please select a student from the sidebar to view their dashboard
+        </p>
+      </div>
+    </div>
 
     {#if selectedStudent}
       <div class="mt-8 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg text-white">
@@ -144,9 +164,9 @@
           This section displays detailed information for {selectedStudent.full_name}.
         </p>
 
-        <!-- Student Dashboard Content for Mentor View -->
+        <!-- Student Dashboard Content for Mentor View --
         <div class="p-8">
-          <!-- Main Progress Display -->
+          <!-- Main Progress Display --
           <div class="mb-8">
             <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl">
               <div class="text-center mb-6">
@@ -161,7 +181,7 @@
                 </div>
               </div>
 
-              <!-- Large Progress Bar -->
+              <!-- Large Progress Bar --
               <div class="w-full bg-white/10 rounded-full h-4 border border-white/20 mb-4">
                 <div
                   class="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 h-full rounded-full transition-all duration-1000 shadow-lg relative overflow-hidden"
@@ -178,7 +198,7 @@
             </div>
           </div>
 
-          <!-- Stats Cards -->
+          <!-- Stats Cards --
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <ProgressCard
               title="Daily Hours"
@@ -216,7 +236,7 @@
             />
           </div>
 
-          <!-- Recent Activity -->
+          <!-- Recent Activity --
           <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg">
             <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <Star class="w-6 h-6 text-amber-400" />
@@ -248,16 +268,12 @@
           </div>
         </div>
       </div>
-    {:else}
-      <div class="mt-8 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg text-white">
-        <p class="text-white/70">Please select a student to view their dashboard.</p>
-      </div>
     {/if}
   </div>
-{:else if selectedStudent}
-  <!-- Student Dashboard -->
+{:else}
+  <!-- Student Dashboard --
   <div class="p-8">
-    <!-- Header -->
+    <!-- Header --
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-white mb-2">Work Hour Dashboard</h1>
       <p class="text-white/70">
@@ -265,7 +281,7 @@
       </p>
     </div>
 
-    <!-- Main Progress Display -->
+    <!-- Main Progress Display --
     <div class="mb-8">
       <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl">
         <div class="text-center mb-6">
@@ -280,7 +296,7 @@
           </div>
         </div>
 
-        <!-- Large Progress Bar -->
+        <!-- Large Progress Bar --
         <div class="w-full bg-white/10 rounded-full h-4 border border-white/20 mb-4">
           <div
             class="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 h-full rounded-full transition-all duration-1000 shadow-lg relative overflow-hidden"
@@ -297,7 +313,7 @@
       </div>
     </div>
 
-    <!-- Stats Cards -->
+    <!-- Stats Cards --
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <ProgressCard
         title="Daily Hours"
@@ -335,7 +351,7 @@
       />
     </div>
 
-    <!-- Quick Actions and Recent Activity -->
+    <!-- Quick Actions and Recent Activity --
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <QuickActions
         {currentStatus}
@@ -345,7 +361,7 @@
         onEndDay={() => handleTimeAction('end')}
       />
 
-      <!-- Recent Activity -->
+      <!-- Recent Activity --
       <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg">
         <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
           <Star class="w-6 h-6 text-amber-400" />
@@ -377,9 +393,4 @@
       </div>
     </div>
   </div>
-{:else}
-  <div class="p-8 text-white text-center">
-    <p class="text-lg">No student profile found.</p>
-  </div>
-{/if}
-
+{/if} -->

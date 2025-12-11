@@ -4,7 +4,7 @@
 
 The Internship Tracker backend is built with Rust using the Actix-web framework. It provides a comprehensive REST API for managing internship programs, student tracking, task management, and time logging.
 
-**Base URL:** `http://127.0.0.1:8080`
+**Base URL:** `https://intern.intuivo.com `
 **API Base Path:** `/api`
 **Framework:** Actix-web 4.4
 **Database:** Sled (embedded key-value store)

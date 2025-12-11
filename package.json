@@ -109,7 +109,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://127.0.0.1:8081",
+  "proxy": "https://intern.intuivo.com",
   "trustedDependencies": [
     "@badeball/cypress-cucumber-preprocessor",
     "@tailwindcss/oxide",
