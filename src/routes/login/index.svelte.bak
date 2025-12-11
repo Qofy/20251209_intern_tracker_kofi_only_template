@@ -28,7 +28,7 @@
       console.log('Login: User loaded, user store:', $userStore);
 
       // Use window.location for navigation to force a full page load
-      $goto('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err) {
       console.error('Login error:', err);
       error = err.message || 'Login failed';
@@ -79,7 +79,7 @@
       console.log('Login: User loaded, user store:', $userStore);
 
       // Use window.location for navigation to force a full page load
-      $goto('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err) {
       console.error('Login error:', err);
       error = err.message || 'Login failed';
