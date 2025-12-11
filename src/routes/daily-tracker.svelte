@@ -3,13 +3,16 @@
   import { userStore, isStudent } from '../stores/userStore';
   import { TimeEntry } from '../entities/all';
   import { format } from 'date-fns';
-  import { Clock, Save, Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-svelte";
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Input from '../lib/components/ui/input/input.svelte';
-  import Label from '../lib/components/ui/label/label.svelte';
-  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
-  import Select from '../lib/components/ui/select/select.svelte';
-  import { UploadFile } from '../integrations/Core';
+  import { Clock, Save, Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-svelte';
+  import Button from '$lib/components/ui/button.svelte';
+  import Input from '$lib/components/ui/input.svelte';
+  import Textarea from '$lib/components/ui/textarea.svelte';
+  import Select from '$lib/components/ui/select.svelte';
+  import SelectContent from '$lib/components/ui/SelectContent.svelte';
+  import SelectItem from '$lib/components/ui/SelectItem.svelte';
+  import SelectTrigger from '$lib/components/ui/SelectTrigger.svelte';
+  import SelectValue from '$lib/components/ui/SelectValue.svelte';
+  import { UploadFile } from '$lib/integrations/Core';
 
   $: selectedStudent = $userStore.selectedStudent;
 
@@ -171,7 +174,7 @@
   <!-- Date Selection -->
   <div class="mb-8">
     <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg">
-      <Label for="date" class="text-white font-medium mb-2 block">Select Date</Label>
+      <label for="date" class="text-white font-medium mb-2 block">Select Date</label>
       <Input
         id="date"
         type="date"
@@ -192,7 +195,7 @@
 
         <div class="grid grid-cols-2 gap-4 mb-6">
           <div>
-            <Label class="text-white/80 text-sm font-medium mb-2 block">Start Time</Label>
+            <label class="text-white/80 text-sm font-medium mb-2 block">Start Time</label>
             <Input
               type="time"
               bind:value={timeEntry.start_time}
@@ -200,7 +203,7 @@
             />
           </div>
           <div>
-            <Label class="text-white/80 text-sm font-medium mb-2 block">End Time</Label>
+            <label class="text-white/80 text-sm font-medium mb-2 block">End Time</label>
             <Input
               type="time"
               bind:value={timeEntry.end_time}
@@ -208,7 +211,7 @@
             />
           </div>
           <div>
-            <Label class="text-white/80 text-sm font-medium mb-2 block">Break Start</Label>
+            <label class="text-white/80 text-sm font-medium mb-2 block">Break Start</label>
             <Input
               type="time"
               bind:value={timeEntry.break_start}
@@ -216,7 +219,7 @@
             />
           </div>
           <div>
-            <Label class="text-white/80 text-sm font-medium mb-2 block">Break End</Label>
+            <label class="text-white/80 text-sm font-medium mb-2 block">Break End</label>
             <Input
               type="time"
               bind:value={timeEntry.break_end}
@@ -233,17 +236,21 @@
 
         <!-- Proof Type Selection -->
         <div class="mb-6">
-          <Label class="text-white/80 text-sm font-medium mb-2 block">Proof Type</Label>
-          <select
-            bind:value={timeEntry.proof_type}
-            class="w-full bg-white/10 border-white/20 text-white rounded-md p-2"
+          <label class="text-white/80 text-sm font-medium mb-2 block">Proof Type</label>
+          <Select
+            value={timeEntry.proof_type}
+            onValueChange={(value) => handleInputChange('proof_type', value)}
           >
-            <option value="">Select proof type</option>
-            <option value="git">Git Commits</option>
-            <option value="history">Work History/Screenshots</option>
-            <option value="professor_proof">Professor Verification</option>
-            <option value="materials">Work Materials/Files</option>
-          </select>
+            <SelectTrigger class="bg-white/10 border-white/20 text-white">
+              <SelectValue placeholder="Select proof type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="git">Git Commits</SelectItem>
+              <SelectItem value="history">Work History/Screenshots</SelectItem>
+              <SelectItem value="professor_proof">Professor Verification</SelectItem>
+              <SelectItem value="materials">Work Materials/Files</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <!-- Action Buttons -->
@@ -292,7 +299,7 @@
 
         <!-- File Upload -->
         <div class="mb-6">
-          <Label class="text-white/80 text-sm font-medium mb-2 block">Upload Proof Files</Label>
+          <label class="text-white/80 text-sm font-medium mb-2 block">Upload Proof Files</label>
           <div class="relative">
             <input
               type="file"
@@ -317,7 +324,7 @@
         <!-- Uploaded Files -->
         {#if timeEntry.proof_files && timeEntry.proof_files.length > 0}
           <div class="mb-6">
-            <Label class="text-white/80 text-sm font-medium mb-3 block">Uploaded Files</Label>
+            <label class="text-white/80 text-sm font-medium mb-3 block">Uploaded Files</label>
             <div class="space-y-2">
               {#each timeEntry.proof_files as fileUrl, index}
                 <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
