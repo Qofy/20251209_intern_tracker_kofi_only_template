@@ -2,11 +2,15 @@
   import { onMount } from 'svelte';
   import { StudentDocument } from '../entities/all';
   import { userStore } from '../stores/userStore';
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Input from '../lib/components/ui/input/input.svelte';
-  import Label from '../lib/components/ui/label/label.svelte';
-  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
-  import { UploadFile } from '../integrations/Core';
+  import Button from '$lib/components/ui/button.svelte';
+  import Input from '$lib/components/ui/input.svelte';
+  import Textarea from '$lib/components/ui/textarea.svelte';
+  import Select from '$lib/components/ui/select.svelte';
+  import SelectContent from '$lib/components/ui/SelectContent.svelte';
+  import SelectItem from '$lib/components/ui/SelectItem.svelte';
+  import SelectTrigger from '$lib/components/ui/SelectTrigger.svelte';
+  import SelectValue from '$lib/components/ui/SelectValue.svelte';
+  import { UploadFile } from '$lib/integrations/Core';
   import { FileArchive, Upload, Trash2, Download } from 'lucide-svelte';
 
   $: user = $userStore.user;
@@ -83,21 +87,28 @@
         <h3 class="text-xl font-bold text-white mb-4">Upload New Document</h3>
         <div class="space-y-4">
           <div>
-            <Label class="text-white/80 mb-2 block">Document Type</Label>
-            <select bind:value={newDocument.document_type} class="w-full bg-white/10 border-white/20 text-white rounded-md p-2">
-              <option value="">Select type...</option>
-              <option value="id">ID / Passport</option>
-              <option value="contract">Signed Contract</option>
-              <option value="visa">Visa / Work Permit</option>
-              <option value="other">Other</option>
-            </select>
+            <label class="text-white/80 mb-2 block">Document Type</label>
+            <Select
+              value={newDocument.document_type}
+              onValueChange={(val) => newDocument.document_type = val}
+            >
+              <SelectTrigger class="bg-white/10 border-white/20 text-white">
+                <SelectValue placeholder="Select type..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="id">ID / Passport</SelectItem>
+                <SelectItem value="contract">Signed Contract</SelectItem>
+                <SelectItem value="visa">Visa / Work Permit</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <Label class="text-white/80 mb-2 block">Description</Label>
+            <label class="text-white/80 mb-2 block">Description</label>
             <Textarea bind:value={newDocument.description} placeholder="Optional description" class="bg-white/10 border-white/20 text-white" />
           </div>
           <div>
-            <Label class="text-white/80 mb-2 block">File</Label>
+            <label class="text-white/80 mb-2 block">File</label>
             <Input type="file" on:change={handleFileChange} class="bg-white/10 border-white/20 text-white file:text-white/70" />
           </div>
           <Button on:click={handleUpload} disabled={isUploading} class="w-full bg-emerald-500 hover:bg-emerald-600">

@@ -3,11 +3,15 @@
   import { TimeEntry } from '../entities/all';
   import { userStore, isMentor } from '../stores/userStore';
   import { format, parseISO } from 'date-fns';
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Input from '../lib/components/ui/input/input.svelte';
-  import Label from '../lib/components/ui/label/label.svelte';
-  import Textarea from '../lib/components/ui/textarea/textarea.svelte';
-  import Badge from '../lib/components/ui/badge/badge.svelte';
+  import Button from '$lib/components/ui/button.svelte';
+  import Input from '$lib/components/ui/input.svelte';
+  import Textarea from '$lib/components/ui/textarea.svelte';
+  import Badge from '$lib/components/ui/badget.svelte';
+  import Select from '$lib/components/ui/select.svelte';
+  import SelectContent from '$lib/components/ui/SelectContent.svelte';
+  import SelectItem from '$lib/components/ui/SelectItem.svelte';
+  import SelectTrigger from '$lib/components/ui/SelectTrigger.svelte';
+  import SelectValue from '$lib/components/ui/SelectValue.svelte';
   import { FileText, Download, Filter, Edit, Check, X, CheckCircle2, AlertCircle } from 'lucide-svelte';
 
   $: selectedStudent = $userStore.selectedStudent;
@@ -110,12 +114,21 @@
       <p class="text-white/70">Review and approve submitted work hours from your interns.</p>
     </div>
     <div class="w-48">
-      <select bind:value={statusFilter} class="w-full bg-white/10 border-white/20 text-white rounded-md p-2">
-        <option value="all">All Entries</option>
-        <option value="submitted">Pending</option>
-        <option value="approved">Approved</option>
-        <option value="rejected">Rejected</option>
-      </select>
+      <Select
+        value={statusFilter}
+        onValueChange={(val) => statusFilter = val}
+      >
+        <SelectTrigger class="bg-white/10 border-white/20 text-white">
+          <Filter class="w-4 h-4 mr-2" />
+          <SelectValue placeholder="Filter by status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Entries</SelectItem>
+          <SelectItem value="submitted">Pending</SelectItem>
+          <SelectItem value="approved">Approved</SelectItem>
+          <SelectItem value="rejected">Rejected</SelectItem>
+        </SelectContent>
+      </Select>
     </div>
   </div>
 
@@ -175,7 +188,7 @@
                 <h4 class="text-lg font-semibold text-white mb-4">Mentor Review</h4>
                 <div class="space-y-4">
                   <div>
-                    <Label class="text-white/80 mb-2 block">Approved Hours</Label>
+                    <label class="text-white/80 mb-2 block">Approved Hours</label>
                     {#if isEditing}
                       <Input
                         type="number"
@@ -194,7 +207,7 @@
                     {/if}
                   </div>
                   <div>
-                    <Label class="text-white/80 mb-2 block">Comments</Label>
+                    <label class="text-white/80 mb-2 block">Comments</label>
                     {#if isEditing}
                       <Textarea
                         bind:value={editData.mentor_comments}

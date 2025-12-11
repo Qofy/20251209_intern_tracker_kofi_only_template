@@ -3,9 +3,12 @@
   import { TimeEntry } from '../entities/all';
   import { userStore } from '../stores/userStore';
   import { format, subDays, parseISO, differenceInBusinessDays } from 'date-fns';
-  import Button from '../lib/components/ui/button/button.svelte';
-  import Input from '../lib/components/ui/input/input.svelte';
-  import Label from '../lib/components/ui/label/label.svelte';
+  import Button from '$lib/components/ui/button.svelte';
+  import Input from '$lib/components/ui/input.svelte';
+  import Dialog from '$lib/components/ui/dialog.svelte';
+  import DialogContent from '$lib/components/ui/DialogContent.svelte';
+  import DialogHeader from '$lib/components/ui/DialogHeader.svelte';
+  import DialogTitle from '$lib/components/ui/DialogTitle.svelte';
   import { BarChart3, Download, Printer, QrCode, FileSpreadsheet } from 'lucide-svelte';
 
   $: selectedStudent = $userStore.selectedStudent;
@@ -17,6 +20,7 @@
   };
   let reportUrl = '';
   let reportContentRef;
+  let showQRDialog = false;
 
   onMount(() => {
     if (selectedStudent) {
@@ -127,11 +131,11 @@
     <div class="no-print bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg mb-8">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
-          <Label class="text-white/80 mb-2 block">From Date</Label>
+          <label class="text-white/80 mb-2 block">From Date</label>
           <Input type="date" value={dateRange.from} on:change={(e) => handleDateChange('from', e.target.value)} class="bg-white/10 border-white/20 text-white" />
         </div>
         <div>
-          <Label class="text-white/80 mb-2 block">To Date</Label>
+          <label class="text-white/80 mb-2 block">To Date</label>
           <Input type="date" value={dateRange.to} on:change={(e) => handleDateChange('to', e.target.value)} class="bg-white/10 border-white/20 text-white" />
         </div>
         <div class="flex flex-wrap gap-2 items-end">
@@ -144,9 +148,30 @@
           <Button on:click={() => window.print()} class="bg-purple-500 hover:bg-purple-600 text-white">
             <Printer class="w-4 h-4 mr-2" />PDF
           </Button>
+          <Button on:click={() => showQRDialog = true} variant="ghost" class="text-white/80 hover:text-white hover:bg-white/10">
+            <QrCode class="w-4 h-4" />
+          </Button>
         </div>
       </div>
     </div>
+
+    {#if showQRDialog}
+      <Dialog bind:open={showQRDialog}>
+        <DialogContent class="bg-white/10 backdrop-blur-md border-white/20 text-white">
+          <DialogHeader>
+            <DialogTitle class="text-white">Report URL QR Code</DialogTitle>
+          </DialogHeader>
+          <div class="flex justify-center p-4">
+            {#if reportUrl}
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={encodeURIComponent(reportUrl)}" alt="QR Code" />
+            {:else}
+              <p>Generating QR Code...</p>
+            {/if}
+          </div>
+          <p class="text-sm text-center break-all">{reportUrl}</p>
+        </DialogContent>
+      </Dialog>
+    {/if}
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
       <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-4">

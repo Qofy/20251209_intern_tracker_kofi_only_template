@@ -124,7 +124,7 @@
   }
 </script>
 
-<h1>Hello</h1>
+<h1 class="text-red-500">Hello</h1>
 {#if isLoading}
   <div class="p-8 text-white text-center">
     <p class="text-lg">Loading dashboard...</p>
