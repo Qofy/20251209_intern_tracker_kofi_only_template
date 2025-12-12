@@ -1,13 +1,16 @@
 <script>
   import { onMount } from 'svelte';
   import { userStore } from "../stores/userStore"
-  import { TimeEntry, Student } from '../entities/all';
+  import { TimeEntry, Student, Task } from '../entities/all';
   import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns';
   import ProgressCard from '$lib/components/dashboard/ProgressCard.svelte';
   import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
   import LogoutButton from '$lib/components/LogoutButton.svelte';
   import Reports from './reports.svelte';
+  import Tasks from './tasks.svelte';
   import Schedule from "./schedule-manager.svelte";
+  import DailyTracker from './daily-tracker.svelte';
+  import ProofApproval from './proof-approval.svelte';
   import { Clock, Calendar, SquareCheckBig, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
   
 
@@ -161,8 +164,8 @@
         {/if}
       </div>
 
-      <!-- Student Management Section (for mentors) -->
-      {#if isMentor}
+      <!-- Student Management Section (for mentors and admins) -->
+      {#if isMentor || role === 'admin'}
         <div class="p-4 bg-white/5 rounded-xl border border-white/10">
           <div class="flex items-center justify-between mb-3">
             <h4 class="text-white/80 text-sm font-medium">Students</h4>
@@ -233,7 +236,7 @@
           <span>Reports</span>
         </button>
         
-        {#if isMentor}
+        {#if isMentor || role === 'admin'}
           <button
             on:click={() => setActiveView('proof-approval')}
             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full {activeView === 'proof-approval' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
@@ -291,29 +294,32 @@
         </div>
       </div>
     {:else if activeView === 'daily-tracker'}
-      <div class="p-8">
+    <DailyTracker/>
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Daily Tracker</h1>
         <p class="text-white/70 mb-8">Track your daily work hours.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Daily tracker content goes here</p>
         </div>
-      </div>
+      </div> -->
     {:else if activeView === 'schedule'}
-      <div class="p-8">
+    <Schedule/>
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Schedule Manager</h1>
         <p class="text-white/70 mb-8">Manage your work schedule.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Schedule content goes here</p>
         </div>
-      </div>
+      </div> -->
     {:else if activeView === 'tasks'}
-      <div class="p-8">
+    <Tasks/>
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Tasks</h1>
         <p class="text-white/70 mb-8">Manage your tasks and assignments.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Tasks content goes here</p>
         </div>
-      </div>
+      </div> -->
     {:else if activeView === 'reports'}
       <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Reports</h1>
@@ -324,13 +330,14 @@
       </div> -->
       <Reports/>
     {:else if activeView === 'proof-approval'}
-      <div class="p-8">
+    <ProofApproval/>
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Proof & Approval</h1>
         <p class="text-white/70 mb-8">Review and approve student submissions.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Proof & approval content goes here</p>
         </div>
-      </div>
+      </div> -->
     {:else if activeView === 'students'}
       <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Student Contracts</h1>
@@ -342,265 +349,3 @@
     {/if}
   </main>
 </div>
-<!-- OLD CONTENT COMMENTED
-{#if isLoading}
-  <div class="p-8 text-white text-center">
-    <p class="text-lg">Loading dashboard...</p>
-  </div>
-{:else if !selectedStudent}
-  <div class="p-8 text-red-500 text-center">
-    <p class="text-lg">No student profile found. Please select a student or check your profile settings.</p>
-  </div>
-{:else if isMentor}
-  <!-- Mentor Dashboard --
-  <div class="p-8 max-w-4xl mx-auto">
-    <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-8 shadow-xl">
-      <h1 class="text-3xl font-bold text-white mb-3">Mentor Dashboard</h1>
-      <p class="text-white/60 text-sm mb-8">
-        Welcome, Select a student to view their progress.
-      </p>
-
-      <div class="bg-purple-500/20 backdrop-blur-sm border border-purple-400/30 rounded-xl p-6 text-center">
-        <p class="text-white/80">
-          Please select a student from the sidebar to view their dashboard
-        </p>
-      </div>
-    </div>
-
-    {#if selectedStudent}
-      <div class="mt-8 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg text-white">
-        <h2 class="text-xl font-bold mb-4">Viewing Dashboard for: {selectedStudent.full_name}</h2>
-        <p class="text-white/70 mb-6">
-          This section displays detailed information for {selectedStudent.full_name}.
-        </p>
-
-        <!-- Student Dashboard Content for Mentor View --
-        <div class="p-8">
-          <!-- Main Progress Display --
-          <div class="mb-8">
-            <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl">
-              <div class="text-center mb-6">
-                <h2 class="text-2xl font-bold text-white mb-2">Contract Progress</h2>
-                <div class="flex items-center justify-center gap-4">
-                  <span class="text-4xl font-bold text-white">{stats.totalApproved}</span>
-                  <span class="text-2xl text-white/60">/</span>
-                  <span class="text-4xl font-bold text-white/80">{selectedStudent?.contract_hours || 600}</span>
-                  <div class="ml-4 px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl">
-                    <span class="text-2xl font-bold text-white">{stats.completionPercentage}%</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Large Progress Bar --
-              <div class="w-full bg-white/10 rounded-full h-4 border border-white/20 mb-4">
-                <div
-                  class="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 h-full rounded-full transition-all duration-1000 shadow-lg relative overflow-hidden"
-                  style="width: {Math.min(stats.completionPercentage, 100)}%"
-                >
-                  <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-                </div>
-              </div>
-
-              <div class="flex justify-between text-white/60 text-sm">
-                <span>0 hours</span>
-                <span>{selectedStudent?.contract_hours || 600} hours (Contract Complete)</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Stats Cards --
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <ProgressCard
-              title="Daily Hours"
-              current={stats.dailyHours}
-              total={8}
-              percentage={Math.round((stats.dailyHours / 8) * 100)}
-              icon={Clock}
-              color="bg-blue-500"
-              trend="+2.5h"
-            />
-            <ProgressCard
-              title="Weekly Hours"
-              current={stats.weeklyHours}
-              total={40}
-              percentage={Math.round((stats.weeklyHours / 40) * 100)}
-              icon={Calendar}
-              color="bg-emerald-500"
-              trend="+12%"
-            />
-            <ProgressCard
-              title="Monthly Hours"
-              current={stats.monthlyHours}
-              total={160}
-              percentage={Math.round((stats.monthlyHours / 160) * 100)}
-              icon={TrendingUp}
-              color="bg-purple-500"
-            />
-            <ProgressCard
-              title="Approved Hours"
-              current={stats.totalApproved}
-              total={selectedStudent?.contract_hours || 600}
-              percentage={stats.completionPercentage}
-              icon={CheckCircle2}
-              color="bg-amber-500"
-            />
-          </div>
-
-          <!-- Recent Activity --
-          <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg">
-            <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <Star class="w-6 h-6 text-amber-400" />
-              Recent Activity
-            </h3>
-            <div class="space-y-4">
-              {#each timeEntries.slice(0, 5) as entry}
-                <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-                  <div>
-                    <p class="text-white font-medium">{format(parseISO(entry.date), 'MMM d, yyyy')}</p>
-                    <p class="text-white/60 text-sm">
-                      {entry.start_time} - {entry.end_time || 'In Progress'}
-                    </p>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    {#if entry.status === 'approved'}
-                      <CheckCircle2 class="w-5 h-5 text-emerald-400" />
-                    {/if}
-                    {#if entry.status === 'submitted'}
-                      <AlertTriangle class="w-5 h-5 text-amber-400" />
-                    {/if}
-                    <span class="text-white font-semibold">
-                      {entry.approved_hours || entry.manually_inputted_hours || 0}h
-                    </span>
-                  </div>
-                </div>
-              {/each}
-            </div>
-          </div>
-        </div>
-      </div>
-    {/if}
-  </div>
-{:else}
-  <!-- Student Dashboard --
-  <div class="p-8">
-    <!-- Header --
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-white mb-2">Work Hour Dashboard</h1>
-      <p class="text-white/70">
-        Welcome back, {selectedStudent?.full_name || 'Student'}! Track your progress and manage your internship hours.
-      </p>
-    </div>
-
-    <!-- Main Progress Display --
-    <div class="mb-8">
-      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-8 shadow-2xl">
-        <div class="text-center mb-6">
-          <h2 class="text-2xl font-bold text-white mb-2">Contract Progress</h2>
-          <div class="flex items-center justify-center gap-4">
-            <span class="text-4xl font-bold text-white">{stats.totalApproved}</span>
-            <span class="text-2xl text-white/60">/</span>
-            <span class="text-4xl font-bold text-white/80">{selectedStudent?.contract_hours || 600}</span>
-            <div class="ml-4 px-4 py-2 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl">
-              <span class="text-2xl font-bold text-white">{stats.completionPercentage}%</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Large Progress Bar --
-        <div class="w-full bg-white/10 rounded-full h-4 border border-white/20 mb-4">
-          <div
-            class="bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 h-full rounded-full transition-all duration-1000 shadow-lg relative overflow-hidden"
-            style="width: {Math.min(stats.completionPercentage, 100)}%"
-          >
-            <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-          </div>
-        </div>
-
-        <div class="flex justify-between text-white/60 text-sm">
-          <span>0 hours</span>
-          <span>{selectedStudent?.contract_hours || 600} hours (Contract Complete)</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stats Cards --
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <ProgressCard
-        title="Daily Hours"
-        current={stats.dailyHours}
-        total={8}
-        percentage={Math.round((stats.dailyHours / 8) * 100)}
-        icon={Clock}
-        color="bg-blue-500"
-        trend="+2.5h"
-      />
-      <ProgressCard
-        title="Weekly Hours"
-        current={stats.weeklyHours}
-        total={40}
-        percentage={Math.round((stats.weeklyHours / 40) * 100)}
-        icon={Calendar}
-        color="bg-emerald-500"
-        trend="+12%"
-      />
-      <ProgressCard
-        title="Monthly Hours"
-        current={stats.monthlyHours}
-        total={160}
-        percentage={Math.round((stats.monthlyHours / 160) * 100)}
-        icon={TrendingUp}
-        color="bg-purple-500"
-      />
-      <ProgressCard
-        title="Approved Hours"
-        current={stats.totalApproved}
-        total={selectedStudent?.contract_hours || 600}
-        percentage={stats.completionPercentage}
-        icon={CheckCircle2}
-        color="bg-amber-500"
-      />
-    </div>
-
-    <!-- Quick Actions and Recent Activity --
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <QuickActions
-        {currentStatus}
-        onStartDay={() => handleTimeAction('start')}
-        onBreakStart={() => handleTimeAction('break_start')}
-        onBreakEnd={() => handleTimeAction('break_end')}
-        onEndDay={() => handleTimeAction('end')}
-      />
-
-      <!-- Recent Activity --
-      <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg">
-        <h3 class="text-xl font-bold text-white mb-6 flex items-center gap-2">
-          <Star class="w-6 h-6 text-amber-400" />
-          Recent Activity
-        </h3>
-        <div class="space-y-4">
-          {#each timeEntries.slice(0, 5) as entry}
-            <div class="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/10">
-              <div>
-                <p class="text-white font-medium">{format(parseISO(entry.date), 'MMM d, yyyy')}</p>
-                <p class="text-white/60 text-sm">
-                  {entry.start_time} - {entry.end_time || 'In Progress'}
-                </p>
-              </div>
-              <div class="flex items-center gap-2">
-                {#if entry.status === 'approved'}
-                  <CheckCircle2 class="w-5 h-5 text-emerald-400" />
-                {/if}
-                {#if entry.status === 'submitted'}
-                  <AlertTriangle class="w-5 h-5 text-amber-400" />
-                {/if}
-                <span class="text-white font-semibold">
-                  {entry.approved_hours || entry.manually_inputted_hours || 0}h
-                </span>
-              </div>
-            </div>
-          {/each}
-        </div>
-      </div>
-    </div>
-  </div>
-{/if} -->

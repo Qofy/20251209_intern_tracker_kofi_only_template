@@ -1,11 +1,15 @@
 <script>
   import { onMount } from 'svelte';
   import { userStore } from "../stores/userStore"
-  import { TimeEntry, Student } from '../entities/all';
+  import { TimeEntry, Student, Task } from '../entities/all';
   import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns';
   import ProgressCard from '$lib/components/dashboard/ProgressCard.svelte';
   import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
   import LogoutButton from '$lib/components/LogoutButton.svelte';
+  import Reports from './reports.svelte';
+  import Tasks from './tasks.svelte';
+  import Schedule from "./schedule-manager.svelte";
+  import DailyTracker from './daily-tracker.svelte';
   import { Clock, Calendar, SquareCheckBig, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
   
 
@@ -289,37 +293,41 @@
         </div>
       </div>
     {:else if activeView === 'daily-tracker'}
-      <div class="p-8">
+    <DailyTracker/>
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Daily Tracker</h1>
         <p class="text-white/70 mb-8">Track your daily work hours.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Daily tracker content goes here</p>
         </div>
-      </div>
+      </div> -->
     {:else if activeView === 'schedule'}
-      <div class="p-8">
+    <Schedule/>
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Schedule Manager</h1>
         <p class="text-white/70 mb-8">Manage your work schedule.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Schedule content goes here</p>
         </div>
-      </div>
+      </div> -->
     {:else if activeView === 'tasks'}
-      <div class="p-8">
+    <Tasks/>
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Tasks</h1>
         <p class="text-white/70 mb-8">Manage your tasks and assignments.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Tasks content goes here</p>
         </div>
-      </div>
+      </div> -->
     {:else if activeView === 'reports'}
-      <div class="p-8">
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Reports</h1>
         <p class="text-white/70 mb-8">View and generate reports.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Reports content goes here</p>
         </div>
-      </div>
+      </div> -->
+      <Reports/>
     {:else if activeView === 'proof-approval'}
       <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Proof & Approval</h1>

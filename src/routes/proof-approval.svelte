@@ -140,8 +140,6 @@
       </div>
     {:else if entries.length > 0}
       {#each entries as entry (entry.id)}
-        {@const isEditing = editingMap[entry.id]}
-        {@const editData = isEditing || entry}
         {@const statusBadge = getStatusBadge(entry.status)}
         <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg">
           <div class="p-6 border-b border-white/10">
@@ -188,29 +186,29 @@
                 <h4 class="text-lg font-semibold text-white mb-4">Mentor Review</h4>
                 <div class="space-y-4">
                   <div>
-                    <label class="text-white/80 mb-2 block">Approved Hours</label>
-                    {#if isEditing}
-                      <Input
-                        type="number"
-                        step="0.1"
-                        bind:value={editData.approved_hours}
-                        class="bg-white/10 border-white/20 text-white"
-                      />
-                    {:else}
-                      <Input
-                        type="number"
-                        step="0.1"
-                        value={entry.approved_hours ?? entry.manually_inputted_hours}
-                        on:focus={() => startEdit(entry.id)}
-                        class="bg-white/10 border-white/20 text-white"
-                      />
-                    {/if}
-                  </div>
+                      <label class="text-white/80 mb-2 block">Approved Hours</label>
+                      {#if editingMap[entry.id]}
+                        <Input
+                          type="number"
+                          step="0.1"
+                          bind:value={editingEntries[entry.id].approved_hours}
+                          class="bg-white/10 border-white/20 text-white"
+                        />
+                      {:else}
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={entry.approved_hours ?? entry.manually_inputted_hours}
+                          on:focus={() => startEdit(entry.id)}
+                          class="bg-white/10 border-white/20 text-white"
+                        />
+                      {/if}
+                    </div>
                   <div>
                     <label class="text-white/80 mb-2 block">Comments</label>
-                    {#if isEditing}
+                    {#if editingMap[entry.id]}
                       <Textarea
-                        bind:value={editData.mentor_comments}
+                        bind:value={editingEntries[entry.id].mentor_comments}
                         placeholder="Provide feedback on the submission..."
                         class="bg-white/10 border-white/20 text-white min-h-[120px]"
                       />
