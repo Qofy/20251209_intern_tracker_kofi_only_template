@@ -1,11 +1,12 @@
 <script>
   import { onMount } from 'svelte';
-  import { userStore } from '../stores/userStore';
+  import { userStore } from "../stores/userStore"
   import { TimeEntry, Student } from '../entities/all';
   import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns';
   import ProgressCard from '$lib/components/dashboard/ProgressCard.svelte';
   import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
-  import { Clock, Calendar, SquareCheckBig, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, LogOut } from 'lucide-svelte';
+  import LogoutButton from '$lib/components/LogoutButton.svelte';
+  import { Clock, Calendar, SquareCheckBig, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
   
 
   let user = null;
@@ -250,13 +251,7 @@
 
       <!-- Logout Button -->
       {#if user}
-        <button
-          on:click={() => userStore.logout()}
-          class="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-red-500/20 text-red-300 hover:bg-red-500/30 border border-red-400/30 transition-all duration-200"
-        >
-          <LogOut class="w-5 h-5"/>
-          <span class="font-medium">Logout</span>
-        </button>
+        <LogoutButton />
       {/if}
     </div>
   </aside>
