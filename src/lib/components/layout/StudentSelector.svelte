@@ -1,5 +1,5 @@
 <script>
-  import { userStore, isMentor, isAdmin } from '$lib/stores/userStore';
+  import { userStore, isMentor, isAdmin } from '../../../stores/userStore';
   import Select from '$lib/components/ui/select.svelte';
   import SelectContent from '$lib/components/ui/SelectContent.svelte';
   import SelectItem from '$lib/components/ui/SelectItem.svelte';

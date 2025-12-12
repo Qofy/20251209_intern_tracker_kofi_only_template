@@ -1,6 +1,6 @@
 <script>
   import { userStore } from '../../stores/userStore';
-  import { dev } from '$app/environment';
+  // import { dev } from '$app/environment';
 
   $: user = $userStore.user;
   $: selectedStudent = $userStore.selectedStudent;
