@@ -5,7 +5,7 @@
   import Input from '$lib/components/ui/input.svelte';
   import Label from '$lib/components/ui/label.svelte';
   import { Clock, Save, CheckCircle2 } from 'lucide-svelte';
-  import { TimeEntry } from '$lib/entities/all';
+  import { TimeEntry } from '../../../entities/all';
   import { format } from 'date-fns';
 
   export let date;

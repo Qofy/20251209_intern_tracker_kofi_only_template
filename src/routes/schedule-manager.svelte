@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { Schedule } from '../entities/all';
+  import { Schedule } from '../entities/all.js';
   import { userStore, isMentor, isStudent, isAdmin } from '../stores/userStore';
   import { format } from 'date-fns';
   import Input from '$lib/components/ui/input.svelte';

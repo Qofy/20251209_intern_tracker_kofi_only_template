@@ -13,7 +13,7 @@
   import DialogHeader from '$lib/components/ui/DialogHeader.svelte';
   import DialogTitle from '$lib/components/ui/DialogTitle.svelte';
   import { Clock, Plus, Edit, Trash2, FileText, Link as LinkIcon, ArrowUp, ArrowDown, Calendar, AlertTriangle } from 'lucide-svelte';
-  import { Task } from '$lib/entities/all';
+    import { TimeEntry } from '../../../entities/all';
   import { UploadFile } from '$lib/integrations/Core';
   import { format, parseISO } from 'date-fns';
 

@@ -6,8 +6,6 @@
   import ProgressCard from '$lib/components/dashboard/ProgressCard.svelte';
   import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
   import LogoutButton from '$lib/components/LogoutButton.svelte';
-  import Reports from './reports.svelte';
-  import Schedule from "./schedule-manager.svelte";
   import { Clock, Calendar, SquareCheckBig, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
   
 
@@ -315,14 +313,13 @@
         </div>
       </div>
     {:else if activeView === 'reports'}
-      <!-- <div class="p-8">
+      <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Reports</h1>
         <p class="text-white/70 mb-8">View and generate reports.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Reports content goes here</p>
         </div>
-      </div> -->
-      <Reports/>
+      </div>
     {:else if activeView === 'proof-approval'}
       <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Proof & Approval</h1>
