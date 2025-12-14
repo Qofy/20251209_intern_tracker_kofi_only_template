@@ -123,8 +123,9 @@ function createUserStore() {
           console.log('loadUserAndRole: Admin - selectedStudent =', selectedStudent);
         } else if (storedRole === 'mentor') {
           myStudents = mockStudents.filter(s => s.mentor_email === currentUser.email);
-          selectedStudent = null; // Don't auto-select for mentor
-          console.log('loadUserAndRole: Mentor - selectedStudent =', selectedStudent);
+          // Treat mentors like admins for offline/demo convenience: auto-select first student
+          selectedStudent = myStudents[0] || null;
+          console.log('loadUserAndRole: Mentor - auto-selected student =', selectedStudent);
         } else {
           const studentProfile = mockStudents.find(s => s.student_email === currentUser.email);
           selectedStudent = studentProfile || null;

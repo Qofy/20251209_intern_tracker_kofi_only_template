@@ -11,6 +11,6 @@
       "@test/*": ["./__test__/*"]
     }
   },
-  "include": [ "src/**/*", "__test__/**/*" ],
+  "include": [ "src/**/*", "__test__/**/*", "public/dashboard.svelte" ],
   "exclude": ["vendor","deps",".yarn","build","dist",".routify","node_modules", "public"]
 }

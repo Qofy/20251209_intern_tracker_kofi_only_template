@@ -1,9 +1,0 @@
-{
-  "pages": "src/pages",
-  "sourceDir": "public",
-  "routifyDir": ".routify",
-  "ignore": "",
-  "dynamicImports": true,
-  "singleBuild": false,
-  "noHashScroll": false
-}

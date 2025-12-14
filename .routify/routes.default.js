@@ -6,29 +6,16 @@ export const routes = {
   "id": "_default",
   "name": "",
   "file": {
-    "path": "src/routes",
-    "dir": "src",
-    "base": "routes",
-    "ext": "",
-    "name": "routes"
+    "path": "src/routes/_module.svelte",
+    "dir": "src/routes",
+    "base": "_module.svelte",
+    "ext": ".svelte",
+    "name": "_module"
   },
+  "asyncModule": () => import('../src/routes/_module.svelte'),
   "rootName": "default",
   "routifyDir": import.meta.url,
   "children": [
-    {
-      "meta": {},
-      "id": "_default__layout_svelte",
-      "name": "_layout",
-      "file": {
-        "path": "src/routes/_layout.svelte",
-        "dir": "src/routes",
-        "base": "_layout.svelte",
-        "ext": ".svelte",
-        "name": "_layout"
-      },
-      "asyncModule": () => import('../src/routes/_layout.svelte'),
-      "children": []
-    },
     {
       "meta": {},
       "id": "_default_admin_overview_svelte",
@@ -115,17 +102,34 @@ export const routes = {
     },
     {
       "meta": {},
-      "id": "_default_dashboard_svelte",
+      "id": "_default_dashboard",
       "name": "dashboard",
+      "module": false,
       "file": {
-        "path": "src/routes/dashboard.svelte",
+        "path": "src/routes/dashboard",
         "dir": "src/routes",
-        "base": "dashboard.svelte",
-        "ext": ".svelte",
+        "base": "dashboard",
+        "ext": "",
         "name": "dashboard"
       },
-      "asyncModule": () => import('../src/routes/dashboard.svelte'),
-      "children": []
+      "children": [
+        {
+          "meta": {
+            "isDefault": true
+          },
+          "id": "_default_dashboard_index_svelte",
+          "name": "index",
+          "file": {
+            "path": "src/routes/dashboard/index.svelte",
+            "dir": "src/routes/dashboard",
+            "base": "index.svelte",
+            "ext": ".svelte",
+            "name": "index"
+          },
+          "asyncModule": () => import('../src/routes/dashboard/index.svelte'),
+          "children": []
+        }
+      ]
     },
     {
       "meta": {

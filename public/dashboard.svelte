@@ -1,16 +1,17 @@
 <script>
   import { onMount } from 'svelte';
-  import { userStore } from "../stores/userStore"
+  import { userStore } from "../../stores/userStore"
   import { TimeEntry, Student, Task } from '../entities/all';
   import { format, startOfWeek, startOfMonth, parseISO } from 'date-fns';
   import ProgressCard from '$lib/components/dashboard/ProgressCard.svelte';
   import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
   import LogoutButton from '$lib/components/LogoutButton.svelte';
-  import Reports from './reports.svelte';
-  import Tasks from './tasks.svelte';
-  import Schedule from "./schedule-manager.svelte";
-  import DailyTracker from './daily-tracker.svelte';
-  import ProofApproval from './proof-approval.svelte';
+  import Reports from '../src/routes/reports.svelte';
+  import Tasks from '../src/routes/tasks.svelte';
+  import Schedule from "../src/routes/schedule-manager.svelte";
+  import DailyTracker from '../src/routes/daily-tracker.svelte';
+  import ProofApproval from '../src/routes/proof-approval.svelte';
+  import Students from '../src/routes/students.svelte';
   import { Clock, Calendar, SquareCheckBig, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
   
 
@@ -141,9 +142,9 @@
   }
 </script>
 
-<div class="min-h-screen overflow-auto flex gap-6 fixed inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
-  <aside class="w-64 p-6 flex h-full flex-shrink-0">
-    <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col gap-3 h-full overflow-y-auto scrollbar-hide">
+<div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
+  <aside class="w-64 p-6 flex flex-shrink-0">
+    <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col gap-3">
       <!-- Logo & User Info -->
       <div class="flex flex-col items-center">
         <div class="w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mb-3 shadow-lg">
@@ -339,13 +340,14 @@
         </div>
       </div> -->
     {:else if activeView === 'students'}
-      <div class="p-8">
+        <Students/>
+      <!-- <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Student Contracts</h1>
         <p class="text-white/70 mb-8">Manage student contracts and information.</p>
         <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6 text-center">
           <p class="text-white/60">Student contracts content goes here</p>
         </div>
-      </div>
-    {/if}
+      </div>-->
+    {/if} 
   </main>
 </div>

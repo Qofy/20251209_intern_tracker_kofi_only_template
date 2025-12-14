@@ -1,8 +1,20 @@
+<script context="module">
+    /** @type {RoutifyLoad} */
+    const load = () => {
+        return {
+            redirect: '/login',
+        }
+    }
+
+    export { load }
+</script>
+
 <script>
   import { onMount } from 'svelte';
-
+  // import { goto } from '@roxi/routify';
+// import {Router,activeRoute} from '@roxi/routify';
   onMount(() => {
-    window.location.href = 'dashboard';
+    // $activeRoute.router.name = 'login';
   });
 </script>
 

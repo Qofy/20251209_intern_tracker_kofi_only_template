@@ -1,9 +1,11 @@
 import { defineConfig } from "vite";
 import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { getAliases } from "vite-aliases";
+import routify from "@roxi/routify/vite-plugin"
 import path from "path";
+import { mdsvex } from "mdsvex";
 const aliases = getAliases();
-
+const production = process.env.NODE_ENV==="production"
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
 	const isProduction = mode === "production";
@@ -56,8 +58,28 @@ export default defineConfig(({ mode }) => {
 			},
 		},
 		plugins: [
+			routify({
+				routesDir:{
+					default:"src/routes",
+					widgets:"src/widgets"
+				}
+			}),
 			getAliases(),
-			svelte()
+			svelte({
+				emitCss:true,
+				compilerOptions:{
+					dev:!production,
+				},
+				extensions:[
+					".svelte",
+					".md"
+				],
+				preprocess:[
+					mdsvex({
+						extension:"md"
+					})
+				]
+			})
 		],
 		optimizeDeps: {
 			include: ["date-fns", "chart.js", "svelte-chartjs"],
