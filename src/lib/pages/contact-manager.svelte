@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { ContractTemplate } from '../entities/all';
+  import { ContractTemplate } from '../../entities/all';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
   import Textarea from '$lib/components/ui/textarea.svelte';

@@ -1,16 +1,16 @@
 <script>
   import { onMount } from 'svelte';
-  import { Application } from '../entities/all';
-  import { userStore, isAdmin, isMentor } from '../stores/userStore';
-  import Button from '../lib/components/ui/button.svelte';
-  import Input from '../lib/components/ui/input.svelte';
-  import Textarea from '../lib/components/ui/textarea.svelte';
-  import Badge from '../lib/components/ui/badget.svelte';
-  import Select from '../lib/components/ui/select.svelte';
-  import SelectTrigger from '../lib/components/ui/SelectTrigger.svelte';
-  import SelectValue from '../lib/components/ui/SelectValue.svelte';
-  import SelectContent from '../lib/components/ui/SelectContent.svelte';
-  import SelectItem from '../lib/components/ui/SelectItem.svelte';
+  import { Application } from '../../entities/all';
+  import { userStore, isAdmin, isMentor } from '../../stores/userStore';
+  import Button from '../components/ui/button.svelte';
+  import Input from '../components/ui/input.svelte';
+  import Textarea from '../components/ui/textarea.svelte';
+  import Badge from '../components/ui/badget.svelte';
+  import Select from '../components/ui/select.svelte';
+  import SelectTrigger from '../components/ui/SelectTrigger.svelte';
+  import SelectValue from '../components/ui/SelectValue.svelte';
+  import SelectContent from '../components/ui/SelectContent.svelte';
+  import SelectItem from '../components/ui/SelectItem.svelte';
   import { FileText, Upload, Eye, Check, X, Plus, Edit, CheckCircle2, AlertCircle } from 'lucide-svelte';
   import { UploadFile } from '$lib/integrations/Core';
 

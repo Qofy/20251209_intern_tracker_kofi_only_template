@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { Student } from '../entities/all';
-  import { userStore } from '../stores/userStore';
+  import { Student } from '../../entities/all';
+  import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
   import { Plus, User, Trash2, Edit } from 'lucide-svelte';

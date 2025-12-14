@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { Student, TimeEntry, Task, Question } from '../entities/all';
+  import { Student, TimeEntry, Task, Question } from '../../entities/all';
   import { Settings, Users, Clock, CheckSquare, MessageCircle, BarChart3 } from 'lucide-svelte';
 
   let allStudents = [];

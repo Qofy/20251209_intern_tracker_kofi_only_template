@@ -1,12 +1,12 @@
 <script>
   import { onMount } from 'svelte';
-  import { Student } from '../entities/all';
-  import { userStore } from '../stores/userStore';
+  import { Student } from '../../entities/all';
+  import { userStore } from '../../stores/userStore';
   import { goto } from '@roxi/routify';
-  import Button from '../lib/components/ui/button.svelte';
-  import Badge from '../lib/components/ui/badget.svelte';
+  import Button from '../components/ui/button.svelte';
+  import Badge from '../components/ui/badget.svelte';
   import { Plus, User, Trash2, FileArchive, Eye } from 'lucide-svelte';
-  import DocumentManager from '../lib/components/students/DocumentManager.svelte';
+  import DocumentManager from '../components/students/DocumentManager.svelte';
 
   let students = [];
   let managingDocuments = null;

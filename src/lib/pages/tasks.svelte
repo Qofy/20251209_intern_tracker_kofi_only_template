@@ -1,13 +1,13 @@
 <script>
   import { onMount } from 'svelte';
-  import { Task, Question } from '../entities/all';
-  import { userStore, isMentor } from '../stores/userStore';
+  import { Task, Question } from '../../entities/all';
+  import { userStore, isMentor } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
   import Select from '$lib/components/ui/select.svelte';
-  import SelectTrigger from '../lib/components/ui/SelectTrigger.svelte';
-  import SelectContent from '../lib/components/ui/SelectContent.svelte';
-  import SelectItem from '../lib/components/ui/SelectItem.svelte';
+  import SelectTrigger from '../components/ui/SelectTrigger.svelte';
+  import SelectContent from '../components/ui/SelectContent.svelte';
+  import SelectItem from '../components/ui/SelectItem.svelte';
   import SelectValue from '$lib/components/ui/SelectValue.svelte';
   import { Plus, Search, Filter, CheckSquare } from 'lucide-svelte';
   import TaskCard from '$lib/components/tasks/TaskCard.svelte';

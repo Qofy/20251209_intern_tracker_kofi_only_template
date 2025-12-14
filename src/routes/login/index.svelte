@@ -89,7 +89,9 @@
         <div class="bg-red-500/20 border border-red-400/30 text-red-100 text-sm p-3 rounded-xl text-center">{error}</div>
       {/if}
 
-      <button type="submit" disabled={isLoading} class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">{isLoading ? 'Signing in...' : 'Sign In'}</button>
+      <button type="submit" disabled={isLoading} on:click="{handleSignup}" class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+        {isLoading ? 'Signing in...' : 'Sign In'}
+      </button>
     </form>
 
     <div class="mt-6 text-center">

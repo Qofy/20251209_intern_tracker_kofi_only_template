@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { TimeEntry } from '../entities/all';
-  import { userStore, isMentor } from '../stores/userStore';
+  import { TimeEntry } from '../../entities/all';
+  import { userStore, isMentor } from '../../stores/userStore';
   import { format, parseISO } from 'date-fns';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';

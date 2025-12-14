@@ -6,12 +6,12 @@
   import ProgressCard from '$lib/components/dashboard/ProgressCard.svelte';
   import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
   import LogoutButton from '$lib/components/LogoutButton.svelte';
-  import Reports from '../reports.svelte';
-  import Tasks from '../tasks.svelte';
-  import Schedule from "../schedule-manager.svelte";
-  import DailyTracker from '../daily-tracker.svelte';
-  import ProofApproval from '../proof-approval.svelte';
-  import Students from '../students.svelte';
+  import Reports from '../../lib/pages/reports.svelte';
+  import Tasks from '../../lib/pages/tasks.svelte';
+  import Schedule from "../../lib/pages/schedule-manager.svelte";
+  import DailyTracker from '../../lib/pages/daily-tracker.svelte';
+  import ProofApproval from '../../lib/pages/proof-approval.svelte';
+  import Students from '../../lib/pages/students.svelte';
   import { Clock, Calendar, SquareCheckBig, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
   
 

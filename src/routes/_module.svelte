@@ -1,5 +1,6 @@
 
+
 <div>
-    <h1>Hello</h1>
+    <!-- handleClose -->
     <slot/>
 </div>

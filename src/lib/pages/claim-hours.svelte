@@ -1,15 +1,15 @@
 <script>
   import { onMount } from 'svelte';
-  import { TimeEntry } from '../entities/all';
-  import { userStore } from '../stores/userStore';
+  import { TimeEntry } from '../../entities/all';
+  import { userStore } from '../../stores/userStore';
   import { format, parseISO } from 'date-fns';
-  import Button from '../lib/components/ui/button.svelte';
-  import Input from '../lib/components/ui/input.svelte';
-  import Textarea from '../lib/components/ui/textarea.svelte';
-  import Badge from '../lib/components/ui/badget.svelte';
+  import Button from '../components/ui/button.svelte';
+  import Input from '../components/ui/input.svelte';
+  import Textarea from '../components/ui/textarea.svelte';
+  import Badge from '../components/ui/badget.svelte';
   import { Clock, Send, Plus, Edit, Trash2, FileText, Wand2, Loader2 } from 'lucide-svelte';
   import { InvokeLLM } from '$lib/integrations/Core';
-  import HourClaimForm from '../lib/components/claims/HoursClaimsForm.svelte';
+  import HourClaimForm from '../components/claims/HoursClaimsForm.svelte';
 
   $: user = $userStore.user;
   $: selectedStudent = $userStore.selectedStudent;

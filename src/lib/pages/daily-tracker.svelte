@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { userStore, isStudent } from '../stores/userStore';
-  import { TimeEntry } from '../entities/all';
+  import { userStore, isStudent } from '../../stores/userStore';
+  import { TimeEntry } from '../../entities/all';
   import { format } from 'date-fns';
   import { Clock, Save, Upload, FileText, AlertCircle, CheckCircle2 } from 'lucide-svelte';
   import Button from '$lib/components/ui/button.svelte';
