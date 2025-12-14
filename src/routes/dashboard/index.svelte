@@ -1,4 +1,5 @@
 <script>
+  console.log("dashboard")
   import { onMount } from 'svelte';
   import { userStore } from "../../stores/userStore"
   import { TimeEntry, Student, Task } from '../../entities/all';
@@ -19,9 +20,9 @@
   let role = null;
   let isMentor = false;
   let isStudent = false;
-  let selectedStudent = null;
+  let selectedStudent = { id: 1, full_name: 'Demo Student', student_email: 'student@example.com', contract_hours: 600 }; // Default for UI testing
   let myStudents = [];
-  let isLoading = true;
+  let isLoading = false; // Start as false for UI testing
   let timeEntries = [];
   let currentStatus = 'not_started';
   let todayEntry = null;
@@ -34,26 +35,30 @@
     completionPercentage: 0
   };
 
-  userStore.subscribe(state => {
+  const unsubscribe = userStore.subscribe(state => {
+    console.log('Dashboard: userStore updated:', { isLoading: state.isLoading, selectedStudent: state.selectedStudent, role: state.role });
     user = state.user;
     role = state.role;
     isMentor = state.role === 'mentor';
     isStudent = state.role === 'student';
     selectedStudent = state.selectedStudent;
     myStudents = state.myStudents || [];
-    isLoading = state.isLoading || false;
+    isLoading = state.isLoading;
+  });
+
+  onMount(() => {
+    // Restore user state from localStorage on page load/reload
+    console.log('Dashboard onMount: Calling loadUserAndRole()');
+    userStore.loadUserAndRole();
+    return unsubscribe;
   });
 
   function setActiveView(view) {
     activeView = view;
   }
-  onMount(() => {
-    if (selectedStudent) {
-      loadData();
-    }
-  });
 
   $: if (selectedStudent) {
+    console.log('Dashboard: selectedStudent changed, calling loadData:', selectedStudent);
     loadData();
   }
 
@@ -237,40 +242,30 @@
           <span>Reports</span>
         </button>
         
-        {#if isMentor || role === 'admin'}
-          <button
-            on:click={() => setActiveView('proof-approval')}
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full {activeView === 'proof-approval' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          >
-            <ReceiptText class="w-5 h-5"/>
-            <span>Proof & Approval</span>
-          </button>
-          <button
-            on:click={() => setActiveView('students')}
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full {activeView === 'students' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          >
-            <Users class="w-5 h-5"/>
-            <span>Student Contracts</span>
-          </button>
-        {/if}
+        <!-- TEMP: Always show these for UI testing -->
+        <button
+          on:click={() => setActiveView('proof-approval')}
+          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full {activeView === 'proof-approval' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+        >
+          <ReceiptText class="w-5 h-5"/>
+          <span>Proof & Approval</span>
+        </button>
+        <button
+          on:click={() => setActiveView('students')}
+          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 w-full {activeView === 'students' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+        >
+          <Users class="w-5 h-5"/>
+          <span>Student Contracts</span>
+        </button>
       </nav>
 
-      <!-- Logout Button -->
-      {#if user}
-        <LogoutButton />
-      {/if}
+      <!-- Logout Button - TEMP: Always show for UI testing -->
+      <LogoutButton />
     </div>
   </aside>
   <main class="flex-1 overflow-auto bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl">
-    {#if isLoading}
-      <div class="p-8 text-white text-center">
-        <p class="text-lg">Loading...</p>
-      </div>
-    {:else if !selectedStudent}
-      <div class="p-8 text-white text-center">
-        <p class="text-lg">No student profile found. Please select a student or check your profile settings.</p>
-      </div>
-    {:else if activeView === 'dashboard'}
+    <!-- TEMP: Showing dashboard regardless of loading/selectedStudent state for UI review -->
+    {#if activeView === 'dashboard'}
       <div class="p-8">
         <h1 class="text-3xl font-bold text-white mb-2">Dashboard</h1>
         <p class="text-white/70 mb-8">Welcome back! Here's your overview.</p>

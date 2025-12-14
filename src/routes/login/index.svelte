@@ -1,6 +1,5 @@
 <script>
   import { userStore } from '../../stores/userStore';
-  import { goto } from '@roxi/routify';
 
   let email = '';
   let password = '';
@@ -12,13 +11,14 @@
   const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
 
   async function handleSubmit() {
+    console.log('!!!handleSubmit called with email:', email);
     isLoading = true;
     error = '';
 
     try {
       await userStore.login(email, password);
       await userStore.loadUserAndRole();
-      $goto('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err) {
       console.error('Login error:', err);
       error = err.message || 'Login failed';
@@ -35,7 +35,7 @@
       await userStore.register(signupData);
       showSignup = false;
       await userStore.loadUserAndRole();
-      $goto('/dashboard');
+      window.location.href = '/dashboard';
     } catch (err) {
       error = err.message || 'Registration failed';
     } finally {
@@ -43,7 +43,8 @@
     }
   }
 
-  function quickLogin(userType) {
+  async function quickLogin(userType) {
+    console.log('!!!quickLogin called with:', userType);
     const credentials = {
       admin: { email: 'admin@example.com', password: 'admin123' },
       mentor: { email: 'mentor@example.com', password: 'mentor123' },
@@ -53,6 +54,30 @@
     const cred = credentials[userType];
     email = cred.email;
     password = cred.password;
+
+    // Auto-submit immediately after setting credentials
+    isLoading = true;
+    error = '';
+
+    try {
+      console.log('quickLogin: Starting login with', email);
+      await userStore.login(email, password);
+      console.log('quickLogin: login() completed');
+      
+      console.log('quickLogin: Calling loadUserAndRole()');
+      await userStore.loadUserAndRole();
+      console.log('quickLogin: loadUserAndRole() completed');
+      
+      // Allow one full microtask cycle for Svelte's change detection and localStorage updates
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      console.log('quickLogin: Redirecting to /dashboard');
+      window.location.href = '/dashboard';
+    } catch (err) {
+      console.error('Quick login error:', err);
+      error = err.message || 'Login failed';
+      isLoading = false;
+    }
   }
 </script>
 
@@ -89,7 +114,7 @@
         <div class="bg-red-500/20 border border-red-400/30 text-red-100 text-sm p-3 rounded-xl text-center">{error}</div>
       {/if}
 
-      <button type="submit" disabled={isLoading} on:click="{handleSignup}" class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
+      <button type="submit" disabled={isLoading} class="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 disabled:opacity-50 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5">
         {isLoading ? 'Signing in...' : 'Sign In'}
       </button>
     </form>

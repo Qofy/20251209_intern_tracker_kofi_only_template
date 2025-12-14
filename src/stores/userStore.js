@@ -70,7 +70,7 @@ function createUserStore() {
     },
     
     loadUserAndRole: async () => {
-      update(state => ({ ...state, isLoading: true }));
+      console.log('loadUserAndRole: CALLED');
 
       // Check for offline mode
       const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
@@ -134,15 +134,17 @@ function createUserStore() {
 
         console.log('loadUserAndRole: Final state =', { user: currentUser, role: storedRole, selectedStudent });
 
-        update(state => ({
-          ...state,
+        const newState = {
           user: currentUser,
           role: storedRole,
           allStudents,
           myStudents,
           selectedStudent,
           isLoading: false
-        }));
+        };
+        console.log('loadUserAndRole: Setting new state:', newState);
+        set(newState);
+        console.log('loadUserAndRole: State set, returning');
         return;
       }
 
@@ -164,18 +166,24 @@ function createUserStore() {
           selectedStudent = studentProfile[0] || null;
         }
 
-        update(state => ({
-          ...state,
+        set({
           user: currentUser,
           role: userRole,
           allStudents,
           myStudents,
           selectedStudent,
           isLoading: false
-        }));
+        });
       } catch (error) {
         console.error("User not logged in", error);
-        update(state => ({ ...state, role: 'public', isLoading: false }));
+        set({ 
+          user: null,
+          role: 'public',
+          allStudents: [],
+          myStudents: [],
+          selectedStudent: null,
+          isLoading: false 
+        });
       }
     },
     
