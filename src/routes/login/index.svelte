@@ -68,10 +68,7 @@
       await userStore.loadUserAndRole();
       console.log('quickLogin: loadUserAndRole() completed');
       
-      // Allow one full microtask cycle for Svelte's change detection and localStorage updates
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      console.log('quickLogin: Redirecting to /dashboard');
+      console.log('quickLogin: Navigating to /dashboard');
       window.location.href = '/dashboard';
     } catch (err) {
       console.error('Quick login error:', err);
@@ -175,3 +172,4 @@
     </div>
   {/if}
 </div>
+
