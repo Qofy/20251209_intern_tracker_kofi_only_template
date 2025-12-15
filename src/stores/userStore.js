@@ -16,8 +16,8 @@ function createUserStore() {
     subscribe,
     
     login: async (email, password) => {
-      // Use offline mode for development
-      const offlineMode = true;
+      // Use real backend API
+      const offlineMode = false;
 
       if (offlineMode) {
         console.log('Offline mode login with:', email);
@@ -47,8 +47,8 @@ function createUserStore() {
     },
     
     register: async (userData) => {
-      // Use offline mode for development
-      const offlineMode = true;
+      // Use real backend API
+      const offlineMode = false;
       
       if (offlineMode) {
         console.log('Offline mode: Simulating registration');
@@ -84,8 +84,8 @@ function createUserStore() {
     loadUserAndRole: async () => {
       console.log('loadUserAndRole: CALLED');
 
-      // Use offline mode for development
-      const offlineMode = true;
+      // Use real backend API
+      const offlineMode = false;
 
       if (offlineMode) {
         console.log('Running in offline mode with mock data');

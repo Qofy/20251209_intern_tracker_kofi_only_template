@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
 		server: {
 			proxy: {
 				"/api": {
-					target: "https://intern.intuivo.com",
+					target: "http://localhost:3000",
 					changeOrigin: true,
 					secure: false,
 					ws: true,
@@ -22,21 +22,7 @@ export default defineConfig(({ mode }) => {
 							console.log("[Proxy Error]", err);
 						});
 						proxy.on("proxyReq", (proxyReq, req, _res) => {
-							const headers = proxyReq.getHeaders();
-							console.log("[Proxy Request]", req.method, req.url);
-							console.log(
-								"[Proxy Target]",
-								"https://intern.intuivo.com" + req.url,
-							);
-							console.log("[Proxy Headers]", JSON.stringify(headers, null, 2));
-							console.log(
-								"[X-Company-Id]",
-								headers["x-company-id"] || "NOT SET",
-							);
-							console.log(
-								"[Authorization]",
-								headers["authorization"] ? "Bearer ***" : "NOT SET",
-							);
+							console.log("[Proxy Request]", req.method, req.url, "-> http://localhost:3000");
 						});
 						proxy.on("proxyRes", (proxyRes, req, _res) => {
 							console.log("[Proxy Response]", proxyRes.statusCode, req.url);
@@ -44,22 +30,10 @@ export default defineConfig(({ mode }) => {
 					},
 				},
 				"/auth": {
-					target: "https://intern.intuivo.com",
+					target: "http://localhost:3000/api",
 					changeOrigin: true,
 					secure: false,
 					ws: true,
-					configure: (proxy, _options) => {
-						proxy.on("error", (err, _req, _res) => {
-							console.log("[Auth Proxy Error]", err);
-						});
-						proxy.on("proxyReq", (proxyReq, req, _res) => {
-							console.log("[Auth Proxy Request]", req.method, req.url);
-							console.log("[Auth Proxy Target]", "https://intern.intuivo.com" + req.url);
-						});
-						proxy.on("proxyRes", (proxyRes, req, _res) => {
-							console.log("[Auth Proxy Response]", proxyRes.statusCode, req.url);
-						});
-					},
 				},
 			},
 		},

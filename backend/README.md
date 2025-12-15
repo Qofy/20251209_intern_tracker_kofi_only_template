@@ -10,6 +10,7 @@ A complete NestJS backend API for the internship tracking application.
 - **Time Entries**: Track daily work hours with approval workflow
 - **Tasks**: Task assignment and tracking
 - **Schedules**: Event and meeting scheduling
+- **Database**: SQLite (no external database installation required)
 
 ## Setup
 
@@ -26,11 +27,7 @@ yarn install
 Create a `.env` file in the backend directory:
 
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-DB_DATABASE=intern_tracker
+DB_DATABASE=intern_tracker.db
 
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRES_IN=7d
@@ -39,18 +36,15 @@ PORT=3000
 NODE_ENV=development
 ```
 
-### 3. Setup PostgreSQL Database
+Or simply copy the example:
 
 ```bash
-# Install PostgreSQL (macOS)
-brew install postgresql@15
-brew services start postgresql@15
-
-# Create database
-createdb intern_tracker
+cp .env.example .env
 ```
 
-### 4. Run the Application
+**Note:** Using SQLite - no database installation required! The database file will be created automatically.
+
+### 3. Run the Application
 
 ```bash
 # Development mode
@@ -102,7 +96,7 @@ The API will be available at `http://localhost:3000/api`
 
 ## Database Schema
 
-The application uses PostgreSQL with TypeORM. Tables are automatically created on first run with `synchronize: true`.
+The application uses SQLite with TypeORM. The database file (`intern_tracker.db`) and tables are automatically created on first run with `synchronize: true`.
 
 ### Tables:
 - `users` - User accounts with authentication

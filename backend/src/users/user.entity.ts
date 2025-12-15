@@ -20,12 +20,8 @@ export class User {
   @Column()
   full_name: string;
 
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.STUDENT,
-  })
-  role: UserRole;
+  @Column({ default: 'student' })
+  role: string;
 
   @Column({ nullable: true })
   company_id: number;
