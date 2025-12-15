@@ -16,7 +16,8 @@ function createUserStore() {
     subscribe,
     
     login: async (email, password) => {
-      const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+      // Use offline mode for development
+      const offlineMode = true;
 
       if (offlineMode) {
         console.log('Offline mode login with:', email);
@@ -28,37 +29,46 @@ function createUserStore() {
           role = 'mentor';
         }
 
-        // Store role preference and token for offline mode
-        console.log('Login: Setting offline_role =', role);
         localStorage.setItem('offline_role', role);
-        console.log('Login: Setting auth_token');
         localStorage.setItem('auth_token', 'offline-mock-token');
         apiClient.setToken('offline-mock-token');
-        console.log('Login: Token and role stored in localStorage');
 
         return { token: 'offline-mock-token', user: { email, role } };
       }
 
-      // Real API login
-      const response = await apiClient.login(email, password);
-      return response;
+      try {
+        const response = await apiClient.login(email, password);
+        console.log('Login successful:', response);
+        return response;
+      } catch (error) {
+        console.error('Login failed:', error);
+        throw error;
+      }
     },
     
     register: async (userData) => {
-      const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+      // Use offline mode for development
+      const offlineMode = true;
       
       if (offlineMode) {
         console.log('Offline mode: Simulating registration');
-        apiClient.setToken('mock_token_offline');
-        return { success: true };
+        apiClient.setToken('offline-mock-token');
+        return { success: true, token: 'offline-mock-token' };
       }
       
-      // Real API registration
-      return await apiClient.register(userData);
+      try {
+        const response = await apiClient.register(userData);
+        console.log('Registration successful:', response);
+        return response;
+      } catch (error) {
+        console.error('Registration failed:', error);
+        throw error;
+      }
     },
     
     logout: () => {
       apiClient.logout();
+      localStorage.removeItem('offline_role');
       set({
         user: null,
         role: null,
@@ -67,41 +77,24 @@ function createUserStore() {
         selectedStudent: null,
         isLoading: false
       });
+      // Redirect to login page
+      window.location.href = '/';
     },
     
     loadUserAndRole: async () => {
       console.log('loadUserAndRole: CALLED');
 
-      // Check for offline mode
-      const offlineMode = import.meta.env.VITE_OFFLINE_MODE === 'true';
+      // Use offline mode for development
+      const offlineMode = true;
 
       if (offlineMode) {
         console.log('Running in offline mode with mock data');
-        // Check for stored role preference or default to student
-        const storedRole = localStorage.getItem('offline_role') || 'student';
+        const storedRole = localStorage.getItem('offline_role') || 'admin';
 
         const mockUsers = {
-          student: {
-            id: 1,
-            email: 'student@example.com',
-            full_name: 'Demo Student',
-            role: 'student',
-            company_id: 1
-          },
-          mentor: {
-            id: 2,
-            email: 'mentor@example.com',
-            full_name: 'Demo Mentor',
-            role: 'mentor',
-            company_id: 1
-          },
-          admin: {
-            id: 3,
-            email: 'admin@example.com',
-            full_name: 'Demo Admin',
-            role: 'admin',
-            company_id: 1
-          }
+          student: { id: 1, email: 'student@example.com', full_name: 'Demo Student', role: 'student', company_id: 1 },
+          mentor: { id: 2, email: 'mentor@example.com', full_name: 'Demo Mentor', role: 'mentor', company_id: 1 },
+          admin: { id: 3, email: 'admin@example.com', full_name: 'Demo Admin', role: 'admin', company_id: 1 }
         };
 
         const mockStudents = [
@@ -113,38 +106,26 @@ function createUserStore() {
         const currentUser = mockUsers[storedRole];
         let allStudents = [], myStudents = [], selectedStudent = null;
 
-        console.log('loadUserAndRole: storedRole =', storedRole);
-        console.log('loadUserAndRole: currentUser =', currentUser);
-
         if (storedRole === 'admin') {
           allStudents = mockStudents;
           myStudents = mockStudents;
           selectedStudent = mockStudents[0];
-          console.log('loadUserAndRole: Admin - selectedStudent =', selectedStudent);
         } else if (storedRole === 'mentor') {
           myStudents = mockStudents.filter(s => s.mentor_email === currentUser.email);
-          // Treat mentors like admins for offline/demo convenience: auto-select first student
           selectedStudent = myStudents[0] || null;
-          console.log('loadUserAndRole: Mentor - auto-selected student =', selectedStudent);
         } else {
           const studentProfile = mockStudents.find(s => s.student_email === currentUser.email);
           selectedStudent = studentProfile || null;
-          console.log('loadUserAndRole: Student - selectedStudent =', selectedStudent);
         }
 
-        console.log('loadUserAndRole: Final state =', { user: currentUser, role: storedRole, selectedStudent });
-
-        const newState = {
+        set({
           user: currentUser,
           role: storedRole,
           allStudents,
           myStudents,
           selectedStudent,
           isLoading: false
-        };
-        console.log('loadUserAndRole: Setting new state:', newState);
-        set(newState);
-        console.log('loadUserAndRole: State set, returning');
+        });
         return;
       }
 

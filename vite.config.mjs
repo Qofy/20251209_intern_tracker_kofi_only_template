@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
 		server: {
 			proxy: {
 				"/api": {
-					target: "https://intern.intuivo.com ",
+					target: "https://intern.intuivo.com",
 					changeOrigin: true,
 					secure: false,
 					ws: true,
@@ -48,6 +48,18 @@ export default defineConfig(({ mode }) => {
 					changeOrigin: true,
 					secure: false,
 					ws: true,
+					configure: (proxy, _options) => {
+						proxy.on("error", (err, _req, _res) => {
+							console.log("[Auth Proxy Error]", err);
+						});
+						proxy.on("proxyReq", (proxyReq, req, _res) => {
+							console.log("[Auth Proxy Request]", req.method, req.url);
+							console.log("[Auth Proxy Target]", "https://intern.intuivo.com" + req.url);
+						});
+						proxy.on("proxyRes", (proxyRes, req, _res) => {
+							console.log("[Auth Proxy Response]", proxyRes.statusCode, req.url);
+						});
+					},
 				},
 			},
 		},

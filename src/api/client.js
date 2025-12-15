@@ -1,4 +1,5 @@
-const API_BASE_URL = 'https://intern.intuivo.com';
+// Use empty base URL so requests go through Vite proxy
+const API_BASE_URL = '';
 
 class ApiClient {
   constructor() {
@@ -19,6 +20,9 @@ class ApiClient {
 
   async request(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
+    console.log('[ApiClient] Making request to:', url);
+    console.log('[ApiClient] Method:', options.method || 'GET');
+    
     const config = {
       headers: {
         'Content-Type': 'application/json',
@@ -29,17 +33,26 @@ class ApiClient {
 
     if (this.token) {
       config.headers.Authorization = `Bearer ${this.token}`;
-      console.log('Adding Authorization header');
+      console.log('[ApiClient] Adding Authorization header');
     } else {
-      console.log('No token available for request');
+      console.log('[ApiClient] No token available for request');
     }
 
     try {
+      console.log('[ApiClient] Fetching...');
       const response = await fetch(url, config);
+      console.log('[ApiClient] Response received:', response.status, response.statusText);
       
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(error.error || `HTTP ${response.status}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+          console.error('API Error Response:', errorData);
+        } catch (e) {
+          console.error('Could not parse error response');
+        }
+        throw new Error(errorMessage);
       }
 
       return await response.json();
@@ -54,27 +67,43 @@ class ApiClient {
     // Clear any existing token first
     this.clearToken();
     
+    console.log('[ApiClient] Logging in with email:', email);
+    console.log('[ApiClient] Request URL:', '/auth/login');
+    console.log('[ApiClient] Request body:', JSON.stringify({ email, password: '***' }));
+    
     const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     
+    console.log('[ApiClient] Login response received:', response);
+    
     if (response.token) {
       this.setToken(response.token);
-      console.log('Token set:', response.token.substring(0, 20) + '...');
+      console.log('[ApiClient] Token set:', response.token.substring(0, 20) + '...');
+    } else {
+      console.warn('[ApiClient] No token in response');
     }
     
     return response;
   }
 
   async register(userData) {
+    console.log('[ApiClient] Registering user:', { ...userData, password: '***' });
+    console.log('[ApiClient] Request URL:', '/auth/register');
+    
     const response = await this.request('/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
     
+    console.log('[ApiClient] Registration response:', response);
+    
     if (response.token) {
       this.setToken(response.token);
+      console.log('[ApiClient] Token set after registration');
+    } else {
+      console.warn('[ApiClient] No token in registration response');
     }
     
     return response;
@@ -87,25 +116,25 @@ class ApiClient {
   // Student methods
   async getStudents(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.request(`/students${query ? `?${query}` : ''}`);
+    return this.request(`/api/students${query ? `?${query}` : ''}`);
   }
 
   async createStudent(studentData) {
-    return this.request('/students', {
+    return this.request('/api/students', {
       method: 'POST',
       body: JSON.stringify(studentData),
     });
   }
 
   async updateStudent(id, studentData) {
-    return this.request(`/students/${id}`, {
+    return this.request(`/api/students/${id}`, {
       method: 'PUT',
       body: JSON.stringify(studentData),
     });
   }
 
   async deleteStudent(id) {
-    return this.request(`/students/${id}`, {
+    return this.request(`/api/students/${id}`, {
       method: 'DELETE',
     });
   }
@@ -113,25 +142,25 @@ class ApiClient {
   // Task methods
   async getTasks(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.request(`/tasks${query ? `?${query}` : ''}`);
+    return this.request(`/api/tasks${query ? `?${query}` : ''}`);
   }
 
   async createTask(taskData) {
-    return this.request('/tasks', {
+    return this.request('/api/tasks', {
       method: 'POST',
       body: JSON.stringify(taskData),
     });
   }
 
   async updateTask(id, taskData) {
-    return this.request(`/tasks/${id}`, {
+    return this.request(`/api/tasks/${id}`, {
       method: 'PUT',
       body: JSON.stringify(taskData),
     });
   }
 
   async deleteTask(id) {
-    return this.request(`/tasks/${id}`, {
+    return this.request(`/api/tasks/${id}`, {
       method: 'DELETE',
     });
   }
@@ -139,25 +168,25 @@ class ApiClient {
   // Time entry methods
   async getTimeEntries(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.request(`/time-entries${query ? `?${query}` : ''}`);
+    return this.request(`/api/time-entries${query ? `?${query}` : ''}`);
   }
 
   async createTimeEntry(entryData) {
-    return this.request('/time-entries', {
+    return this.request('/api/time-entries', {
       method: 'POST',
       body: JSON.stringify(entryData),
     });
   }
 
   async updateTimeEntry(id, entryData) {
-    return this.request(`/time-entries/${id}`, {
+    return this.request(`/api/time-entries/${id}`, {
       method: 'PUT',
       body: JSON.stringify(entryData),
     });
   }
 
   async deleteTimeEntry(id) {
-    return this.request(`/time-entries/${id}`, {
+    return this.request(`/api/time-entries/${id}`, {
       method: 'DELETE',
     });
   }
@@ -165,50 +194,50 @@ class ApiClient {
   // Schedule methods
   async getSchedules(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.request(`/schedules${query ? `?${query}` : ''}`);
+    return this.request(`/api/schedules${query ? `?${query}` : ''}`);
   }
 
   async createSchedule(scheduleData) {
-    return this.request('/schedules', {
+    return this.request('/api/schedules', {
       method: 'POST',
       body: JSON.stringify(scheduleData),
     });
   }
 
   async updateSchedule(id, scheduleData) {
-    return this.request(`/schedules/${id}`, {
+    return this.request(`/api/schedules/${id}`, {
       method: 'PUT',
       body: JSON.stringify(scheduleData),
     });
   }
 
   async deleteSchedule(id) {
-    return this.request(`/schedules/${id}`, {
+    return this.request(`/api/schedules/${id}`, {
       method: 'DELETE',
     });
   }
 
   // Question methods
   async getQuestions() {
-    return this.request('/questions');
+    return this.request('/api/questions');
   }
 
   async createQuestion(questionData) {
-    return this.request('/questions', {
+    return this.request('/api/questions', {
       method: 'POST',
       body: JSON.stringify(questionData),
     });
   }
 
   async updateQuestion(id, questionData) {
-    return this.request(`/questions/${id}`, {
+    return this.request(`/api/questions/${id}`, {
       method: 'PUT',
       body: JSON.stringify(questionData),
     });
   }
 
   async deleteQuestion(id) {
-    return this.request(`/questions/${id}`, {
+    return this.request(`/api/questions/${id}`, {
       method: 'DELETE',
     });
   }
@@ -216,18 +245,18 @@ class ApiClient {
   // Document methods
   async getDocuments(params = {}) {
     const query = new URLSearchParams(params).toString();
-    return this.request(`/documents${query ? `?${query}` : ''}`);
+    return this.request(`/api/documents${query ? `?${query}` : ''}`);
   }
 
   async uploadDocument(documentData) {
-    return this.request('/documents', {
+    return this.request('/api/documents', {
       method: 'POST',
       body: JSON.stringify(documentData),
     });
   }
 
   async deleteDocument(id) {
-    return this.request(`/documents/${id}`, {
+    return this.request(`/api/documents/${id}`, {
       method: 'DELETE',
     });
   }
@@ -240,7 +269,7 @@ class ApiClient {
       formData.append('files', files[i]);
     }
 
-    return this.request('/files/upload', {
+    return this.request('/api/files/upload', {
       method: 'POST',
       headers: {
         // Don't set Content-Type for FormData, let browser set it
@@ -250,7 +279,7 @@ class ApiClient {
   }
 
   getFileUrl(filename) {
-    return `${API_BASE_URL}/files/${filename}`;
+    return `/api/files/${filename}`;
   }
 }
 

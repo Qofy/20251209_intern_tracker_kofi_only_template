@@ -14,7 +14,7 @@
   import DailyTracker from '../../lib/pages/daily-tracker.svelte';
   import ProofApproval from '../../lib/pages/proof-approval.svelte';
   import Students from '../../lib/pages/students.svelte';
-  import { Clock, Calendar, SquareCheckBig, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
+  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
   
 
   // Default UI test values - will be overridden by store subscription
@@ -305,6 +305,22 @@
       {:else if activeView === 'students'}
           <Students/>
       {/if}
+      
+      <!-- Action Buttons (bottom left) -->
+      <div class="absolute bottom-6 right-5 flex flex-col gap-3 z-50">
+        <button 
+          class="inline-flex items-center justify-center rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-14 h-14 bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" 
+          title="Report a Bug"
+        >
+         <Bug size={24}/>
+        </button>
+        <button 
+          class="inline-flex items-center justify-center rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110" 
+          title="Request Enhancement"
+        >
+         <Hammer size={24}/>
+        </button>
+      </div>
       
       <!-- Debug Info Button -->
       <div class="absolute bottom-6 right-6 z-50">
