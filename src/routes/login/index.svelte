@@ -43,8 +43,7 @@
     }
   }
 
-  async function quickLogin(userType) {
-    console.log('!!!quickLogin called with:', userType);
+  function quickLogin(userType) {
     const credentials = {
       admin: { email: 'admin@example.com', password: 'admin123' },
       mentor: { email: 'mentor@example.com', password: 'mentor123' },
@@ -54,31 +53,6 @@
     const cred = credentials[userType];
     email = cred.email;
     password = cred.password;
-
-    // Auto-submit immediately after setting credentials
-    isLoading = true;
-    error = '';
-
-    try {
-      console.log('quickLogin: Starting login with', email);
-      await userStore.login(email, password);
-      console.log('quickLogin: login() completed');
-      
-      console.log('quickLogin: Calling loadUserAndRole()');
-      await userStore.loadUserAndRole();
-      console.log('quickLogin: loadUserAndRole() completed');
-      
-      console.log('quickLogin: Navigating to /dashboard');
-      window.location.href = '/dashboard';
-    } catch (err) {
-      console.error('Quick login error:', err);
-      if (err.message.includes('401') || err.message.toLowerCase().includes('unauthorized')) {
-        error = `Demo account not found. Please create an account first or use existing credentials.`;
-      } else {
-        error = err.message || 'Login failed';
-      }
-      isLoading = false;
-    }
   }
 </script>
 
@@ -116,9 +90,27 @@
     <div class="mt-6 pt-6 border-t border-white/20">
       <p class="text-white/60 text-sm text-center mb-4">Quick Login (Demo)</p>
       <div class="grid grid-cols-3 gap-2">
-        <button type="button" on:click={() => quickLogin('admin')} class="bg-red-500/30 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-red-500/40 transition-colors border border-white/10">Admin</button>
-        <button type="button" on:click={() => quickLogin('mentor')} class="bg-blue-500/30 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-blue-500/40 transition-colors border border-white/10">Mentor</button>
-        <button type="button" on:click={() => quickLogin('student')} class="bg-green-500/30 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-green-500/40 transition-colors border border-white/10">Student</button>
+        <button 
+          type="button" 
+          on:click={() => quickLogin('admin')} 
+          class="bg-red-500/30 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-red-500/40 transition-colors border border-white/10"
+        >
+          Admin
+        </button>
+        <button 
+          type="button" 
+          on:click={() => quickLogin('mentor')} 
+          class="bg-blue-500/30 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-blue-500/40 transition-colors border border-white/10"
+        >
+          Mentor
+        </button>
+        <button 
+          type="button" 
+          on:click={() => quickLogin('student')} 
+          class="bg-green-500/30 text-white px-3 py-2 rounded-lg text-xs font-medium hover:bg-green-500/40 transition-colors border border-white/10"
+        >
+          Student
+        </button>
       </div>
     </div>
   </div>

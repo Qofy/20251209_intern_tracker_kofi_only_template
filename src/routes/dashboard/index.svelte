@@ -17,14 +17,14 @@
   import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
   
 
-  // Default UI test values - will be overridden by store subscription
-  let user = { id: 3, email: 'admin@example.com', full_name: 'Demo Admin', role: 'admin', company_id: 1 };
-  let role = 'admin';
+  // Reactive variables that will be updated by store subscription
+  let user = null;
+  let role = null;
   let isMentor = false;
   let isStudent = false;
-  let selectedStudent = { id: 1, full_name: 'Demo Student', student_email: 'student@example.com', contract_hours: 600 }; // Default for UI testing
+  let selectedStudent = null;
   let myStudents = [];
-  let isLoading = false; // Start as false for UI testing
+  let isLoading = true;
   let timeEntries = [];
   let currentStatus = 'not_started';
   let todayEntry = null;
@@ -38,7 +38,7 @@
   };
 
   const unsubscribe = userStore.subscribe(state => {
-    console.log('Dashboard: userStore updated:', { isLoading: state.isLoading, selectedStudent: state.selectedStudent, role: state.role });
+    console.log('Dashboard: userStore updated:', { isLoading: state.isLoading, selectedStudent: state.selectedStudent, role: state.role, user: state.user });
     user = state.user;
     role = state.role;
     isMentor = state.role === 'mentor';
@@ -48,10 +48,17 @@
     isLoading = state.isLoading;
   });
 
-  onMount(() => {
+  onMount(async () => {
     // Restore user state from localStorage on page load/reload
     console.log('Dashboard onMount: Calling loadUserAndRole()');
-    userStore.loadUserAndRole();
+    try {
+      await userStore.loadUserAndRole();
+      console.log('Dashboard onMount: loadUserAndRole completed');
+    } catch (error) {
+      console.error('Dashboard onMount: loadUserAndRole failed', error);
+      // Redirect to login on error
+      window.location.href = '/';
+    }
     return unsubscribe;
   });
 
@@ -162,37 +169,106 @@
         
         <!-- User Info - updates dynamically based on store -->
         <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
-          <p class="text-white/80 text-sm font-medium">
-            {user?.email || 'user@example.com'}
-          </p>
-          <p class="text-white/60 text-xs capitalize">
-            {role || 'student'} Account
-          </p>
+          {#if user}
+            <p class="text-white/80 text-sm font-medium">
+              {user.email}
+            </p>
+            <p class="text-white/60 text-xs capitalize">
+              {role} Account
+            </p>
+          {:else}
+            <p class="text-white/60 text-sm">
+              Loading...
+            </p>
+          {/if}
         </div>
       </div>
 
       <!-- Student Management Section -->
-      <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-        <div class="flex items-center justify-between flex-col  mb-3">
-          <h4 class="text-white/80 text-sm font-medium text-center">Student Management</h4>
-          <a href="/students">
-            <button class="inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none hover:bg-accent hover:text-accent-foreground h-9 px-3  text-white/60 hover:text-white hover:bg-white/10">
-              <Plus class="w-4 h-4 mr-1"/>
-              Add
-            </button>
-          </a>
+      {#if role === 'admin'}
+        <!-- ADMIN: Shows ALL students -->
+        <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-white/80 text-sm font-medium">All Students</h4>
+            <a href="/students">
+              <button class="inline-flex items-center justify-center rounded-md font-medium transition-colors h-7 px-2 text-xs text-white/60 hover:text-white hover:bg-white/10">
+                <Plus class="w-3 h-3 mr-1"/>
+                Add
+              </button>
+            </a>
+          </div>
+          {#if myStudents && myStudents.length > 0}
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              {#each myStudents as student}
+                <button
+                  class="w-full text-left p-3 rounded-lg transition-all {selectedStudent?.id === student.id ? 'bg-white/20 border border-white/30' : 'bg-white/5 hover:bg-white/10'}"
+                  on:click={() => userStore.setSelectedStudent(student)}
+                >
+                  <p class="text-white text-sm font-medium">{student.full_name}</p>
+                  <p class="text-white/60 text-xs">{student.student_email}</p>
+                </button>
+              {/each}
+            </div>
+          {:else}
+            <div class="text-center py-4">
+              <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
+              <p class="text-white/60 text-sm mb-3">No students yet</p>
+              <a href="/students">
+                <button class="inline-flex items-center justify-center rounded-md text-xs transition-colors bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3">
+                  <Plus class="w-3 h-3 mr-1"/>
+                  Create Contract
+                </button>
+              </a>
+            </div>
+          {/if}
         </div>
-        <div class="text-center py-4">
-          <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
-          <p class="text-white/60 text-sm mb-3">No students assigned</p>
-          <a href="/students">
-            <button class="inline-flex items-center justify-center rounded-md text-[.8rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-3  bg-emerald-500 hover:bg-emerald-600 text-white">
-              <Plus  class="w-4 h-4 mr-1"/>
-              Create Contract
-            </button>
-          </a>
+      {:else if role === 'mentor'}
+        <!-- MENTOR: Shows ONLY assigned students -->
+        <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-white/80 text-sm font-medium">My Students</h4>
+            <span class="text-white/60 text-xs">{myStudents?.length || 0} assigned</span>
+          </div>
+          {#if myStudents && myStudents.length > 0}
+            <div class="space-y-2 max-h-64 overflow-y-auto">
+              {#each myStudents as student}
+                <button
+                  class="w-full text-left p-3 rounded-lg transition-all {selectedStudent?.id === student.id ? 'bg-white/20 border border-white/30' : 'bg-white/5 hover:bg-white/10'}"
+                  on:click={() => userStore.setSelectedStudent(student)}
+                >
+                  <p class="text-white text-sm font-medium">{student.full_name}</p>
+                  <p class="text-white/60 text-xs">{student.student_email}</p>
+                </button>
+              {/each}
+            </div>
+          {:else}
+            <div class="text-center py-4">
+              <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
+              <p class="text-white/60 text-sm">No students assigned</p>
+            </div>
+          {/if}
         </div>
-      </div>
+      {:else}
+        <!-- STUDENT: Shows "Your Profile" card -->
+        <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+          <h4 class="text-white/80 text-sm font-medium mb-3">Your Profile</h4>
+          {#if selectedStudent}
+            <div class="p-3 rounded-lg bg-white/10 border border-white/20">
+              <p class="text-white text-sm font-medium">{selectedStudent.full_name}</p>
+              <p class="text-white/60 text-xs mt-1">{selectedStudent.student_email}</p>
+              <div class="mt-2 pt-2 border-t border-white/20">
+                <p class="text-white/60 text-xs">Contract Hours</p>
+                <p class="text-white font-semibold">{selectedStudent.contract_hours || 600}h</p>
+              </div>
+            </div>
+          {:else}
+            <div class="text-center py-4">
+              <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
+              <p class="text-white/60 text-sm">Loading profile...</p>
+            </div>
+          {/if}
+        </div>
+      {/if}
       
       <!-- Navigation -->
       <nav class="space-y-2 flex-1">
@@ -236,21 +312,29 @@
           <ChartColumnIncreasing class="w-5 h-5"/>
           <span class="font-medium">Reports</span>
         </a>
-        <a
-          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'proof-approval' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          href="/proofapproval"
-          on:click|preventDefault={() => setActiveView('proof-approval')}
-        >
-          <ReceiptText size=30/>
-          <span class="font-medium">Proof & Approval</span>
-        </a>
+        
+        {#if role === 'admin' || role === 'mentor'}
+          <!-- Proof & Approval - Only for admin and mentor -->
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'proof-approval' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/proofapproval"
+            on:click|preventDefault={() => setActiveView('proof-approval')}
+          >
+            <ReceiptText class="w-5 h-5"/>
+            <span class="font-medium">Proof & Approval</span>
+          </a>
+        {/if}
+        
         <a
           class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'students' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
           href="/students"
           on:click|preventDefault={() => setActiveView('students')}
         >
-          <Users size=30/>
+          <Users class="w-5 h-5"/>
           <span class="font-medium">Student Contracts</span>
+          {#if role === 'student'}
+            <span class="ml-auto text-[10px] text-white/50">(view)</span>
+          {/if}
         </a>
       </nav>
 
@@ -265,27 +349,132 @@
       <!-- TEMP: Showing dashboard regardless of loading/selectedStudent state for UI review -->
       {#if activeView === 'dashboard'}
         <div class="p-8">
-          <h1 class="text-3xl font-bold text-white mb-2">Dashboard</h1>
-          <p class="text-white/70 mb-8">Welcome back! Here's your overview.</p>
-          
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-              <h3 class="text-white/80 text-sm mb-2">Total Hours</h3>
-              <p class="text-3xl font-bold text-white">{stats.totalApproved}</p>
+          {#if role === 'admin'}
+            <!-- ADMIN Dashboard -->
+            <h1 class="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
+            <p class="text-white/70 mb-8">Full system access - manage all students and approvals</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Total Hours (All)</h3>
+                <p class="text-3xl font-bold text-white">{stats.totalApproved}</p>
+                <p class="text-white/50 text-xs mt-1">Across all students</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Daily Hours</h3>
+                <p class="text-3xl font-bold text-white">{stats.dailyHours}</p>
+                <p class="text-white/50 text-xs mt-1">Today's total</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Weekly Hours</h3>
+                <p class="text-3xl font-bold text-white">{stats.weeklyHours}</p>
+                <p class="text-white/50 text-xs mt-1">This week</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Avg Completion</h3>
+                <p class="text-3xl font-bold text-white">{stats.completionPercentage}%</p>
+                <p class="text-white/50 text-xs mt-1">System average</p>
+              </div>
             </div>
-            <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-              <h3 class="text-white/80 text-sm mb-2">Daily Hours</h3>
-              <p class="text-3xl font-bold text-white">{stats.dailyHours}</p>
+            
+            {#if selectedStudent}
+              <div class="mt-8 p-6 bg-white/5 rounded-xl border border-white/20">
+                <h2 class="text-xl font-bold text-white mb-4">Selected Student: {selectedStudent.full_name}</h2>
+                <p class="text-white/70">View and manage student details, approve hours, manage contracts</p>
+              </div>
+            {/if}
+            
+          {:else if role === 'mentor'}
+            <!-- MENTOR Dashboard -->
+            <h1 class="text-3xl font-bold text-white mb-2">Mentor Dashboard</h1>
+            <p class="text-white/70 mb-8">Manage your assigned students - {myStudents?.length || 0} students</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Total Hours (Assigned)</h3>
+                <p class="text-3xl font-bold text-white">{stats.totalApproved}</p>
+                <p class="text-white/50 text-xs mt-1">Your students</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Daily Hours</h3>
+                <p class="text-3xl font-bold text-white">{stats.dailyHours}</p>
+                <p class="text-white/50 text-xs mt-1">Today's total</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Weekly Hours</h3>
+                <p class="text-3xl font-bold text-white">{stats.weeklyHours}</p>
+                <p class="text-white/50 text-xs mt-1">This week</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Students</h3>
+                <p class="text-3xl font-bold text-white">{myStudents?.length || 0}</p>
+                <p class="text-white/50 text-xs mt-1">Assigned to you</p>
+              </div>
             </div>
-            <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-              <h3 class="text-white/80 text-sm mb-2">Weekly Hours</h3>
-              <p class="text-3xl font-bold text-white">{stats.weeklyHours}</p>
+            
+            {#if selectedStudent}
+              <div class="mt-8 p-6 bg-white/5 rounded-xl border border-white/20">
+                <h2 class="text-xl font-bold text-white mb-4">Selected Student: {selectedStudent.full_name}</h2>
+                <p class="text-white/70">Review time entries, approve hours, manage their contract</p>
+              </div>
+            {/if}
+            
+          {:else}
+            <!-- STUDENT Dashboard -->
+            <h1 class="text-3xl font-bold text-white mb-2">My Dashboard</h1>
+            <p class="text-white/70 mb-8">Track your hours and progress toward completion</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Total Hours</h3>
+                <p class="text-3xl font-bold text-white">{stats.totalApproved}</p>
+                <p class="text-white/50 text-xs mt-1">All approved hours</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Today</h3>
+                <p class="text-3xl font-bold text-white">{stats.dailyHours}</p>
+                <p class="text-white/50 text-xs mt-1">Hours worked today</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">This Week</h3>
+                <p class="text-3xl font-bold text-white">{stats.weeklyHours}</p>
+                <p class="text-white/50 text-xs mt-1">Weekly total</p>
+              </div>
+              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
+                <h3 class="text-white/80 text-sm mb-2">Progress</h3>
+                <p class="text-3xl font-bold text-white">{stats.completionPercentage}%</p>
+                <p class="text-white/50 text-xs mt-1">of {selectedStudent?.contract_hours || 600}h goal</p>
+              </div>
             </div>
-            <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-              <h3 class="text-white/80 text-sm mb-2">Completion</h3>
-              <p class="text-3xl font-bold text-white">{stats.completionPercentage}%</p>
+            
+            <!-- Quick Actions for Students -->
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                class="p-4 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-xl transition-all text-left"
+                on:click={() => setActiveView('daily-tracker')}
+              >
+                <Clock class="w-6 h-6 text-emerald-400 mb-2"/>
+                <h3 class="text-white font-semibold">Log Hours</h3>
+                <p class="text-white/60 text-sm">Track your daily work</p>
+              </button>
+              <button
+                class="p-4 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl transition-all text-left"
+                on:click={() => setActiveView('tasks')}
+              >
+                <SquareCheckBig class="w-6 h-6 text-blue-400 mb-2"/>
+                <h3 class="text-white font-semibold">View Tasks</h3>
+                <p class="text-white/60 text-sm">Check assigned work</p>
+              </button>
+              <button
+                class="p-4 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 rounded-xl transition-all text-left"
+                on:click={() => setActiveView('schedule')}
+              >
+                <Calendar class="w-6 h-6 text-purple-400 mb-2"/>
+                <h3 class="text-white font-semibold">My Schedule</h3>
+                <p class="text-white/60 text-sm">View upcoming events</p>
+              </button>
             </div>
-          </div>
+          {/if}
         </div>
       {:else if activeView === 'daily-tracker'}
       <DailyTracker/>

@@ -29,12 +29,6 @@ export default defineConfig(({ mode }) => {
 						});
 					},
 				},
-				"/auth": {
-					target: "http://localhost:3000/api",
-					changeOrigin: true,
-					secure: false,
-					ws: true,
-				},
 			},
 		},
 		resolve: {

@@ -68,10 +68,10 @@ class ApiClient {
     this.clearToken();
     
     console.log('[ApiClient] Logging in with email:', email);
-    console.log('[ApiClient] Request URL:', '/auth/login');
+    console.log('[ApiClient] Request URL:', '/api/auth/login');
     console.log('[ApiClient] Request body:', JSON.stringify({ email, password: '***' }));
     
-    const response = await this.request('/auth/login', {
+    const response = await this.request('/api/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
@@ -90,9 +90,9 @@ class ApiClient {
 
   async register(userData) {
     console.log('[ApiClient] Registering user:', { ...userData, password: '***' });
-    console.log('[ApiClient] Request URL:', '/auth/register');
+    console.log('[ApiClient] Request URL:', '/api/auth/register');
     
-    const response = await this.request('/auth/register', {
+    const response = await this.request('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify(userData),
     });
