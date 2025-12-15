@@ -44,15 +44,8 @@
   }
 
   function quickLogin(userType) {
-    const credentials = {
-      admin: { email: 'admin@example.com', password: 'admin123' },
-      mentor: { email: 'mentor@example.com', password: 'mentor123' },
-      student: { email: 'student@example.com', password: 'student123' }
-    };
-
-    const cred = credentials[userType];
-    email = cred.email;
-    password = cred.password;
+    userStore.setDemoUser(userType);
+    window.location.href = '/dashboard';
   }
 </script>
 

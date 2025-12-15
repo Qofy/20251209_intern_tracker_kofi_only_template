@@ -10,6 +10,7 @@
   import { Plus, Edit, Trash2, BookOpen, Save, GripVertical, Eye, Download, HelpCircle } from 'lucide-svelte';
   import { initialContractParagraphs } from '$lib/components/contract/initialContractData';
 
+
   let templates = [];
   let selectedTemplate = null;
   let isLoading = false;
@@ -18,6 +19,7 @@
   let paragraphs = [];
   let showPreview = false;
   let showGuide = false;
+
 
   onMount(() => {
     loadTemplates();
@@ -304,6 +306,7 @@
     template={selectedTemplate ? {...selectedTemplate, paragraphs} : { title, paragraphs }}
     onClose={() => showPreview = false}
   />
+
 {/if}
 
 {#if showGuide}

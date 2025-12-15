@@ -168,8 +168,12 @@
         <p class="text-white/70 text-sm">Intern Hours Manager</p>
         
         <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
-          <p class="text-white/80 text-sm font-medium">admin@example.com</p>
-          <p class="text-white/60 text-xs capitalize">mentor Account</p>
+          {#if user}
+            <p class="text-white/80 text-sm font-medium">{user.email}</p>
+            <p class="text-white/60 text-xs capitalize">{role} Account</p>
+          {:else}
+            <p class="text-white/60 text-sm">Loading...</p>
+          {/if}
         </div>
       </div>
 

@@ -3,14 +3,23 @@ import { User, Student } from '../entities/all';
 import apiClient from '../api/client';
 
 function createUserStore() {
-  const { subscribe, set, update } = writable({
+  // Load from localStorage on init
+  const storedUser = localStorage.getItem('user_data');
+  const initialState = storedUser ? JSON.parse(storedUser) : {
     user: null,
     role: null,
     allStudents: [],
     myStudents: [],
     selectedStudent: null,
     isLoading: true
-  });
+  };
+
+  const { subscribe, set, update } = writable(initialState);
+
+  // Save to localStorage whenever state changes
+  const saveToLocalStorage = (state) => {
+    localStorage.setItem('user_data', JSON.stringify(state));
+  };
 
   return {
     subscribe,
@@ -39,14 +48,16 @@ function createUserStore() {
     
     logout: () => {
       apiClient.logout();
-      set({
+      localStorage.removeItem('user_data');
+      const state = {
         user: null,
         role: null,
         allStudents: [],
         myStudents: [],
         selectedStudent: null,
         isLoading: false
-      });
+      };
+      set(state);
       // Redirect to login page
       window.location.href = '/';
     },
@@ -81,14 +92,16 @@ function createUserStore() {
         }
 
         console.log('loadUserAndRole: Setting store state', { user: currentUser, role: userRole, studentsCount: myStudents.length });
-        set({
+        const state = {
           user: currentUser,
           role: userRole,
           allStudents,
           myStudents,
           selectedStudent,
           isLoading: false
-        });
+        };
+        set(state);
+        saveToLocalStorage(state);
         console.log('loadUserAndRole: Store state updated successfully');
       } catch (error) {
         console.error("loadUserAndRole: Error occurred:", error);
@@ -106,7 +119,34 @@ function createUserStore() {
     },
     
     setSelectedStudent: (student) => {
-      update(state => ({ ...state, selectedStudent: student }));
+      update(state => {
+        const newState = { ...state, selectedStudent: student };
+        saveToLocalStorage(newState);
+        return newState;
+      });
+    },
+
+    setDemoUser: (userType) => {
+      const demoUsers = {
+        admin: { email: 'admin@example.com', full_name: 'Admin', role: 'admin' },
+        mentor: { email: 'mentor@example.com', full_name: 'Mentor', role: 'mentor' },
+        student: { email: 'student@example.com', full_name: 'Student', role: 'student' }
+      };
+
+      const user = demoUsers[userType];
+      localStorage.setItem('auth_token', `demo_${userType}`);
+      apiClient.setToken(`demo_${userType}`);
+      
+      const state = {
+        user,
+        role: userType,
+        allStudents: [],
+        myStudents: [],
+        selectedStudent: null,
+        isLoading: false
+      };
+      set(state);
+      saveToLocalStorage(state);
     }
   };
 }
