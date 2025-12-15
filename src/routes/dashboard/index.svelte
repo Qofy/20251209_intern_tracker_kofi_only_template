@@ -172,10 +172,10 @@
 
       <!-- Student Management Section -->
       <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-        <div class="flex items-center justify-between mb-3">
-          <h4 class="text-white/80 text-sm font-medium">Student Management</h4>
+        <div class="flex items-center justify-between flex-col  mb-3">
+          <h4 class="text-white/80 text-sm font-medium text-center">Student Management</h4>
           <a href="/students">
-            <button class="inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none hover:bg-accent hover:text-accent-foreground h-9 px-3 rounded-md text-white/60 hover:text-white hover:bg-white/10">
+            <button class="inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none hover:bg-accent hover:text-accent-foreground h-9 px-3  text-white/60 hover:text-white hover:bg-white/10">
               <Plus class="w-4 h-4 mr-1"/>
               Add
             </button>
@@ -185,8 +185,8 @@
           <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
           <p class="text-white/60 text-sm mb-3">No students assigned</p>
           <a href="/students">
-            <button class="inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white">
-              <Plus class="w-4 h-4 mr-1"/>
+            <button class="inline-flex items-center justify-center rounded-md text-[.8rem] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-3  bg-emerald-500 hover:bg-emerald-600 text-white">
+              <Plus  class="w-4 h-4 mr-1"/>
               Create Contract
             </button>
           </a>
@@ -240,7 +240,7 @@
           href="/proofapproval"
           on:click|preventDefault={() => setActiveView('proof-approval')}
         >
-          <ReceiptText class="w-5 h-5"/>
+          <ReceiptText size=30/>
           <span class="font-medium">Proof & Approval</span>
         </a>
         <a
@@ -248,7 +248,7 @@
           href="/students"
           on:click|preventDefault={() => setActiveView('students')}
         >
-          <Users class="w-5 h-5"/>
+          <Users size=30/>
           <span class="font-medium">Student Contracts</span>
         </a>
       </nav>

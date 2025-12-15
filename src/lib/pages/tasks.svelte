@@ -123,7 +123,7 @@
     </div>
     <Button
       on:click={() => { editingTask = null; showTaskForm = true; }}
-      class="bg-emerald-500 hover:bg-emerald-600 text-white"
+      class="bg-emerald-500 hover:bg-emerald-600 text-white flex h-12 px-3 items-center rounded-md"
     >
       <Plus class="w-5 h-5 mr-2" />
       New Task
@@ -142,7 +142,7 @@
         />
       </div>
       <Select bind:value={statusFilter}>
-        <SelectTrigger class="w-[180px] bg-gray-700 border border-gray-600 text-white [&>span]:text-white">
+        <SelectTrigger class="w-[180px] bg-gray-700 border border-gray-600 text-white [&>span]:text-white flex items-center h-10 rounded-sm px-3">
           <Filter class="w-4 h-4 mr-2 text-gray-400" />
           <SelectValue placeholder="Filter by Status" />
         </SelectTrigger>
