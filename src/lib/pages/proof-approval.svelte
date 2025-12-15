@@ -118,7 +118,7 @@
         value={statusFilter}
         onValueChange={(val) => statusFilter = val}
       >
-        <SelectTrigger class="bg-white/10 border-white/20 text-white">
+        <SelectTrigger class="bg-white/10 border-white/20 text-white flex items-center h-10 rounded-sm px-3">
           <Filter class="w-4 h-4 mr-2" />
           <SelectValue placeholder="Filter by status" />
         </SelectTrigger>

@@ -91,7 +91,7 @@
     </div>
     <Button
       on:click={() => openForm()}
-      class="bg-emerald-500 hover:bg-emerald-600 text-white"
+      class="bg-emerald-500 hover:bg-emerald-600 text-white flex h-10 items-center px-2 rounded-md"
     >
       <Plus class="w-4 h-4 mr-2" />
       New Student Contract
@@ -161,15 +161,15 @@
     {/each}
 
     {#if students.length === 0}
-      <div class="col-span-full text-center py-12">
+      <div class="col-span-full flex flex-col items-center py-12">
         <User class="w-16 h-16 text-white/30 mx-auto mb-4" />
         <h3 class="text-xl font-semibold text-white mb-2">No Student Contracts</h3>
         <p class="text-white/60 mb-6">Create your first student contract to get started.</p>
         <Button
           on:click={() => openForm()}
-          class="bg-emerald-500 hover:bg-emerald-600 text-white"
+          class="bg-emerald-500 hover:bg-emerald-600 text-white h-10 flex items-center px-2 rounded-md"
         >
-          <Plus class="w-5 h-5 mr-2" />
+          <Plus class="w-5 h-5 mr-2 " />
           Create First Contract
         </Button>
       </div>
@@ -239,13 +239,13 @@
           <Button
             variant="ghost"
             on:click={() => { isFormOpen = false; resetForm(); }}
-            class="text-white/80 hover:text-white hover:bg-white/10"
+            class="text-white/80 hover:text-white hover:bg-white/10 h-9 px-1.5 rounded-md"
           >
             Cancel
           </Button>
           <Button
             on:click={handleSave}
-            class="bg-emerald-500 hover:bg-emerald-600 text-white"
+            class="bg-emerald-500 hover:bg-emerald-600 text-white h-9 px-1.5 rounded-md"
             disabled={!formData.full_name || !formData.student_email || !formData.mentor_email}
           >
             Save Contract

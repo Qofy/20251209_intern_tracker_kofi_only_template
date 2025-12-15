@@ -139,17 +139,17 @@
           <Input type="date" value={dateRange.to} on:change={(e) => handleDateChange('to', e.target.value)} class="bg-white/10 border-white/20 text-white" />
         </div>
         <div class="flex flex-wrap gap-2 items-end">
-          <Button on:click={() => exportToCSV(false)} class="bg-blue-500 hover:bg-blue-600 text-white">
+          <Button on:click={() => exportToCSV(false)} class="bg-blue-500 hover:bg-blue-600 text-white flex h-10 items-center px-1 rounded-md">
             <Download class="w-4 h-4 mr-2" />Summary CSV
           </Button>
-          <Button on:click={() => exportToCSV(true)} class="bg-blue-600 hover:bg-blue-700 text-white">
+          <Button on:click={() => exportToCSV(true)} class="bg-blue-600 hover:bg-blue-700 text-white flex h-10 items-center px-1 rounded-md">
             <FileSpreadsheet class="w-4 h-4 mr-2" />Detailed CSV
           </Button>
-          <Button on:click={() => window.print()} class="bg-purple-500 hover:bg-purple-600 text-white">
+          <Button on:click={() => window.print()} class="bg-purple-500 hover:bg-purple-600 text-white flex h-10 items-center px-1 rounded-md">
             <Printer class="w-4 h-4 mr-2" />PDF
           </Button>
-          <Button on:click={() => showQRDialog = true} variant="ghost" class="text-white/80 hover:text-white hover:bg-white/10">
-            <QrCode class="w-4 h-4" />
+          <Button on:click={() => showQRDialog = true} variant="ghost" class="text-white/80 hover:text-white hover:bg-white/10 flex h-10 items-center px-1 rounded-md">
+            <QrCode size=35  />
           </Button>
         </div>
       </div>
