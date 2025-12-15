@@ -1,0 +1,38 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { StudentsModule } from './students/students.module';
+import { TimeEntriesModule } from './time-entries/time-entries.module';
+import { TasksModule } from './tasks/tasks.module';
+import { SchedulesModule } from './schedules/schedules.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get('DB_HOST'),
+        port: +configService.get('DB_PORT'),
+        username: configService.get('DB_USERNAME'),
+        password: configService.get('DB_PASSWORD'),
+        database: configService.get('DB_DATABASE'),
+        entities: [__dirname + '/**/*.entity{.ts,.js}'],
+        synchronize: true, // Set to false in production
+      }),
+      inject: [ConfigService],
+    }),
+    AuthModule,
+    UsersModule,
+    StudentsModule,
+    TimeEntriesModule,
+    TasksModule,
+    SchedulesModule,
+  ],
+})
+export class AppModule {}
