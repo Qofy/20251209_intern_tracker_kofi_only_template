@@ -14,7 +14,8 @@
   import DailyTracker from '../../lib/pages/daily-tracker.svelte';
   import ProofApproval from '../../lib/pages/proof-approval.svelte';
   import Students from '../../lib/pages/students.svelte';
-  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User } from 'lucide-svelte';
+  import AdminManagement from '../../lib/pages/admin-management.svelte';
+  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield } from 'lucide-svelte';
   
 
   // Reactive variables that will be updated by store subscription
@@ -306,6 +307,18 @@
           <span class="font-medium">Reports</span>
         </a>
         
+        {#if role === 'admin'}
+          <!-- Admin Management - Only for admin -->
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-management' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin"
+            on:click|preventDefault={() => setActiveView('admin-management')}
+          >
+            <Shield class="w-5 h-5"/>
+            <span class="font-medium">Admin Panel</span>
+          </a>
+        {/if}
+        
         {#if role === 'admin' || role === 'mentor'}
           <!-- Proof & Approval - Only for admin and mentor -->
           <a
@@ -483,6 +496,9 @@
         <Reports/>
       {:else if activeView === 'proof-approval'}
       <ProofApproval/>
+      
+      {:else if activeView === 'admin-management'}
+      <AdminManagement/>
       
       {:else if activeView === 'students'}
           <Students/>
