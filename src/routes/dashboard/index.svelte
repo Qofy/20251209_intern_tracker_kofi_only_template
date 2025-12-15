@@ -7,6 +7,7 @@
   import ProgressCard from '$lib/components/dashboard/ProgressCard.svelte';
   import QuickActions from '$lib/components/dashboard/QuickActions.svelte';
   import LogoutButton from '$lib/components/LogoutButton.svelte';
+  import DebugInfo from '$lib/components/DebugInfo.svelte';
   import Reports from '../../lib/pages/reports.svelte';
   import Tasks from '../../lib/pages/tasks.svelte';
   import Schedule from "../../lib/pages/schedule-manager.svelte";
@@ -259,7 +260,7 @@
       </div>
     </div>
   </aside>
-  <main class="flex-1 p-6">
+  <main class="flex-1 p-6 relative">
     <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full">
       <!-- TEMP: Showing dashboard regardless of loading/selectedStudent state for UI review -->
       {#if activeView === 'dashboard'}
@@ -303,7 +304,12 @@
       
       {:else if activeView === 'students'}
           <Students/>
-      {/if} 
+      {/if}
+      
+      <!-- Debug Info Button -->
+      <div class="absolute bottom-6 right-6 z-50">
+        <DebugInfo />
+      </div>
     </div>
   </main>
 </div>
