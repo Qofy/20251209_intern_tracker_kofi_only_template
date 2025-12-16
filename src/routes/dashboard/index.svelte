@@ -31,6 +31,12 @@
   let currentStatus = 'not_started';
   let todayEntry = null;
   let activeView = 'dashboard'; // Track which view to show
+
+  // Set default view based on role
+  $: if (role === 'mentor' && activeView === 'dashboard') {
+    activeView = 'mentor-students';
+  }
+
   let stats = {
     totalApproved: 0,
     dailyHours: 0,
@@ -158,218 +164,280 @@
   }
 </script>
 
-<div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
-  <aside class="w-64 p-6 flex-shrink-0">
-    <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col min-h-full">
-      <!-- Logo & User Info -->
-      <div class="mb-8 text-center">
-        <div class="w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-          <Clock class="w-8 h-8 text-white"/>
-        </div>
-        <h1 class="text-xl font-bold text-white">WorkTracker</h1>
-        <p class="text-white/70 text-sm">Intern Hours Manager</p>
-        
-        <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
-          {#if user}
-            <p class="text-white/80 text-sm font-medium">{user.email}</p>
-            <p class="text-white/60 text-xs capitalize">{role} Account</p>
-          {:else}
-            <p class="text-white/60 text-sm">Loading...</p>
-          {/if}
-        </div>
-      </div>
+{#if role === 'mentor'}
+  <!-- MENTOR LAYOUT -->
+  <div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
+    <aside class="w-64 p-6 flex-shrink-0">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col min-h-full">
+        <!-- Logo & User Info -->
+        <div class="mb-8 text-center">
+          <div class="w-16 h-16 bg-gradient-to-r from-purple-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <GraduationCap class="w-8 h-8 text-white"/>
+          </div>
+          <h1 class="text-xl font-bold text-white">Mentor Portal</h1>
+          <p class="text-white/70 text-sm">Student Management</p>
 
-      <!-- Student Management Section -->
-      {#if role === 'admin'}
-        <!-- ADMIN: Shows ALL students -->
-        <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="text-white/80 text-sm font-medium">All Students</h4>
-            <button 
-              class="inline-flex items-center justify-center rounded-md font-medium transition-colors h-7 px-2 text-xs text-white/60 hover:text-white hover:bg-white/10"
-              on:click={() => setActiveView('admin-management')}
-              title="Create new student contract"
-            >
-              <Plus class="w-3 h-3 mr-1"/>
-              Add
-            </button>
+          <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
+            {#if user}
+              <p class="text-white/80 text-sm font-medium">{user.email}</p>
+              <p class="text-white/60 text-xs capitalize">{role} Account</p>
+            {:else}
+              <p class="text-white/60 text-sm">Loading...</p>
+            {/if}
           </div>
-          {#if myStudents && myStudents.length > 0}
-            <div class="space-y-2 max-h-64 overflow-y-auto">
-              {#each myStudents as student}
-                <button
-                  class="w-full text-left p-3 rounded-lg transition-all {selectedStudent?.id === student.id ? 'bg-white/20 border border-white/30' : 'bg-white/5 hover:bg-white/10'}"
-                  on:click={() => userStore.setSelectedStudent(student)}
-                >
-                  <p class="text-white text-sm font-medium">{student.full_name}</p>
-                  <p class="text-white/60 text-xs">{student.student_email}</p>
-                </button>
-              {/each}
-            </div>
-          {:else}
-            <div class="text-center py-4">
-              <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
-              <p class="text-white/60 text-sm mb-3">No students yet</p>
-              <button 
-                class="inline-flex items-center justify-center rounded-md text-xs transition-colors bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3"
-                on:click={() => setActiveView('admin-management')}
-              >
-                <Plus class="w-3 h-3 mr-1"/>
-                Create Contract
-              </button>
-            </div>
-          {/if}
         </div>
-      {:else if role === 'mentor'}
-        <!-- MENTOR: Shows ONLY assigned students -->
-        <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-          <div class="flex items-center justify-between mb-3">
-            <h4 class="text-white/80 text-sm font-medium">My Students</h4>
-            <span class="text-white/60 text-xs">{myStudents?.length || 0} assigned</span>
-          </div>
-          {#if myStudents && myStudents.length > 0}
-            <div class="space-y-2 max-h-64 overflow-y-auto">
-              {#each myStudents as student}
-                <button
-                  class="w-full text-left p-3 rounded-lg transition-all {selectedStudent?.id === student.id ? 'bg-white/20 border border-white/30' : 'bg-white/5 hover:bg-white/10'}"
-                  on:click={() => userStore.setSelectedStudent(student)}
-                >
-                  <p class="text-white text-sm font-medium">{student.full_name}</p>
-                  <p class="text-white/60 text-xs">{student.student_email}</p>
-                </button>
-              {/each}
-            </div>
-          {:else}
-            <div class="text-center py-4">
-              <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
-              <p class="text-white/60 text-sm">No students assigned</p>
-            </div>
-          {/if}
-        </div>
-      {:else}
-        <!-- STUDENT: Shows "Your Profile" card -->
-        <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-          <h4 class="text-white/80 text-sm font-medium mb-3">Your Profile</h4>
-          {#if selectedStudent}
-            <div class="p-3 rounded-lg bg-white/10 border border-white/20">
-              <p class="text-white text-sm font-medium">{selectedStudent.full_name}</p>
-              <p class="text-white/60 text-xs mt-1">{selectedStudent.student_email}</p>
-              <div class="mt-2 pt-2 border-t border-white/20">
-                <p class="text-white/60 text-xs">Contract Hours</p>
-                <p class="text-white font-semibold">{selectedStudent.contract_hours || 600}h</p>
-              </div>
-            </div>
-          {:else}
-            <div class="text-center py-4">
-              <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
-              <p class="text-white/60 text-sm">Loading profile...</p>
-            </div>
-          {/if}
-        </div>
-      {/if}
-      
-      <!-- Navigation -->
-      <nav class="space-y-2 flex-1">
-        <a
-          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'dashboard' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          href="/dashboard"
-          on:click|preventDefault={() => setActiveView('dashboard')}
-        >
-          <Home class="w-5 h-5"/>
-          <span class="font-medium">Dashboard</span>
-        </a>
-        <a
-          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'daily-tracker' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          href="/dailytracker"
-          on:click|preventDefault={() => setActiveView('daily-tracker')}
-        >
-          <Clock class="w-5 h-5"/>
-          <span class="font-medium">Daily Tracker</span>
-        </a>
-        <a
-          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'schedule' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          href="/schedulemanager"
-          on:click|preventDefault={() => setActiveView('schedule')}
-        >
-          <Calendar class="w-5 h-5"/>
-          <span class="font-medium">Schedule</span>
-        </a>
-        <a
-          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'tasks' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          href="/tasks"
-          on:click|preventDefault={() => setActiveView('tasks')}
-        >
-          <SquareCheckBig class="w-5 h-5"/>
-          <span class="font-medium">Tasks</span>
-        </a>
-        <a
-          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'reports' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          href="/reports"
-          on:click|preventDefault={() => setActiveView('reports')}
-        >
-          <ChartColumnIncreasing class="w-5 h-5"/>
-          <span class="font-medium">Reports</span>
-        </a>
-        
-        {#if role === 'admin'}
-          <!-- Admin Management - Only for admin -->
+
+        <!-- Navigation for Mentor -->
+        <nav class="space-y-2 flex-1">
           <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-management' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/admin"
-            on:click|preventDefault={() => setActiveView('admin-management')}
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-students' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/mentor/students"
+            on:click|preventDefault={() => setActiveView('mentor-students')}
           >
-            <Shield class="w-5 h-5"/>
-            <span class="font-medium">Admin Panel</span>
+            <Users class="w-5 h-5"/>
+            <span class="font-medium">My Students</span>
           </a>
-        {/if}
-        
-        {#if role === 'mentor'}
-          <!-- Mentor Dashboard - Only for mentors -->
           <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-dashboard' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/mentor"
-            on:click|preventDefault={() => setActiveView('mentor-dashboard')}
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-tasks' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/mentor/tasks"
+            on:click|preventDefault={() => setActiveView('mentor-tasks')}
           >
-            <GraduationCap class="w-5 h-5"/>
-            <span class="font-medium">Mentor Dashboard</span>
+            <SquareCheckBig class="w-5 h-5"/>
+            <span class="font-medium">Tasks & Projects</span>
           </a>
-        {/if}
-        
-        {#if role === 'admin' || role === 'mentor'}
-          <!-- Proof & Approval - Only for admin and mentor -->
           <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'proof-approval' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/proofapproval"
-            on:click|preventDefault={() => setActiveView('proof-approval')}
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-submissions' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/mentor/submissions"
+            on:click|preventDefault={() => setActiveView('mentor-submissions')}
           >
             <ReceiptText class="w-5 h-5"/>
-            <span class="font-medium">Proof & Approval</span>
+            <span class="font-medium">Submissions</span>
           </a>
-        {/if}
-        
-        <a
-          class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'students' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-          href="/students"
-          on:click|preventDefault={() => setActiveView('students')}
-        >
-          <Users class="w-5 h-5"/>
-          <span class="font-medium">Student Contracts</span>
-          {#if role === 'student'}
-            <span class="ml-auto text-[10px] text-white/50">(view)</span>
-          {/if}
-        </a>
-      </nav>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-reports' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/mentor/reports"
+            on:click|preventDefault={() => setActiveView('mentor-reports')}
+          >
+            <ChartColumnIncreasing class="w-5 h-5"/>
+            <span class="font-medium">Reports</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-profile' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/mentor/profile"
+            on:click|preventDefault={() => setActiveView('mentor-profile')}
+          >
+            <User class="w-5 h-5"/>
+            <span class="font-medium">My Profile</span>
+          </a>
+        </nav>
 
-      <!-- Logout Button -->
-      <div class="mt-4 pt-4 border-t border-white/20">
-        <LogoutButton />
+        <!-- Logout Button -->
+        <div class="mt-4 pt-4 border-t border-white/20">
+          <LogoutButton />
+        </div>
       </div>
-    </div>
-  </aside>
-  <main class="flex-1 p-6 relative">
-    <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full">
-      <!-- TEMP: Showing dashboard regardless of loading/selectedStudent state for UI review -->
-      {#if activeView === 'dashboard'}
+    </aside>
+    <main class="flex-1 p-6 relative">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full">
+        <!-- Render Mentor Dashboard with the specific tab -->
+        {#if activeView === 'mentor-students' || activeView === 'mentor-tasks' || activeView === 'mentor-submissions' || activeView === 'mentor-reports' || activeView === 'mentor-profile'}
+          <MentorDashboard initialTab={activeView.replace('mentor-', '')} />
+        {/if}
+
+        <!-- Action Buttons (bottom left) -->
+        <div class="absolute bottom-6 right-5 flex flex-col gap-3 z-50">
+          <button
+            class="inline-flex items-center justify-center rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-14 h-14 bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+            title="Report a Bug"
+          >
+           <Bug size={24}/>
+          </button>
+          <button
+            class="inline-flex items-center justify-center rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+            title="Request Enhancement"
+          >
+           <Hammer size={24}/>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+{:else}
+  <!-- ADMIN/STUDENT LAYOUT -->
+  <div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
+    <aside class="w-64 p-6 flex-shrink-0">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col min-h-full">
+        <!-- Logo & User Info -->
+        <div class="mb-8 text-center">
+          <div class="w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <Clock class="w-8 h-8 text-white"/>
+          </div>
+          <h1 class="text-xl font-bold text-white">WorkTracker</h1>
+          <p class="text-white/70 text-sm">Intern Hours Manager</p>
+
+          <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
+            {#if user}
+              <p class="text-white/80 text-sm font-medium">{user.email}</p>
+              <p class="text-white/60 text-xs capitalize">{role} Account</p>
+            {:else}
+              <p class="text-white/60 text-sm">Loading...</p>
+            {/if}
+          </div>
+        </div>
+
+        <!-- Student Management Section -->
+        {#if role === 'admin'}
+          <!-- ADMIN: Shows ALL students -->
+          <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+            <div class="flex items-center justify-between mb-3">
+              <h4 class="text-white/80 text-sm font-medium">All Students</h4>
+              <button
+                class="inline-flex items-center justify-center rounded-md font-medium transition-colors h-7 px-2 text-xs text-white/60 hover:text-white hover:bg-white/10"
+                on:click={() => setActiveView('admin-management')}
+                title="Create new student contract"
+              >
+                <Plus class="w-3 h-3 mr-1"/>
+                Add
+              </button>
+            </div>
+            {#if myStudents && myStudents.length > 0}
+              <div class="space-y-2 max-h-64 overflow-y-auto">
+                {#each myStudents as student}
+                  <button
+                    class="w-full text-left p-3 rounded-lg transition-all {selectedStudent?.id === student.id ? 'bg-white/20 border border-white/30' : 'bg-white/5 hover:bg-white/10'}"
+                    on:click={() => userStore.setSelectedStudent(student)}
+                  >
+                    <p class="text-white text-sm font-medium">{student.full_name}</p>
+                    <p class="text-white/60 text-xs">{student.student_email}</p>
+                  </button>
+                {/each}
+              </div>
+            {:else}
+              <div class="text-center py-4">
+                <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
+                <p class="text-white/60 text-sm mb-3">No students yet</p>
+                <button
+                  class="inline-flex items-center justify-center rounded-md text-xs transition-colors bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3"
+                  on:click={() => setActiveView('admin-management')}
+                >
+                  <Plus class="w-3 h-3 mr-1"/>
+                  Create Contract
+                </button>
+              </div>
+            {/if}
+          </div>
+        {:else}
+          <!-- STUDENT: Shows "Your Profile" card -->
+          <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
+            <h4 class="text-white/80 text-sm font-medium mb-3">Your Profile</h4>
+            {#if selectedStudent}
+              <div class="p-3 rounded-lg bg-white/10 border border-white/20">
+                <p class="text-white text-sm font-medium">{selectedStudent.full_name}</p>
+                <p class="text-white/60 text-xs mt-1">{selectedStudent.student_email}</p>
+                <div class="mt-2 pt-2 border-t border-white/20">
+                  <p class="text-white/60 text-xs">Contract Hours</p>
+                  <p class="text-white font-semibold">{selectedStudent.contract_hours || 600}h</p>
+                </div>
+              </div>
+            {:else}
+              <div class="text-center py-4">
+                <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
+                <p class="text-white/60 text-sm">Loading profile...</p>
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        <!-- Navigation -->
+        <nav class="space-y-2 flex-1">
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'dashboard' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/dashboard"
+            on:click|preventDefault={() => setActiveView('dashboard')}
+          >
+            <Home class="w-5 h-5"/>
+            <span class="font-medium">Dashboard</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'daily-tracker' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/dailytracker"
+            on:click|preventDefault={() => setActiveView('daily-tracker')}
+          >
+            <Clock class="w-5 h-5"/>
+            <span class="font-medium">Daily Tracker</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'schedule' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/schedulemanager"
+            on:click|preventDefault={() => setActiveView('schedule')}
+          >
+            <Calendar class="w-5 h-5"/>
+            <span class="font-medium">Schedule</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'tasks' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/tasks"
+            on:click|preventDefault={() => setActiveView('tasks')}
+          >
+            <SquareCheckBig class="w-5 h-5"/>
+            <span class="font-medium">Tasks</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'reports' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/reports"
+            on:click|preventDefault={() => setActiveView('reports')}
+          >
+            <ChartColumnIncreasing class="w-5 h-5"/>
+            <span class="font-medium">Reports</span>
+          </a>
+
+          {#if role === 'admin'}
+            <!-- Admin Management - Only for admin -->
+            <a
+              class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-management' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+              href="/admin"
+              on:click|preventDefault={() => setActiveView('admin-management')}
+            >
+              <Shield class="w-5 h-5"/>
+              <span class="font-medium">Admin Panel</span>
+            </a>
+          {/if}
+
+          {#if role === 'admin'}
+            <!-- Proof & Approval - Only for admin -->
+            <a
+              class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'proof-approval' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+              href="/proofapproval"
+              on:click|preventDefault={() => setActiveView('proof-approval')}
+            >
+              <ReceiptText class="w-5 h-5"/>
+              <span class="font-medium">Proof & Approval</span>
+            </a>
+          {/if}
+
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'students' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/students"
+            on:click|preventDefault={() => setActiveView('students')}
+          >
+            <Users class="w-5 h-5"/>
+            <span class="font-medium">Student Contracts</span>
+            {#if role === 'student'}
+              <span class="ml-auto text-[10px] text-white/50">(view)</span>
+            {/if}
+          </a>
+        </nav>
+
+        <!-- Logout Button -->
+        <div class="mt-4 pt-4 border-t border-white/20">
+          <LogoutButton />
+        </div>
+      </div>
+    </aside>
+    <main class="flex-1 p-6 relative">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full">
+        <!-- TEMP: Showing dashboard regardless of loading/selectedStudent state for UI review -->
+        {#if activeView === 'dashboard'}
         <div class="p-8">
           {#if role === 'admin'}
             <!-- ADMIN Dashboard -->
@@ -515,10 +583,7 @@
       
       {:else if activeView === 'admin-management'}
       <AdminManagement/>
-      
-      {:else if activeView === 'mentor-dashboard'}
-      <MentorDashboard/>
-      
+
       {:else if activeView === 'students'}
           <Students/>
       {/if}
@@ -545,4 +610,5 @@
       </div> -->
     </div>
   </main>
-</div>
+  </div>
+{/if}

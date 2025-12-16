@@ -15,8 +15,14 @@
 
   $: user = $userStore.user;
 
+  // Accept initialTab prop from parent component
+  export let initialTab = 'students';
+
   // State variables
-  let activeTab = 'students'; // students, tasks, submissions, reports, profile
+  let activeTab = initialTab; // students, tasks, submissions, reports, profile
+
+  // Update activeTab when initialTab changes
+  $: activeTab = initialTab;
   let assignedStudents = [];
   let tasks = [];
   let timeEntries = [];
@@ -308,14 +314,13 @@
   }
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 p-8">
-  <div class="max-w-7xl mx-auto">
-    
-    <!-- Header -->
-    <div class="mb-8">
-      <h1 class="text-4xl font-bold text-white mb-2">Mentor Dashboard</h1>
-      <p class="text-white/70">Manage your students, track progress, and provide guidance</p>
-    </div>
+<!-- Mentor Dashboard Content (embedded version) -->
+<div class="p-8">
+  <!-- Header -->
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold text-white mb-2">Mentor Dashboard</h1>
+    <p class="text-white/70">Manage your students, track progress, and provide guidance</p>
+  </div>
 
     <!-- Stats Overview -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -352,47 +357,8 @@
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-2 mb-6 flex gap-2 overflow-x-auto">
-      <button
-        on:click={() => activeTab = 'students'}
-        class="px-4 py-2 rounded-lg transition-all whitespace-nowrap {activeTab === 'students' ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10'}"
-      >
-        <Users class="w-4 h-4 inline mr-2" />
-        My Students
-      </button>
-      <button
-        on:click={() => activeTab = 'tasks'}
-        class="px-4 py-2 rounded-lg transition-all whitespace-nowrap {activeTab === 'tasks' ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10'}"
-      >
-        <ClipboardList class="w-4 h-4 inline mr-2" />
-        Tasks & Projects
-      </button>
-      <button
-        on:click={() => activeTab = 'submissions'}
-        class="px-4 py-2 rounded-lg transition-all whitespace-nowrap {activeTab === 'submissions' ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10'}"
-      >
-        <FileText class="w-4 h-4 inline mr-2" />
-        Submissions
-      </button>
-      <button
-        on:click={() => activeTab = 'reports'}
-        class="px-4 py-2 rounded-lg transition-all whitespace-nowrap {activeTab === 'reports' ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10'}"
-      >
-        <TrendingUp class="w-4 h-4 inline mr-2" />
-        Reports
-      </button>
-      <button
-        on:click={() => activeTab = 'profile'}
-        class="px-4 py-2 rounded-lg transition-all whitespace-nowrap {activeTab === 'profile' ? 'bg-white/20 text-white' : 'text-white/70 hover:bg-white/10'}"
-      >
-        <UserIcon class="w-4 h-4 inline mr-2" />
-        My Profile
-      </button>
-    </div>
-
     <!-- Content Area -->
-    <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6">
+    <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6 mt-8">
       
       {#if activeTab === 'students'}
         <!-- Students Management -->
@@ -804,7 +770,6 @@
         </div>
       {/if}
     </div>
-  </div>
 </div>
 
 <!-- Task Creation Dialog -->
