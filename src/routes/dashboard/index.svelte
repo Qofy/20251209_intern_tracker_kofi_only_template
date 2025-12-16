@@ -207,12 +207,13 @@
             <div class="text-center py-4">
               <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
               <p class="text-white/60 text-sm mb-3">No students yet</p>
-              <a href="/students">
-                <button class="inline-flex items-center justify-center rounded-md text-xs transition-colors bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3">
-                  <Plus class="w-3 h-3 mr-1"/>
-                  Create Contract
-                </button>
-              </a>
+              <button 
+                class="inline-flex items-center justify-center rounded-md text-xs transition-colors bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3"
+                on:click={() => setActiveView('admin-management')}
+              >
+                <Plus class="w-3 h-3 mr-1"/>
+                Create Contract
+              </button>
             </div>
           {/if}
         </div>

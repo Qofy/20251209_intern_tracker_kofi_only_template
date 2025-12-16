@@ -31,9 +31,11 @@ class ApiClient {
       ...options,
     };
 
-    if (this.token) {
-      config.headers.Authorization = `Bearer ${this.token}`;
-      console.log('[ApiClient] Adding Authorization header');
+    // Always get the latest token from localStorage
+    const currentToken = localStorage.getItem('auth_token') || this.token;
+    if (currentToken) {
+      config.headers.Authorization = `Bearer ${currentToken}`;
+      console.log('[ApiClient] Adding Authorization header with token:', currentToken.substring(0, 15) + '...');
     } else {
       console.log('[ApiClient] No token available for request');
     }

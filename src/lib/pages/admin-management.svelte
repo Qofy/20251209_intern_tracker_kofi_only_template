@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { User, Student } from '../../entities/all';
+  import { userStore } from '../../stores/userStore';
   import { Users, UserPlus, UserCog, FileText, Settings, Shield, CheckCircle, XCircle, Search, Edit2, Trash2 } from 'lucide-svelte';
 
   let activeTab = 'users'; // users, mentors, students, assignments, reports, settings
@@ -11,6 +12,7 @@
   let searchQuery = '';
   let showCreateUserModal = false;
   let showAssignModal = false;
+  let showCreateContractModal = false;
   
   // New user form
   let newUser = {
@@ -18,6 +20,18 @@
     password: '',
     full_name: '',
     role: 'student'
+  };
+
+  // New contract form
+  let newContract = {
+    student_email: '',
+    full_name: '',
+    mentor_email: '',
+    contract_hours: 600,
+    start_date: '',
+    end_date: '',
+    department: '',
+    position: ''
   };
 
   // Assignment form
@@ -97,6 +111,40 @@
     }
   }
 
+  async function createContract() {
+    try {
+      // TODO: Call API to create student contract
+      const contractData = {
+        ...newContract,
+        status: 'active'
+      };
+      console.log('Creating contract:', contractData);
+      
+      // For now, using Student.create
+      await Student.create(contractData);
+      
+      alert('Contract created successfully!');
+      showCreateContractModal = false;
+      newContract = {
+        student_email: '',
+        full_name: '',
+        mentor_email: '',
+        contract_hours: 600,
+        start_date: '',
+        end_date: '',
+        department: '',
+        position: ''
+      };
+      await loadData();
+      
+      // Update userStore with new students list
+      await userStore.loadUserAndRole();
+    } catch (error) {
+      console.error('Error creating contract:', error);
+      alert('Failed to create contract');
+    }
+  }
+
   function filterUsers(users) {
     if (!searchQuery) return users;
     return users.filter(u => 
@@ -117,13 +165,22 @@
       <h1 class="text-3xl font-bold text-white mb-2">Admin Management</h1>
       <p class="text-white/70">Manage users, permissions, and system settings</p>
     </div>
-    <button
-      class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors"
-      on:click={() => showCreateUserModal = true}
-    >
-      <UserPlus class="w-4 h-4"/>
-      Create User
-    </button>
+    <div class="flex gap-3">
+      <button
+        class="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl transition-colors"
+        on:click={() => showCreateContractModal = true}
+      >
+        <FileText class="w-4 h-4"/>
+        Create Contract
+      </button>
+      <button
+        class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl transition-colors"
+        on:click={() => showCreateUserModal = true}
+      >
+        <UserPlus class="w-4 h-4"/>
+        Create User
+      </button>
+    </div>
   </div>
 
   <!-- Tabs -->
@@ -435,6 +492,125 @@
   </div>
 {/if}
 
+<!-- Create Contract Modal -->
+{#if showCreateContractModal}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" on:click={() => showCreateContractModal = false}>
+    <div class="bg-gradient-to-br from-indigo-900/90 to-purple-900/90 backdrop-blur-md rounded-2xl border border-white/20 p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" on:click|stopPropagation>
+      <h2 class="text-2xl font-bold text-white mb-6">Create Student Contract</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-white/80 text-sm mb-2">Student Full Name *</label>
+          <input
+            type="text"
+            bind:value={newContract.full_name}
+            class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40"
+            placeholder="Enter student name"
+            required
+          />
+        </div>
+        
+        <div>
+          <label class="block text-white/80 text-sm mb-2">Student Email *</label>
+          <input
+            type="email"
+            bind:value={newContract.student_email}
+            class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40"
+            placeholder="student@example.com"
+            required
+          />
+        </div>
+        
+        <div>
+          <label class="block text-white/80 text-sm mb-2">Mentor Email</label>
+          <select
+            bind:value={newContract.mentor_email}
+            class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+          >
+            <option value="">-- Select Mentor --</option>
+            {#each allMentors as mentor}
+              <option value={mentor.email}>{mentor.full_name} ({mentor.email})</option>
+            {/each}
+          </select>
+        </div>
+        
+        <div>
+          <label class="block text-white/80 text-sm mb-2">Contract Hours *</label>
+          <input
+            type="number"
+            bind:value={newContract.contract_hours}
+            class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40"
+            placeholder="600"
+            min="1"
+            required
+          />
+        </div>
+        
+        <div>
+          <label class="block text-white/80 text-sm mb-2">Start Date *</label>
+          <input
+            type="date"
+            bind:value={newContract.start_date}
+            class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+            required
+          />
+        </div>
+        
+        <div>
+          <label class="block text-white/80 text-sm mb-2">End Date *</label>
+          <input
+            type="date"
+            bind:value={newContract.end_date}
+            class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+            required
+          />
+        </div>
+        
+        <div>
+          <label class="block text-white/80 text-sm mb-2">Department</label>
+          <input
+            type="text"
+            bind:value={newContract.department}
+            class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40"
+            placeholder="e.g., Engineering, Marketing"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-white/80 text-sm mb-2">Position</label>
+          <input
+            type="text"
+            bind:value={newContract.position}
+            class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/40"
+            placeholder="e.g., Software Developer Intern"
+          />
+        </div>
+      </div>
+      
+      <div class="mt-6 p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <p class="text-blue-200 text-sm">
+          <strong>Note:</strong> This will create a new student contract with the specified details. 
+          An email will be sent to the student with their login credentials.
+        </p>
+      </div>
+      
+      <div class="flex gap-3 mt-6">
+        <button
+          class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-2 rounded-lg transition-colors"
+          on:click={createContract}
+        >
+          Create Contract
+        </button>
+        <button
+          class="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 rounded-lg transition-colors"
+          on:click={() => showCreateContractModal = false}
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+{/if}
 <!-- Assign Student Modal -->
 {#if showAssignModal}
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" on:click={() => showAssignModal = false}>
