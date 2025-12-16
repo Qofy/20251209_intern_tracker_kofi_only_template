@@ -15,7 +15,8 @@
   import ProofApproval from '../../lib/pages/proof-approval.svelte';
   import Students from '../../lib/pages/students.svelte';
   import AdminManagement from '../../lib/pages/admin-management.svelte';
-  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield } from 'lucide-svelte';
+  import MentorDashboard from '../../lib/pages/mentor-dashboard.svelte';
+  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield, GraduationCap } from 'lucide-svelte';
   
 
   // Reactive variables that will be updated by store subscription
@@ -322,6 +323,18 @@
           </a>
         {/if}
         
+        {#if role === 'mentor'}
+          <!-- Mentor Dashboard - Only for mentors -->
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-dashboard' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/mentor"
+            on:click|preventDefault={() => setActiveView('mentor-dashboard')}
+          >
+            <GraduationCap class="w-5 h-5"/>
+            <span class="font-medium">Mentor Dashboard</span>
+          </a>
+        {/if}
+        
         {#if role === 'admin' || role === 'mentor'}
           <!-- Proof & Approval - Only for admin and mentor -->
           <a
@@ -502,6 +515,9 @@
       
       {:else if activeView === 'admin-management'}
       <AdminManagement/>
+      
+      {:else if activeView === 'mentor-dashboard'}
+      <MentorDashboard/>
       
       {:else if activeView === 'students'}
           <Students/>

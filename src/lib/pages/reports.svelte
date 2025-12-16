@@ -16,7 +16,7 @@
 
   let entries = [];
   let allStudents = [];
-  let selectedStudentForReport = null;
+  let selectedStudentEmail = null; // Store email instead of entire object
   let dateRange = {
     from: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd'),
@@ -25,6 +25,9 @@
   let reportContentRef;
   let showQRDialog = false;
   let isLoading = false;
+
+  // Computed property to get the selected student object
+  $: selectedStudentForReport = allStudents.find(s => s.student_email === selectedStudentEmail) || null;
 
   // Auto-load data when component is created
   (async () => {
@@ -36,6 +39,7 @@
   })();
 
   $: if ($isAdmin && selectedStudentForReport) {
+    console.log('[Reports] Selected student changed:', selectedStudentForReport);
     loadEntriesForStudent(selectedStudentForReport);
     updateReportUrl();
   } else if (!$isAdmin && selectedStudent) {
@@ -58,8 +62,8 @@
     try {
       const data = await Student.list();
       allStudents = data || [];
-      if (allStudents.length > 0) {
-        selectedStudentForReport = allStudents[0];
+      if (allStudents.length > 0 && !selectedStudentEmail) {
+        selectedStudentEmail = allStudents[0].student_email;
         // Load entries for the first student
         await loadEntriesForStudent(allStudents[0]);
       }
@@ -78,12 +82,21 @@
       // First check all entries to see what's available
       const allEntries = await TimeEntry.list();
       console.log('All time entries in system:', allEntries);
-      console.log('Entry statuses:', allEntries.map(e => ({ date: e.date, status: e.status, claimed_status: e.claimed_status })));
       
-      // For now, show ALL entries regardless of status (for demo purposes)
-      // Later we can filter by 'approved' status when approval workflow is implemented
-      entries = allEntries || [];
-      console.log('Showing all entries (not filtered by status):', entries);
+      // Filter entries by student email
+      // Time entries have 'created_by' field that should match student email
+      const studentEntries = allEntries.filter(entry => 
+        entry.created_by === student.student_email || 
+        entry.created_by === student.email
+      );
+      
+      console.log(`Filtered entries for ${student.student_email}:`, studentEntries.length);
+      
+      // Force reactivity by creating a new array
+      entries = [...studentEntries];
+      
+      console.log('Showing filtered entries:', entries);
+      console.log('entries array reference updated');
     } catch (error) {
       console.error("Error loading entries:", error);
       entries = [];
@@ -146,6 +159,23 @@
   $: totalHours = filteredEntries.reduce((sum, entry) => sum + (entry.manually_inputted_hours || 0), 0);
   $: workingDays = differenceInBusinessDays(parseISO(dateRange.to), parseISO(dateRange.from));
   $: averageHours = totalHours / (filteredEntries.length || 1);
+  
+  // Get contract information from selected student
+  $: contractHours = selectedStudentForReport?.contract_hours || 0;
+  $: contractStartDate = selectedStudentForReport?.start_date || '';
+  $: contractEndDate = selectedStudentForReport?.end_date || '';
+  $: contractProgress = contractHours > 0 ? Math.round((totalHours / contractHours) * 100) : 0;
+  
+  // Debug reactive computed values
+  $: {
+    console.log('[Reports] Reactive computed values updated:');
+    console.log('  - filteredEntries.length:', filteredEntries.length);
+    console.log('  - totalHours:', totalHours);
+    console.log('  - workingDays:', workingDays);
+    console.log('  - averageHours:', averageHours);
+    console.log('  - contractHours:', contractHours);
+    console.log('  - contractProgress:', contractProgress);
+  }
 </script>
 
 <svelte:head>
@@ -186,12 +216,13 @@
       <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg mb-6">
         <label class="text-white/80 text-sm font-medium mb-2 block">Select Student</label>
         <select
-          bind:value={selectedStudentForReport}
+          bind:value={selectedStudentEmail}
           class="w-full px-4 py-2.5 bg-black/20 border border-white/30 rounded-lg text-white focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+          on:change={() => console.log('[Reports] Student dropdown changed to:', selectedStudentEmail)}
         >
           <option value={null} disabled>-- Select a student --</option>
           {#each allStudents as student}
-            <option value={student}>{student.full_name} ({student.student_email})</option>
+            <option value={student.student_email}>{student.full_name} ({student.student_email})</option>
           {/each}
         </select>
       </div>
@@ -264,18 +295,34 @@
       </Dialog>
     {/if}
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-4">
-        <p class="text-white/70 text-sm">Total Approved Hours</p>
-        <p class="text-2xl font-bold text-amber-400">{totalHours.toFixed(2)}</p>
+        <p class="text-white/70 text-sm">Total Hours Logged</p>
+        <p class="text-2xl font-bold text-blue-400">{totalHours.toFixed(2)}</p>
+        <p class="text-white/50 text-xs mt-1">in selected period</p>
       </div>
       <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-4">
-        <p class="text-white/70 text-sm">Working Days in Range</p>
-        <p class="text-2xl font-bold text-amber-400">{workingDays}</p>
+        <p class="text-white/70 text-sm">Contract Hours</p>
+        <p class="text-2xl font-bold text-green-400">{contractHours}</p>
+        <p class="text-white/50 text-xs mt-1">total contracted</p>
       </div>
       <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-4">
-        <p class="text-white/70 text-sm">Average Hours / Day</p>
-        <p class="text-2xl font-bold text-amber-400">{averageHours.toFixed(2)}</p>
+        <p class="text-white/70 text-sm">Contract Progress</p>
+        <p class="text-2xl font-bold text-purple-400">{contractProgress}%</p>
+        <p class="text-white/50 text-xs mt-1">{totalHours.toFixed(1)} / {contractHours}h</p>
+      </div>
+      <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-4">
+        <p class="text-white/70 text-sm">Contract Period</p>
+        <p class="text-lg font-bold text-yellow-400">
+          {#if contractStartDate && contractEndDate}
+            {format(parseISO(contractStartDate), 'MMM d')} - {format(parseISO(contractEndDate), 'MMM d, yyyy')}
+          {:else if contractStartDate}
+            {format(parseISO(contractStartDate), 'MMM d, yyyy')} - Ongoing
+          {:else}
+            Not Set
+          {/if}
+        </p>
+        <p class="text-white/50 text-xs mt-1">start - end dates</p>
       </div>
     </div>
 
