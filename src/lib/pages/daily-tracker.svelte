@@ -258,7 +258,7 @@
           <Button
             on:click={saveTimeEntry}
             disabled={isLoading}
-            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white flex h-10 items-center justify-center rounded-md"
           >
             <Save class="w-4 h-4 mr-2" />
             {isLoading ? "Saving..." : "Save Entry"}

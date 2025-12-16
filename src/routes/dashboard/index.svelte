@@ -522,9 +522,9 @@
       </div>
       
       <!-- Debug Info Button -->
-      <div class="absolute bottom-6 right-6 z-50">
+      <!-- <div class="absolute bottom-6 right-6 z-50">
         <DebugInfo />
-      </div>
+      </div> -->
     </div>
   </main>
 </div>

@@ -1,5 +1,6 @@
 <script>
-  import { onMount } from 'svelte';
+  console.log('[Admin] Script block executing');
+  import { onMount, tick } from 'svelte';
   import { User, Student } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import { Users, UserPlus, UserCog, FileText, Settings, Shield, CheckCircle, XCircle, Search, Edit2, Trash2 } from 'lucide-svelte';
@@ -8,7 +9,9 @@
   let allUsers = [];
   let allStudents = [];
   let allMentors = [];
-  let isLoading = true;
+  let isLoading = false; // Start with false, will be set to true when we actually load
+  let hasLoadedOnce = false; // Track if we've loaded at least once
+  console.log('[Admin] Initial isLoading:', isLoading);
   let searchQuery = '';
   let showCreateUserModal = false;
   let showAssignModal = false;
@@ -43,36 +46,48 @@
   // Edit user form
   let editingUser = null;
 
-  onMount(async () => {
+  // Load data immediately when script runs
+  (async () => {
+    console.log('[Admin] Auto-loading data on script execution');
     await loadData();
+  })();
+
+  onMount(async () => {
+    console.log('[Admin] onMount called');
+    if (!hasLoadedOnce) {
+      await loadData();
+    }
   });
 
   async function loadData() {
+    console.log('[Admin] loadData called, setting isLoading to true');
     isLoading = true;
+    hasLoadedOnce = true;
     try {
+      console.log('[Admin] Starting loadData...');
       // Load all students
       allStudents = await Student.list();
+      console.log('[Admin] Loaded students:', allStudents.length, allStudents);
       
-      // TODO: Load all users and mentors from API
-      // For now, using demo data
-      allUsers = [
-        { id: 1, email: 'admin@example.com', full_name: 'Admin', role: 'admin', status: 'active' },
-        { id: 2, email: 'mentor@example.com', full_name: 'Mentor', role: 'mentor', status: 'active' },
-        { id: 3, email: 'student@example.com', full_name: 'Student', role: 'student', status: 'active' }
-      ];
+      // Load all users
+      allUsers = await User.list();
+      console.log('[Admin] Loaded users:', allUsers.length, allUsers);
       
       allMentors = allUsers.filter(u => u.role === 'mentor');
+      console.log('[Admin] Filtered mentors:', allMentors.length);
+      console.log('[Admin] loadData complete, setting isLoading to false');
     } catch (error) {
-      console.error('Error loading admin data:', error);
+      console.error('[Admin] Error loading admin data:', error);
     } finally {
       isLoading = false;
+      console.log('[Admin] isLoading is now:', isLoading);
     }
   }
 
   async function createUser() {
     try {
-      // TODO: Call API to create user
       console.log('Creating user:', newUser);
+      await User.create(newUser);
       alert('User created successfully!');
       showCreateUserModal = false;
       newUser = { email: '', password: '', full_name: '', role: 'student' };
@@ -87,8 +102,8 @@
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
-      // TODO: Call API to delete user
       console.log('Deleting user:', userId);
+      await User.delete(userId);
       alert('User deleted successfully!');
       await loadData();
     } catch (error) {
@@ -99,15 +114,31 @@
 
   async function assignStudentToMentor() {
     try {
-      // TODO: Call API to assign student to mentor
-      console.log('Assigning student:', assignmentData);
-      alert('Student assigned successfully!');
+      if (!assignmentData.studentId || !assignmentData.mentorId) {
+        alert('Please select both a student and a mentor');
+        return;
+      }
+
+      // Find the mentor to get their email
+      const mentor = allMentors.find(m => m.id === assignmentData.mentorId);
+      if (!mentor) {
+        alert('Selected mentor not found');
+        return;
+      }
+
+      // Update the student with the mentor's email
+      await Student.update(assignmentData.studentId, {
+        mentor_email: mentor.email
+      });
+
+      console.log('Assigned mentor', mentor.email, 'to student', assignmentData.studentId);
+      alert('Student assigned to mentor successfully!');
       showAssignModal = false;
       assignmentData = { studentId: null, mentorId: null };
       await loadData();
     } catch (error) {
       console.error('Error assigning student:', error);
-      alert('Failed to assign student');
+      alert('Failed to assign student: ' + error.message);
     }
   }
 
@@ -366,7 +397,15 @@
   {:else if activeTab === 'assignments'}
     <!-- Student-Mentor Assignments -->
     <div class="space-y-4">
-      <div class="flex justify-end">
+      <div class="flex justify-between items-center mb-4">
+        <div class="flex items-center gap-4">
+          <input
+            type="text"
+            placeholder="Search assignments..."
+            bind:value={searchQuery}
+            class="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50"
+          />
+        </div>
         <button
           class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl"
           on:click={() => showAssignModal = true}
@@ -376,9 +415,115 @@
         </button>
       </div>
       
-      <div class="bg-white/5 rounded-xl border border-white/10 p-6">
-        <p class="text-white/60">Assignment management interface - Coming soon</p>
+      <div class="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-white/10">
+            <tr>
+              <th class="text-left p-4 text-white/80 font-semibold">Student</th>
+              <th class="text-left p-4 text-white/80 font-semibold">Student Email</th>
+              <th class="text-left p-4 text-white/80 font-semibold">Mentor</th>
+              <th class="text-left p-4 text-white/80 font-semibold">Mentor Email</th>
+              <th class="text-left p-4 text-white/80 font-semibold">Status</th>
+              <th class="text-left p-4 text-white/80 font-semibold">Contract Hours</th>
+              <th class="text-left p-4 text-white/80 font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each allStudents.filter(s => s.mentor_email) as student}
+              {@const mentor = allUsers.find(u => u.email === student.mentor_email)}
+              <tr class="border-t border-white/10 hover:bg-white/5">
+                <td class="p-4 text-white">{student.full_name}</td>
+                <td class="p-4 text-white/70">{student.student_email}</td>
+                <td class="p-4 text-white">
+                  {#if mentor}
+                    {mentor.full_name}
+                  {:else}
+                    <span class="text-white/50">Unknown</span>
+                  {/if}
+                </td>
+                <td class="p-4 text-white/70">{student.mentor_email}</td>
+                <td class="p-4">
+                  <span class="px-3 py-1 rounded-full text-xs font-medium {
+                    student.status === 'active' ? 'bg-emerald-500/20 text-emerald-300' :
+                    student.status === 'completed' ? 'bg-blue-500/20 text-blue-300' :
+                    student.status === 'paused' ? 'bg-yellow-500/20 text-yellow-300' :
+                    'bg-gray-500/20 text-gray-300'
+                  }">
+                    {student.status || 'unknown'}
+                  </span>
+                </td>
+                <td class="p-4 text-white/70">{student.contract_hours || 0} hrs</td>
+                <td class="p-4">
+                  <div class="flex gap-2">
+                    <button
+                      class="text-blue-400 hover:text-blue-300"
+                      on:click={() => {
+                        assignmentData = {
+                          studentId: student.id,
+                          mentorId: mentor?.id || null
+                        };
+                        showAssignModal = true;
+                      }}
+                      title="Change mentor"
+                    >
+                      <Edit2 class="w-4 h-4"/>
+                    </button>
+                    <button
+                      class="text-red-400 hover:text-red-300"
+                      on:click={async () => {
+                        if (confirm('Remove this mentor assignment?')) {
+                          await Student.update(student.id, { mentor_email: '' });
+                          await loadData();
+                        }
+                      }}
+                      title="Remove assignment"
+                    >
+                      <Trash2 class="w-4 h-4"/>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {/each}
+            {#if allStudents.filter(s => s.mentor_email).length === 0}
+              <tr>
+                <td colspan="7" class="p-8 text-center text-white/50">
+                  No student-mentor assignments found. Create one using the "New Assignment" button.
+                </td>
+              </tr>
+            {/if}
+          </tbody>
+        </table>
       </div>
+
+      <!-- Unassigned Students -->
+      {#if allStudents.filter(s => !s.mentor_email).length > 0}
+        <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-6">
+          <h3 class="text-yellow-300 font-semibold mb-3 flex items-center gap-2">
+            <Shield class="w-5 h-5"/>
+            Unassigned Students ({allStudents.filter(s => !s.mentor_email).length})
+          </h3>
+          <div class="space-y-2">
+            {#each allStudents.filter(s => !s.mentor_email) as student}
+              <div class="flex justify-between items-center bg-white/5 p-3 rounded-lg">
+                <div>
+                  <p class="text-white font-medium">{student.full_name}</p>
+                  <p class="text-white/60 text-sm">{student.student_email}</p>
+                </div>
+                <button
+                  class="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-sm"
+                  on:click={() => {
+                    assignmentData = { studentId: student.id, mentorId: null };
+                    showAssignModal = true;
+                  }}
+                >
+                  <Shield class="w-3 h-3"/>
+                  Assign Mentor
+                </button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </div>
 
   {:else if activeTab === 'reports'}
@@ -405,18 +550,230 @@
 
   {:else if activeTab === 'settings'}
     <!-- System Settings -->
-    <div class="bg-white/5 rounded-xl border border-white/10 p-6">
-      <h3 class="text-white font-semibold mb-4">System Configuration</h3>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-white/80 text-sm mb-2">Default Contract Hours</label>
-          <input type="number" value="600" class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"/>
+    <div class="space-y-6">
+      <!-- General Settings -->
+      <div class="bg-white/5 rounded-xl border border-white/10 p-6">
+        <h3 class="text-white font-semibold mb-4 flex items-center gap-2">
+          <Settings class="w-5 h-5"/>
+          General Settings
+        </h3>
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-white/80 text-sm mb-2">Default Contract Hours</label>
+              <input 
+                type="number" 
+                value="600" 
+                class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label class="block text-white/80 text-sm mb-2">System Timezone</label>
+              <select class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white">
+                <option>UTC</option>
+                <option selected>America/New_York</option>
+                <option>Europe/London</option>
+                <option>Asia/Tokyo</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-white/80 text-sm mb-2">System Email</label>
+              <input 
+                type="email" 
+                value="admin@example.com" 
+                class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label class="block text-white/80 text-sm mb-2">Company Name</label>
+              <input 
+                type="text" 
+                value="Intern Tracker System" 
+                class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+              />
+            </div>
+          </div>
         </div>
-        <div>
-          <label class="block text-white/80 text-sm mb-2">System Email</label>
-          <input type="email" value="admin@system.com" class="w-full px-4 py-2 bg-white/5 border border-white/10 rounded-lg text-white"/>
+      </div>
+
+      <!-- Notification Settings -->
+      <div class="bg-white/5 rounded-xl border border-white/10 p-6">
+        <h3 class="text-white font-semibold mb-4">Notification Settings</h3>
+        <div class="space-y-3">
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked class="w-5 h-5 rounded border-white/20 bg-white/10"/>
+            <span class="text-white">Email notifications for new student registrations</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked class="w-5 h-5 rounded border-white/20 bg-white/10"/>
+            <span class="text-white">Email notifications for time entry submissions</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" class="w-5 h-5 rounded border-white/20 bg-white/10"/>
+            <span class="text-white">Daily summary reports to administrators</span>
+          </label>
+          <label class="flex items-center gap-3 cursor-pointer">
+            <input type="checkbox" checked class="w-5 h-5 rounded border-white/20 bg-white/10"/>
+            <span class="text-white">Notify mentors when students log hours</span>
+          </label>
         </div>
-        <button class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg">
+      </div>
+
+      <!-- Security Settings -->
+      <div class="bg-white/5 rounded-xl border border-white/10 p-6">
+        <h3 class="text-white font-semibold mb-4">Security Settings</h3>
+        <div class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-white/80 text-sm mb-2">Session Timeout (minutes)</label>
+              <input 
+                type="number" 
+                value="60" 
+                class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+              />
+            </div>
+            <div>
+              <label class="block text-white/80 text-sm mb-2">Password Min Length</label>
+              <input 
+                type="number" 
+                value="8" 
+                class="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
+              />
+            </div>
+          </div>
+          
+          <div class="space-y-3">
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked class="w-5 h-5 rounded border-white/20 bg-white/10"/>
+              <span class="text-white">Require password change every 90 days</span>
+            </label>
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked class="w-5 h-5 rounded border-white/20 bg-white/10"/>
+              <span class="text-white">Enable two-factor authentication (2FA)</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data Management -->
+      <div class="bg-white/5 rounded-xl border border-white/10 p-6">
+        <h3 class="text-white font-semibold mb-4">Data Management</h3>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+            <div>
+              <p class="text-white font-medium">Export All Data</p>
+              <p class="text-white/60 text-sm">Download all system data as JSON</p>
+            </div>
+            <button 
+              class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+              on:click={() => {
+                const data = {
+                  users: JSON.parse(localStorage.getItem('demo_users') || '[]'),
+                  students: JSON.parse(localStorage.getItem('demo_students') || '[]'),
+                  tasks: JSON.parse(localStorage.getItem('demo_tasks') || '[]'),
+                  timeEntries: JSON.parse(localStorage.getItem('demo_time_entries') || '[]'),
+                  schedules: JSON.parse(localStorage.getItem('demo_schedules') || '[]'),
+                  exportDate: new Date().toISOString()
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `intern-tracker-data-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                alert('Data exported successfully!');
+              }}
+            >
+              Export
+            </button>
+          </div>
+          
+          <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+            <div>
+              <p class="text-white font-medium">Clear Demo Data</p>
+              <p class="text-white/60 text-sm">Remove all localStorage demo data</p>
+            </div>
+            <button 
+              class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg"
+              on:click={() => {
+                if (confirm('This will clear all demo data. Continue?')) {
+                  localStorage.removeItem('demo_users');
+                  localStorage.removeItem('demo_students');
+                  localStorage.removeItem('demo_tasks');
+                  localStorage.removeItem('demo_time_entries');
+                  localStorage.removeItem('demo_schedules');
+                  alert('Demo data cleared successfully!');
+                  loadData();
+                }
+              }}
+            >
+              Clear Data
+            </button>
+          </div>
+          
+          <div class="flex items-center justify-between p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <div>
+              <p class="text-red-300 font-medium">Reset System</p>
+              <p class="text-red-300/60 text-sm">Restore system to initial state (WARNING: Cannot be undone)</p>
+            </div>
+            <button 
+              class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg"
+              on:click={() => {
+                if (confirm('⚠️ WARNING: This will delete ALL data and reset the system to defaults.\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?')) {
+                  // Clear all localStorage
+                  localStorage.clear();
+                  alert('System has been reset. Please log in again.');
+                  window.location.href = '/';
+                }
+              }}
+            >
+              Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save Button -->
+      <div class="flex justify-end gap-3">
+        <button 
+          class="bg-white/10 hover:bg-white/20 text-white px-6 py-2 rounded-lg border border-white/20"
+          on:click={() => {
+            // Reset form or navigate away
+            alert('Changes discarded');
+          }}
+        >
+          Cancel
+        </button>
+        <button 
+          class="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg"
+          on:click={() => {
+            // Save settings to localStorage
+            const settings = {
+              defaultContractHours: 600,
+              timezone: 'America/New_York',
+              systemEmail: 'admin@example.com',
+              companyName: 'Intern Tracker System',
+              notifications: {
+                newRegistrations: true,
+                timeEntries: true,
+                dailySummary: false,
+                mentorAlerts: true
+              },
+              security: {
+                sessionTimeout: 60,
+                passwordMinLength: 8,
+                requirePasswordChange: true,
+                enable2FA: true
+              }
+            };
+            localStorage.setItem('system_settings', JSON.stringify(settings));
+            alert('Settings saved successfully!');
+          }}
+        >
           Save Settings
         </button>
       </div>

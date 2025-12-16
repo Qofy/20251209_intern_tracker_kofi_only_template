@@ -28,6 +28,55 @@ export class User {
     }
     return apiClient.request('/api/users/me');
   }
+
+  static async list() {
+    if (isDemoMode()) {
+      const demoUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
+      // If empty, add default users
+      if (demoUsers.length === 0) {
+        const defaults = [
+          { id: 'demo_1', email: 'admin@example.com', full_name: 'Admin', role: 'admin', status: 'active' },
+          { id: 'demo_2', email: 'mentor@example.com', full_name: 'Mentor', role: 'mentor', status: 'active' },
+          { id: 'demo_3', email: 'student@example.com', full_name: 'Student', role: 'student', status: 'active' }
+        ];
+        localStorage.setItem('demo_users', JSON.stringify(defaults));
+        return defaults;
+      }
+      return demoUsers;
+    }
+    return apiClient.request('/api/users');
+  }
+
+  static async create(data) {
+    if (isDemoMode()) {
+      const demoUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
+      const newUser = {
+        ...data,
+        id: `demo_user_${Date.now()}`,
+        status: 'active',
+        created_at: new Date().toISOString()
+      };
+      demoUsers.push(newUser);
+      localStorage.setItem('demo_users', JSON.stringify(demoUsers));
+      return newUser;
+    }
+    return apiClient.request('/api/users', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  static async delete(id) {
+    if (isDemoMode()) {
+      const demoUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
+      const filtered = demoUsers.filter(u => u.id !== id);
+      localStorage.setItem('demo_users', JSON.stringify(filtered));
+      return { success: true };
+    }
+    return apiClient.request(`/api/users/${id}`, {
+      method: 'DELETE'
+    });
+  }
 }
 
 export class Student {
