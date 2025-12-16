@@ -268,215 +268,67 @@
 </div>
 
 {#if showEditor && editingItem}
-  <ScheduleItemEditor
-    item={editingItem}
-    {availableTasks}
-    onSave={handleItemSave}
-    onClose={closeEditor}
-  />
-{/if}
+  <Dialog bind:open={showEditor}>
+    <DialogContent class="bg-white/10 backdrop-blur-md border-white/20 text-white max-w-2xl">
+      <DialogHeader>
+        <DialogTitle class="text-white">Edit Schedule Item</DialogTitle>
+      </DialogHeader>
 
-<!-- Schedule Item Editor Component -->
-<script context="module">
-  export function ScheduleItemEditor({ item, availableTasks, onSave, onClose }) {
-    let formData = item || {
-      start_time: "",
-      end_time: "",
-      activity: "",
-      task_reference: "",
-      description: "",
-      files: [],
-      linked_task_id: ""
-    };
-    let isUploading = false;
-    let timeError = '';
-    let open = true;
-
-    $: {
-      if (formData.start_time && formData.end_time) {
-        if (formData.end_time <= formData.start_time) {
-          timeError = 'End time must be after start time.';
-        } else {
-          timeError = '';
-        }
-      } else {
-        timeError = '';
-      }
-    }
-
-    async function handleFileUpload(event) {
-      const files = Array.from(event.target.files);
-      if (files.length === 0) return;
-
-      isUploading = true;
-      try {
-        const uploadPromises = files.map(file => UploadFile({ file }));
-        const results = await Promise.all(uploadPromises);
-        const fileUrls = results.map(result => result.file_url);
-
-        formData = {
-          ...formData,
-          files: [...(formData.files || []), ...fileUrls]
-        };
-      } catch (error) {
-        console.error("Error uploading files:", error);
-      }
-      isUploading = false;
-    }
-
-    function removeFile(index) {
-      formData = {
-        ...formData,
-        files: formData.files.filter((_, i) => i !== index)
-      };
-    }
-
-    function handleClose() {
-      open = false;
-      onClose();
-    }
-
-    return {
-      formData,
-      isUploading,
-      timeError,
-      open,
-      handleFileUpload,
-      removeFile,
-      handleClose
-    };
-  }
-</script>
-
-{#if showEditor}
-  <Dialog {open} onOpenChange={closeEditor}>
-    <DialogContent {open} onOpenChange={closeEditor}>
-      <div class="bg-white/10 backdrop-blur-md border-white/20 text-white max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg p-6">
-        <DialogHeader>
-          <DialogTitle>Edit Schedule Item</DialogTitle>
-        </DialogHeader>
-
-        <div class="space-y-4 py-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="text-white/80 text-sm font-medium mb-2 block">Start Time</label>
-              <Input
-                type="time"
-                bind:value={editingItem.start_time}
-                className="bg-white/10 border-white/20 text-white"
-              />
-            </div>
-            <div>
-              <label class="text-white/80 text-sm font-medium mb-2 block">End Time</label>
-              <Input
-                type="time"
-                bind:value={editingItem.end_time}
-                className="bg-white/10 border-white/20 text-white"
-              />
-            </div>
-          </div>
-          {#if timeError}
-            <p class="text-sm text-red-400 -mt-2 ml-1">{timeError}</p>
-          {/if}
-
+      <div class="space-y-4 py-4">
+        <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="text-white/80 text-sm font-medium mb-2 block">Activity</label>
+            <label class="text-white/80 text-sm font-medium mb-2 block">Start Time</label>
             <Input
-              bind:value={editingItem.activity}
-              placeholder="Activity description"
-              className="bg-white/10 border-white/20 text-white placeholder-white/50"
+              type="time"
+              bind:value={editingItem.start_time}
+              className="bg-white/10 border-white/20 text-white"
             />
           </div>
-
           <div>
-            <label class="text-white/80 text-sm font-medium mb-2 block">Task Reference</label>
+            <label class="text-white/80 text-sm font-medium mb-2 block">End Time</label>
             <Input
-              bind:value={editingItem.task_reference}
-              placeholder="e.g., TASK #054"
-              className="bg-white/10 border-white/20 text-white placeholder-white/50"
+              type="time"
+              bind:value={editingItem.end_time}
+              className="bg-white/10 border-white/20 text-white"
             />
-          </div>
-
-          <div>
-            <label class="text-white/80 text-sm font-medium mb-2 block">Link to Task</label>
-            <Select bind:value={editingItem.linked_task_id}>
-              <SelectTrigger className="bg-white/10 border-white/20 text-white">
-                <SelectValue placeholder="Select a task to link" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">No linked task</SelectItem>
-                {#each availableTasks as task}
-                  <SelectItem value={task.id}>
-                    {task.task_number} - {task.title}
-                  </SelectItem>
-                {/each}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label class="text-white/80 text-sm font-medium mb-2 block">Description</label>
-            <Textarea
-              bind:value={editingItem.description}
-              placeholder="Additional details about this activity..."
-              className="bg-white/10 border-white/20 text-white placeholder-white/50 min-h-[80px]"
-            />
-          </div>
-
-          <div>
-            <label class="text-white/80 text-sm font-medium mb-3 block">Attach Files</label>
-            <div class="relative mb-4">
-              <input
-                type="file"
-                multiple
-                on:change={handleFileUpload}
-                class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                disabled={isUploading}
-              />
-              <div class="bg-white/5 border-2 border-dashed border-white/20 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
-                <FileText class="w-6 h-6 text-white/50 mx-auto mb-2" />
-                <p class="text-white/80 text-sm">
-                  {isUploading ? "Uploading..." : "Click to attach files"}
-                </p>
-              </div>
-            </div>
-
-            {#if editingItem.files && editingItem.files.length > 0}
-              <div class="space-y-2">
-                {#each editingItem.files as fileUrl, index}
-                  <div class="flex items-center justify-between p-2 bg-white/5 rounded-lg border border-white/10">
-                    <span class="text-white text-sm">File {index + 1}</span>
-                    <div class="flex items-center gap-2">
-                      <a
-                        href={fileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-blue-400 hover:text-blue-300 text-sm"
-                      >
-                        View
-                      </a>
-                      <button
-                        on:click={() => removeFile(index)}
-                        class="text-red-400 hover:text-red-300 text-sm"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                {/each}
-              </div>
-            {/if}
           </div>
         </div>
 
-        <div class="flex justify-end gap-3 border-t border-white/10 pt-4">
-          <Button variant="ghost" on:click={closeEditor} className="text-white/80 hover:text-white hover:bg-white/10">
-            Cancel
-          </Button>
-          <Button on:click={() => handleItemSave(editingItem)} className="bg-emerald-500 hover:bg-emerald-600 text-white" disabled={!!timeError}>
-            Save Changes
-          </Button>
+        <div>
+          <label class="text-white/80 text-sm font-medium mb-2 block">Activity</label>
+          <Input
+            bind:value={editingItem.activity}
+            placeholder="Activity description"
+            className="bg-white/10 border-white/20 text-white placeholder-white/50"
+          />
         </div>
+
+        <div>
+          <label class="text-white/80 text-sm font-medium mb-2 block">Task Reference</label>
+          <Input
+            bind:value={editingItem.task_reference}
+            placeholder="e.g., TASK #054"
+            className="bg-white/10 border-white/20 text-white placeholder-white/50"
+          />
+        </div>
+
+        <div>
+          <label class="text-white/80 text-sm font-medium mb-2 block">Description</label>
+          <Textarea
+            bind:value={editingItem.description}
+            placeholder="Additional details about this activity..."
+            className="bg-white/10 border-white/20 text-white placeholder-white/50 min-h-[80px]"
+          />
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-3 border-t border-white/10 pt-4">
+        <Button variant="ghost" on:click={closeEditor} className="text-white/80 hover:text-white hover:bg-white/10">
+          Cancel
+        </Button>
+        <Button on:click={() => handleItemSave(editingItem)} className="bg-emerald-500 hover:bg-emerald-600 text-white">
+          Save Changes
+        </Button>
       </div>
     </DialogContent>
   </Dialog>

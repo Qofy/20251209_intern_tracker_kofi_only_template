@@ -7,6 +7,7 @@ import { StudentsModule } from './students/students.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { TasksModule } from './tasks/tasks.module';
 import { SchedulesModule } from './schedules/schedules.module';
+import { LlmModule } from './llm/llm.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { SchedulesModule } from './schedules/schedules.module';
     TimeEntriesModule,
     TasksModule,
     SchedulesModule,
+    LlmModule,
   ],
 })
 export class AppModule {}

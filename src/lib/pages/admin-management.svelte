@@ -3,14 +3,13 @@
   import { onMount, tick } from 'svelte';
   import { User, Student } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
-  import { Users, UserPlus, UserCog, FileText, Settings, Shield, CheckCircle, XCircle, Search, Edit2, Trash2 } from 'lucide-svelte';
+  import { Users, UserPlus, UserCog, FileText, Settings, Shield, CheckCircle, XCircle, Search, Edit2, Trash2, RefreshCw } from 'lucide-svelte';
 
   let activeTab = 'users'; // users, mentors, students, assignments, reports, settings
   let allUsers = [];
   let allStudents = [];
   let allMentors = [];
-  let isLoading = false; // Start with false, will be set to true when we actually load
-  let hasLoadedOnce = false; // Track if we've loaded at least once
+  let isLoading = false;
   console.log('[Admin] Initial isLoading:', isLoading);
   let searchQuery = '';
   let showCreateUserModal = false;
@@ -46,28 +45,25 @@
   // Edit user form
   let editingUser = null;
 
-  // Load data immediately when script runs
-  (async () => {
-    console.log('[Admin] Auto-loading data on script execution');
-    await loadData();
-  })();
-
+  // Load data on mount - this ensures it loads every time the component mounts
   onMount(async () => {
-    console.log('[Admin] onMount called');
-    if (!hasLoadedOnce) {
-      await loadData();
-    }
+    console.log('[Admin] onMount - Loading data...');
+    await loadData();
   });
 
   async function loadData() {
     console.log('[Admin] loadData called, setting isLoading to true');
     isLoading = true;
-    hasLoadedOnce = true;
     try {
       console.log('[Admin] Starting loadData...');
+      
+      // Debug: Check localStorage directly FIRST
+      const storedStudents = localStorage.getItem('demo_students');
+      console.log('[Admin] Raw localStorage demo_students:', storedStudents);
+      
       // Load all students
       allStudents = await Student.list();
-      console.log('[Admin] Loaded students:', allStudents.length, allStudents);
+      console.log('[Admin] Loaded students from Student.list():', allStudents.length, allStudents);
       
       // Load all users
       allUsers = await User.list();
@@ -149,13 +145,16 @@
         ...newContract,
         status: 'active'
       };
-      console.log('Creating contract:', contractData);
+      console.log('[Admin] Creating contract:', contractData);
       
       // For now, using Student.create
-      await Student.create(contractData);
+      const newStudentRecord = await Student.create(contractData);
+      console.log('[Admin] Contract created successfully:', newStudentRecord);
       
       alert('Contract created successfully!');
       showCreateContractModal = false;
+      
+      // Reset form
       newContract = {
         student_email: '',
         full_name: '',
@@ -166,13 +165,20 @@
         department: '',
         position: ''
       };
+      
+      // Reload data to show new contract
+      console.log('[Admin] Reloading data after contract creation...');
       await loadData();
+      console.log('[Admin] Data reloaded, allStudents:', allStudents.length);
+      
+      // Switch to students tab to show the new contract
+      activeTab = 'students';
       
       // Update userStore with new students list
       await userStore.loadUserAndRole();
     } catch (error) {
-      console.error('Error creating contract:', error);
-      alert('Failed to create contract');
+      console.error('[Admin] Error creating contract:', error);
+      alert('Failed to create contract: ' + error.message);
     }
   }
 
@@ -184,9 +190,26 @@
     );
   }
 
+  function filterStudents(students) {
+    if (!searchQuery) return students;
+    return students.filter(s => 
+      s.student_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }
+
   $: filteredUsers = filterUsers(allUsers);
-  $: filteredStudents = filterUsers(allStudents);
+  $: filteredStudents = filterStudents(allStudents);
   $: filteredMentors = filterUsers(allMentors);
+  
+  // Debug reactive statement to log when students change
+  $: {
+    console.log('[Admin] Reactive: allStudents changed, count:', allStudents.length);
+    console.log('[Admin] Reactive: filteredStudents count:', filteredStudents.length);
+    if (allStudents.length > 0 && filteredStudents.length === 0 && searchQuery) {
+      console.log('[Admin] WARNING: Students exist but filtered to zero - check filter logic');
+    }
+  }
 </script>
 
 <div class="p-8">
@@ -197,6 +220,15 @@
       <p class="text-white/70">Manage users, permissions, and system settings</p>
     </div>
     <div class="flex gap-3">
+      <button
+        class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl transition-colors"
+        on:click={loadData}
+        disabled={isLoading}
+        title="Refresh data"
+      >
+        <RefreshCw class="w-4 h-4 {isLoading ? 'animate-spin' : ''}"/>
+        Refresh
+      </button>
       <button
         class="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl transition-colors"
         on:click={() => showCreateContractModal = true}
@@ -359,40 +391,82 @@
 
   {:else if activeTab === 'students'}
     <!-- Students List -->
-    <div class="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
-      <table class="w-full">
-        <thead class="bg-white/5">
-          <tr>
-            <th class="text-left px-6 py-4 text-white/80 font-medium">Name</th>
-            <th class="text-left px-6 py-4 text-white/80 font-medium">Email</th>
-            <th class="text-left px-6 py-4 text-white/80 font-medium">Mentor</th>
-            <th class="text-left px-6 py-4 text-white/80 font-medium">Hours</th>
-            <th class="text-right px-6 py-4 text-white/80 font-medium">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each filteredStudents as student}
-            <tr class="border-t border-white/5 hover:bg-white/5 transition-colors">
-              <td class="px-6 py-4 text-white">{student.full_name}</td>
-              <td class="px-6 py-4 text-white/70">{student.student_email}</td>
-              <td class="px-6 py-4 text-white/70">{student.mentor_email || 'Unassigned'}</td>
-              <td class="px-6 py-4 text-white">{student.contract_hours || 0}h</td>
-              <td class="px-6 py-4 text-right">
-                <button
-                  class="text-blue-400 hover:text-blue-300 text-sm"
-                  on:click={() => {
-                    assignmentData.studentId = student.id;
-                    showAssignModal = true;
-                  }}
-                >
-                  Assign Mentor
-                </button>
-              </td>
+    {#if filteredStudents.length === 0}
+      <div class="bg-white/5 rounded-xl border border-white/10 p-12 text-center">
+        <Users class="w-16 h-16 text-white/20 mx-auto mb-4"/>
+        <h3 class="text-xl font-semibold text-white mb-2">No Student Contracts Found</h3>
+        <p class="text-white/60 mb-6">
+          {#if searchQuery}
+            No students match your search "{searchQuery}"
+          {:else}
+            Create your first student contract to get started
+          {/if}
+        </p>
+        
+        <!-- Debug Info -->
+        <div class="bg-black/30 rounded-lg p-4 mb-6 text-left text-sm">
+          <p class="text-white/80 font-semibold mb-2">Debug Info:</p>
+          <p class="text-white/60">Total Students in Array: {allStudents.length}</p>
+          <p class="text-white/60">Filtered Students: {filteredStudents.length}</p>
+          <p class="text-white/60">Search Query: "{searchQuery}"</p>
+          <button
+            class="mt-2 text-blue-400 hover:text-blue-300 text-xs"
+            on:click={() => {
+              const stored = localStorage.getItem('demo_students');
+              console.log('Raw localStorage demo_students:', stored);
+              alert('Check console for localStorage data');
+            }}
+          >
+            Check localStorage (see console)
+          </button>
+        </div>
+        
+        {#if !searchQuery}
+          <button
+            class="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl transition-colors mx-auto"
+            on:click={() => showCreateContractModal = true}
+          >
+            <FileText class="w-4 h-4"/>
+            Create Student Contract
+          </button>
+        {/if}
+      </div>
+    {:else}
+      <div class="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-white/5">
+            <tr>
+              <th class="text-left px-6 py-4 text-white/80 font-medium">Name</th>
+              <th class="text-left px-6 py-4 text-white/80 font-medium">Email</th>
+              <th class="text-left px-6 py-4 text-white/80 font-medium">Mentor</th>
+              <th class="text-left px-6 py-4 text-white/80 font-medium">Hours</th>
+              <th class="text-right px-6 py-4 text-white/80 font-medium">Actions</th>
             </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {#each filteredStudents as student}
+              <tr class="border-t border-white/5 hover:bg-white/5 transition-colors">
+                <td class="px-6 py-4 text-white">{student.full_name}</td>
+                <td class="px-6 py-4 text-white/70">{student.student_email}</td>
+                <td class="px-6 py-4 text-white/70">{student.mentor_email || 'Unassigned'}</td>
+                <td class="px-6 py-4 text-white">{student.contract_hours || 0}h</td>
+                <td class="px-6 py-4 text-right">
+                  <button
+                    class="text-blue-400 hover:text-blue-300 text-sm"
+                    on:click={() => {
+                      assignmentData.studentId = student.id;
+                      showAssignModal = true;
+                    }}
+                  >
+                    Assign Mentor
+                  </button>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    {/if}
 
   {:else if activeTab === 'assignments'}
     <!-- Student-Mentor Assignments -->

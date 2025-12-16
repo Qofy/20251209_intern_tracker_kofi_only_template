@@ -21,13 +21,20 @@
     mentor_email: ""
   };
 
-  onMount(() => {
-    loadStudents();
+  // Load students on mount - will run every time component mounts
+  onMount(async () => {
+    console.log('[Students] Component mounted, loading students...');
+    await loadStudents();
   });
 
   async function loadStudents() {
+    console.log('[Students] Loading students from storage...');
+    const storedStudents = localStorage.getItem('demo_students');
+    console.log('[Students] Raw localStorage:', storedStudents);
+    
     const studentData = await Student.list();
     students = studentData;
+    console.log('[Students] Loaded students:', students.length, students);
   }
 
   async function handleSave() {
@@ -36,15 +43,23 @@
       mentor_email: formData.mentor_email || user?.email
     };
 
+    console.log('[Students] Saving student contract:', studentData);
+    
     if (editingStudent) {
       await Student.update(editingStudent.id, studentData);
+      console.log('[Students] Updated student:', editingStudent.id);
     } else {
-      await Student.create(studentData);
+      const newStudent = await Student.create(studentData);
+      console.log('[Students] Created new student:', newStudent);
     }
+    
     editingStudent = null;
     isFormOpen = false;
-    loadStudents();
     resetForm();
+    
+    // Reload to show the new/updated student
+    console.log('[Students] Reloading students after save...');
+    await loadStudents();
   }
 
   async function handleDelete(id) {
@@ -165,6 +180,35 @@
         <User class="w-16 h-16 text-white/30 mx-auto mb-4" />
         <h3 class="text-xl font-semibold text-white mb-2">No Student Contracts</h3>
         <p class="text-white/60 mb-6">Create your first student contract to get started.</p>
+        
+        <!-- Debug Info -->
+        <div class="bg-black/30 rounded-lg p-4 mb-6 text-left text-sm max-w-md w-full">
+          <!-- <p class="text-white/80 font-semibold mb-2">Debug Info:</p>
+          <p class="text-white/60">Students Array Length: {students.length}</p>
+          <button
+            class="mt-2 text-blue-400 hover:text-blue-300 text-xs"
+            on:click={() => {
+              const stored = localStorage.getItem('demo_students');
+              console.log('Raw localStorage demo_students:', stored);
+              if (stored) {
+                const parsed = JSON.parse(stored);
+                console.log('Parsed students:', parsed);
+                alert(`Found ${parsed.length} student(s) in localStorage. Check console for details.`);
+              } else {
+                alert('No demo_students found in localStorage');
+              }
+            }}
+          >
+            Check localStorage (see console)
+          </button> -->
+          <button
+            class="ml-2 mt-2 text-emerald-400 hover:text-emerald-300 text-xs"
+            on:click={loadStudents}
+          >
+            Reload Students
+          </button>
+        </div>
+        
         <Button
           on:click={() => openForm()}
           class="bg-emerald-500 hover:bg-emerald-600 text-white h-10 flex items-center px-2 rounded-md"
