@@ -267,6 +267,18 @@ export class Schedule {
     return apiClient.getSchedules(params);
   }
 
+  static async filter(params = {}) {
+    if (isDemoMode()) {
+      const demoSchedules = JSON.parse(localStorage.getItem('demo_schedules') || '[]');
+      // Simple filtering by any param keys
+      if (Object.keys(params).length === 0) return demoSchedules;
+      return demoSchedules.filter(schedule => {
+        return Object.entries(params).every(([key, value]) => schedule[key] === value);
+      });
+    }
+    return apiClient.getSchedules(params);
+  }
+
   static async create(data) {
     if (isDemoMode()) {
       const demoSchedules = JSON.parse(localStorage.getItem('demo_schedules') || '[]');
@@ -310,18 +322,50 @@ export class Schedule {
 
 export class Question {
   static async list() {
+    if (isDemoMode()) {
+      const demoQuestions = JSON.parse(localStorage.getItem('demo_questions') || '[]');
+      return demoQuestions;
+    }
     return apiClient.getQuestions();
   }
 
   static async create(data) {
+    if (isDemoMode()) {
+      const demoQuestions = JSON.parse(localStorage.getItem('demo_questions') || '[]');
+      const newQuestion = {
+        ...data,
+        id: `demo_question_${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      demoQuestions.push(newQuestion);
+      localStorage.setItem('demo_questions', JSON.stringify(demoQuestions));
+      return newQuestion;
+    }
     return apiClient.createQuestion(data);
   }
 
   static async update(id, data) {
+    if (isDemoMode()) {
+      const demoQuestions = JSON.parse(localStorage.getItem('demo_questions') || '[]');
+      const index = demoQuestions.findIndex(q => q.id === id);
+      if (index !== -1) {
+        demoQuestions[index] = { ...demoQuestions[index], ...data, updated_at: new Date().toISOString() };
+        localStorage.setItem('demo_questions', JSON.stringify(demoQuestions));
+        return demoQuestions[index];
+      }
+      throw new Error('Question not found');
+    }
     return apiClient.updateQuestion(id, data);
   }
 
   static async delete(id) {
+    if (isDemoMode()) {
+      const demoQuestions = JSON.parse(localStorage.getItem('demo_questions') || '[]');
+      const filtered = demoQuestions.filter(q => q.id !== id);
+      localStorage.setItem('demo_questions', JSON.stringify(filtered));
+      return { success: true };
+    }
     return apiClient.deleteQuestion(id);
   }
 }

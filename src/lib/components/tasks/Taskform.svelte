@@ -93,7 +93,7 @@
           <Input
             bind:value={taskData.task_number}
             placeholder="e.g., #078"
-            className="bg-white/10 border-white/20 text-white placeholder-white/50"
+            className="bg-black/10 border-white/20 text-white/50 placeholder-white/50 "
           />
         </div>
         <div>
@@ -103,7 +103,7 @@
           <Input
             type="date"
             bind:value={taskData.due_date}
-            className="bg-white/10 border-white/20 text-white"
+            className="bg-white/10 border-white/20 text-white/50 z-10"
           />
         </div>
       </div>
@@ -116,7 +116,7 @@
         <Input
           bind:value={taskData.title}
           placeholder="Enter task title"
-          className="bg-white/10 border-white/20 text-white placeholder-white/50"
+          className="bg-white/10 border-white/20 text-black placeholder-balck"
         />
       </div>
 

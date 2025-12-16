@@ -184,12 +184,14 @@
         <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
           <div class="flex items-center justify-between mb-3">
             <h4 class="text-white/80 text-sm font-medium">All Students</h4>
-            <a href="/students">
-              <button class="inline-flex items-center justify-center rounded-md font-medium transition-colors h-7 px-2 text-xs text-white/60 hover:text-white hover:bg-white/10">
-                <Plus class="w-3 h-3 mr-1"/>
-                Add
-              </button>
-            </a>
+            <button 
+              class="inline-flex items-center justify-center rounded-md font-medium transition-colors h-7 px-2 text-xs text-white/60 hover:text-white hover:bg-white/10"
+              on:click={() => setActiveView('admin-management')}
+              title="Create new student contract"
+            >
+              <Plus class="w-3 h-3 mr-1"/>
+              Add
+            </button>
           </div>
           {#if myStudents && myStudents.length > 0}
             <div class="space-y-2 max-h-64 overflow-y-auto">

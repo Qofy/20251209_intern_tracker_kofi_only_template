@@ -1,7 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { TimeEntry } from '../../entities/all';
-  import { userStore } from '../../stores/userStore';
+  import { TimeEntry, Student } from '../../entities/all';
+  import { userStore, isAdmin } from '../../stores/userStore';
   import { format, subDays, parseISO, differenceInBusinessDays } from 'date-fns';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
@@ -9,11 +9,14 @@
   import DialogContent from '$lib/components/ui/DialogContent.svelte';
   import DialogHeader from '$lib/components/ui/DialogHeader.svelte';
   import DialogTitle from '$lib/components/ui/DialogTitle.svelte';
-  import { BarChart3, Download, Printer, QrCode, FileSpreadsheet } from 'lucide-svelte';
+  import { BarChart3, Download, Printer, QrCode, FileSpreadsheet, Users } from 'lucide-svelte';
 
   $: selectedStudent = $userStore.selectedStudent;
+  $: user = $userStore.user;
 
   let entries = [];
+  let allStudents = [];
+  let selectedStudentForReport = null;
   let dateRange = {
     from: format(subDays(new Date(), 30), 'yyyy-MM-dd'),
     to: format(new Date(), 'yyyy-MM-dd'),
@@ -21,14 +24,21 @@
   let reportUrl = '';
   let reportContentRef;
   let showQRDialog = false;
+  let isLoading = false;
 
-  onMount(() => {
-    if (selectedStudent) {
-      loadEntries();
+  // Auto-load data when component is created
+  (async () => {
+    if ($isAdmin) {
+      await loadStudents();
+    } else if (selectedStudent) {
+      await loadEntries();
     }
-  });
+  })();
 
-  $: if (selectedStudent) {
+  $: if ($isAdmin && selectedStudentForReport) {
+    loadEntriesForStudent(selectedStudentForReport);
+    updateReportUrl();
+  } else if (!$isAdmin && selectedStudent) {
     loadEntries();
     updateReportUrl();
   }
@@ -38,16 +48,61 @@
   }
 
   function updateReportUrl() {
-    const url = `${window.location.origin}/reports?student=${selectedStudent?.id}&from=${dateRange.from}&to=${dateRange.to}`;
+    const student = $isAdmin ? selectedStudentForReport : selectedStudent;
+    const url = `${window.location.origin}/reports?student=${student?.id}&from=${dateRange.from}&to=${dateRange.to}`;
     reportUrl = url;
   }
 
+  async function loadStudents() {
+    isLoading = true;
+    try {
+      const data = await Student.list();
+      allStudents = data || [];
+      if (allStudents.length > 0) {
+        selectedStudentForReport = allStudents[0];
+        // Load entries for the first student
+        await loadEntriesForStudent(allStudents[0]);
+      }
+    } catch (error) {
+      console.error("Error loading students:", error);
+      allStudents = [];
+    }
+    isLoading = false;
+  }
+
+  async function loadEntriesForStudent(student) {
+    if (!student) return;
+    isLoading = true;
+    try {
+      console.log('Loading entries for student:', student);
+      // First check all entries to see what's available
+      const allEntries = await TimeEntry.list();
+      console.log('All time entries in system:', allEntries);
+      console.log('Entry statuses:', allEntries.map(e => ({ date: e.date, status: e.status, claimed_status: e.claimed_status })));
+      
+      // For now, show ALL entries regardless of status (for demo purposes)
+      // Later we can filter by 'approved' status when approval workflow is implemented
+      entries = allEntries || [];
+      console.log('Showing all entries (not filtered by status):', entries);
+    } catch (error) {
+      console.error("Error loading entries:", error);
+      entries = [];
+    }
+    isLoading = false;
+  }
+
   async function loadEntries() {
-    const data = await TimeEntry.filter({
-      status: 'approved',
-      created_by: selectedStudent.created_by
-    }, "-date");
-    entries = data;
+    if (!selectedStudent) return;
+    isLoading = true;
+    try {
+      // For now, show ALL entries regardless of status (for demo purposes)
+      const data = await TimeEntry.list();
+      entries = data || [];
+    } catch (error) {
+      console.error("Error loading entries:", error);
+      entries = [];
+    }
+    isLoading = false;
   }
 
   $: filteredEntries = entries.filter(entry => {
@@ -88,7 +143,7 @@
     document.body.removeChild(link);
   }
 
-  $: totalHours = filteredEntries.reduce((sum, entry) => sum + (entry.approved_hours || 0), 0);
+  $: totalHours = filteredEntries.reduce((sum, entry) => sum + (entry.manually_inputted_hours || 0), 0);
   $: workingDays = differenceInBusinessDays(parseISO(dateRange.to), parseISO(dateRange.from));
   $: averageHours = totalHours / (filteredEntries.length || 1);
 </script>
@@ -115,12 +170,48 @@
 </svelte:head>
 
 <div class="p-8">
+  <!-- Admin Header with Student Selection -->
+  {#if $isAdmin}
+    <div class="mb-8">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+            <BarChart3 class="w-8 h-8 text-amber-400" />
+            Reports Management
+          </h1>
+          <p class="text-white/70">View and export student work hour reports</p>
+        </div>
+      </div>
+      
+      <div class="bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg mb-6">
+        <label class="text-white/80 text-sm font-medium mb-2 block">Select Student</label>
+        <select
+          bind:value={selectedStudentForReport}
+          class="w-full px-4 py-2.5 bg-black/20 border border-white/30 rounded-lg text-white focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 focus:outline-none"
+        >
+          <option value={null} disabled>-- Select a student --</option>
+          {#each allStudents as student}
+            <option value={student}>{student.full_name} ({student.student_email})</option>
+          {/each}
+        </select>
+      </div>
+    </div>
+  {:else}
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-white mb-2 flex items-center gap-3">
+        <BarChart3 class="w-8 h-8 text-amber-400" />
+        My Work Hours Report
+      </h1>
+      <p class="text-white/70">Track and export your approved work hours</p>
+    </div>
+  {/if}
+
   <div bind:this={reportContentRef} class="print-container">
     <!-- Print Header -->
     <div class="report-header hidden print:flex justify-between items-center border-b-2 border-black pb-2 mb-8">
       <div>
         <h1 class="text-2xl font-bold">Work Hours Report</h1>
-        <p>Student: {selectedStudent?.full_name}</p>
+        <p>Student: {$isAdmin ? selectedStudentForReport?.full_name : selectedStudent?.full_name}</p>
       </div>
       <div class="text-right">
         <p class="font-bold">Internship Program</p>
@@ -131,12 +222,12 @@
     <div class="no-print bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 shadow-lg mb-8">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
-          <label class="text-white/80 mb-2 block">From Date</label>
-          <Input type="date" value={dateRange.from} on:change={(e) => handleDateChange('from', e.target.value)} class="bg-white/10 border-white/20 text-white" />
+          <label class="text-white/80 text-sm font-medium mb-2 block">From Date</label>
+          <Input type="date" value={dateRange.from} on:change={(e) => handleDateChange('from', e.target.value)} class="bg-black/20 border-white/30 text-white focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400" />
         </div>
         <div>
-          <label class="text-white/80 mb-2 block">To Date</label>
-          <Input type="date" value={dateRange.to} on:change={(e) => handleDateChange('to', e.target.value)} class="bg-white/10 border-white/20 text-white" />
+          <label class="text-white/80 text-sm font-medium mb-2 block">To Date</label>
+          <Input type="date" value={dateRange.to} on:change={(e) => handleDateChange('to', e.target.value)} class="bg-black/20 border-white/30 text-white focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400" />
         </div>
         <div class="flex flex-wrap gap-2 items-end">
           <Button on:click={() => exportToCSV(false)} class="bg-blue-500 hover:bg-blue-600 text-white flex h-10 items-center px-1 rounded-md">
@@ -193,6 +284,18 @@
         <BarChart3 class="w-6 h-6 text-amber-400" />
         Hours Overview
       </h3>
+      {#if isLoading}
+        <div class="text-center py-12">
+          <div class="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full mx-auto mb-4"></div>
+          <p class="text-white/60">Loading report data...</p>
+        </div>
+      {:else if filteredEntries.length === 0}
+        <div class="text-center py-12">
+          <BarChart3 class="w-16 h-16 text-white/30 mx-auto mb-4" />
+          <h3 class="text-lg font-semibold text-white mb-2">No entries found</h3>
+          <p class="text-white/60">No approved time entries in the selected date range.</p>
+        </div>
+      {:else}
       <div class="space-y-3 max-h-80 overflow-y-auto">
         {#each filteredEntries.slice(0, 30) as entry}
           {@const maxHours = Math.max(...filteredEntries.map(e => e.approved_hours || 0), 8)}
@@ -211,6 +314,7 @@
           </div>
         {/each}
       </div>
+      {/if}
     </div>
 
     <!-- Print Table -->

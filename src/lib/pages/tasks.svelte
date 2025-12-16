@@ -23,11 +23,12 @@
   let statusFilter = "all";
   let showTaskForm = false;
   let editingTask = null;
-  let isLoading = true;
+  let isLoading = false;
 
-  onMount(() => {
-    loadData();
-  });
+  // Auto-load data when component is created
+  (async () => {
+    await loadData();
+  })();
 
   $: filterTasks(tasks, searchTerm, statusFilter);
 
@@ -97,17 +98,13 @@
     }
   }
 
-  function getStatusCounts() {
-    return {
-      all: tasks.length,
-      assigned: tasks.filter(t => t.status === 'assigned').length,
-      in_progress: tasks.filter(t => t.status === 'in_progress').length,
-      completed: tasks.filter(t => t.status === 'completed').length,
-      reviewed: tasks.filter(t => t.status === 'reviewed').length
-    };
-  }
-
-  $: statusCounts = getStatusCounts();
+  $: statusCounts = {
+    all: tasks.length,
+    assigned: tasks.filter(t => t.status === 'assigned').length,
+    in_progress: tasks.filter(t => t.status === 'in_progress').length,
+    completed: tasks.filter(t => t.status === 'completed').length,
+    reviewed: tasks.filter(t => t.status === 'reviewed').length
+  };
 </script>
 
 <div class="p-8">
@@ -144,7 +141,7 @@
       <Select bind:value={statusFilter}>
         <SelectTrigger class="w-[180px] bg-gray-700 border border-gray-600 text-white [&>span]:text-white flex items-center h-10 rounded-sm px-3">
           <Filter class="w-4 h-4 mr-2 text-gray-400" />
-          <SelectValue placeholder="Filter by Status" />
+          <SelectValue placeholder="All" />
         </SelectTrigger>
         <SelectContent class="bg-gray-800 border border-gray-700 text-white">
           <SelectItem value="all">All ({statusCounts.all})</SelectItem>
