@@ -775,8 +775,8 @@
 <!-- Task Creation Dialog -->
 {#if showTaskDialog}
   <Dialog bind:open={showTaskDialog}>
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-gray-900 rounded-xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 rounded-3xl">
+      <div class="bg-tarnsparent rounded-xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 class="text-2xl font-bold text-white mb-6">Create New Task</h2>
         
         <div class="space-y-4">
@@ -852,7 +852,7 @@
         <div class="flex gap-3 mt-6">
           <Button 
             on:click={createTask}
-            class="flex-1 bg-green-500 hover:bg-green-600 text-white"
+            class="flex-1 bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center justify-center"
             disabled={!taskForm.title || !taskForm.assigned_to}
           >
             Create Task
@@ -934,8 +934,8 @@
 <!-- Report Submission Dialog -->
 {#if showReportDialog}
   <Dialog bind:open={showReportDialog}>
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-gray-900 rounded-xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 rounded-3xl">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 class="text-2xl font-bold text-white mb-6">Submit Progress Report</h2>
         
         <div class="space-y-4">
@@ -997,7 +997,7 @@
         <div class="flex gap-3 mt-6">
           <Button 
             on:click={submitReport}
-            class="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+            class="flex-1 bg-purple-500 hover:bg-purple-600 text-white flex h-10 items-center justify-center rounded-md"
             disabled={!reportForm.content}
           >
             <Send class="w-4 h-4 mr-2" />

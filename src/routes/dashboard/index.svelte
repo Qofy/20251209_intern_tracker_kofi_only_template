@@ -186,6 +186,7 @@
           <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
             <p class="text-white/60 text-sm">Please log in</p>
           </div>
+          
         </div>
 
         <!-- Navigation -->
@@ -210,7 +211,7 @@
         <div class="mt-4 pt-4 border-t border-white/20">
           <a
             href="/"
-            class="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-semibold text-center block transition-all"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 text-white/80 hover:bg-red-500/20 hover:text-white w-full font-bold"
           >
             Go to Login
           </a>

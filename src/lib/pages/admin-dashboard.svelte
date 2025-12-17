@@ -780,7 +780,7 @@
 <!-- Create User Modal -->
 {#if showCreateUserModal}
   <Dialog bind:open={showCreateUserModal}>
-    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 rounded-3xl">
       <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full">
         <h2 class="text-2xl font-bold text-white mb-6">Create New User</h2>
 
@@ -851,7 +851,7 @@
 <!-- Assign Student Modal -->
 {#if showAssignModal}
   <Dialog bind:open={showAssignModal}>
-    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 rounded-3xl">
       <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full">
         <h2 class="text-2xl font-bold text-white mb-6">Assign Student to Mentor</h2>
 
@@ -1007,7 +1007,7 @@
 <!-- Create Project/Program Modal -->
 {#if showCreateProjectModal}
   <Dialog bind:open={showCreateProjectModal}>
-    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 rounded-3xl">
       <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <h2 class="text-2xl font-bold text-white mb-6">Create New Program/Project</h2>
 
