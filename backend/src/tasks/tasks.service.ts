@@ -15,9 +15,10 @@ export class TasksService {
     return this.tasksRepository.save(task);
   }
 
-  async findAll(studentId?: number): Promise<Task[]> {
-    const query: any = {};
+  async findAll(companyId: number, studentId?: number, mentorEmail?: string): Promise<Task[]> {
+    const query: any = { company_id: companyId };
     if (studentId) query.student_id = studentId;
+    if (mentorEmail) query.mentor_email = mentorEmail;
     return this.tasksRepository.find({ where: query, order: { due_date: 'ASC' } });
   }
 

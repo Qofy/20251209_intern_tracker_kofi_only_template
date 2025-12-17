@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TasksService } from './tasks.service';
 import { Task } from './task.entity';
@@ -9,8 +9,9 @@ export class TasksController {
   constructor(private tasksService: TasksService) {}
 
   @Get()
-  async findAll(@Query('student_id') studentId?: string) {
-    return this.tasksService.findAll(studentId ? +studentId : undefined);
+  async findAll(@Request() req, @Query('student_id') studentId?: string, @Query('mentor_email') mentorEmail?: string) {
+    const companyId = req.user.company_id;
+    return this.tasksService.findAll(companyId, studentId ? +studentId : undefined, mentorEmail);
   }
 
   @Get(':id')
@@ -19,8 +20,9 @@ export class TasksController {
   }
 
   @Post()
-  async create(@Body() taskData: Partial<Task>) {
-    return this.tasksService.create(taskData);
+  async create(@Request() req, @Body() taskData: Partial<Task>) {
+    const company_id = req.user.company_id;
+    return this.tasksService.create({ ...taskData, company_id });
   }
 
   @Put(':id')

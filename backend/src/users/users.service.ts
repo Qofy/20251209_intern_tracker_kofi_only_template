@@ -28,7 +28,26 @@ export class UsersService {
     return this.usersRepository.findOne({ where: { email } });
   }
 
-  async findAll(): Promise<User[]> {
+  async findAll(companyId?: number): Promise<User[]> {
+    if (companyId) {
+      return this.usersRepository.find({ where: { company_id: companyId } });
+    }
     return this.usersRepository.find();
+  }
+
+  async findByCompanyAndRole(companyId: number, role: string): Promise<User[]> {
+    return this.usersRepository.find({ where: { company_id: companyId, role } });
+  }
+
+  async update(id: number, userData: Partial<User>): Promise<User> {
+    if (userData.password) {
+      userData.password = await bcrypt.hash(userData.password, 10);
+    }
+    await this.usersRepository.update(id, userData);
+    return this.findOne(id);
+  }
+
+  async remove(id: number): Promise<void> {
+    await this.usersRepository.delete(id);
   }
 }

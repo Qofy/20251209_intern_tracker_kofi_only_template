@@ -283,6 +283,55 @@ class ApiClient {
   getFileUrl(filename) {
     return `/api/files/${filename}`;
   }
+
+  // Company methods
+  async getCompanies() {
+    return this.request('/api/companies');
+  }
+
+  async getCompany(id) {
+    return this.request(`/api/companies/${id}`);
+  }
+
+  async getCompanyByKey(key) {
+    return this.request(`/api/companies/key/${key}`);
+  }
+
+  async getCompanyStats(id) {
+    return this.request(`/api/companies/${id}/stats`);
+  }
+
+  async createCompany(companyData) {
+    return this.request('/api/companies', {
+      method: 'POST',
+      body: JSON.stringify(companyData),
+    });
+  }
+
+  async updateCompany(id, companyData) {
+    return this.request(`/api/companies/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(companyData),
+    });
+  }
+
+  // User management methods
+  async getUsers(role = null) {
+    const query = role ? `?role=${role}` : '';
+    return this.request(`/api/users${query}`);
+  }
+
+  async getMentors() {
+    return this.getUsers('mentor');
+  }
+
+  async getAdmins() {
+    return this.getUsers('admin');
+  }
+
+  async getStudentUsers() {
+    return this.getUsers('student');
+  }
 }
 
 // Create singleton instance

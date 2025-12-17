@@ -18,6 +18,68 @@ export const routes = {
   "children": [
     {
       "meta": {},
+      "id": "_default_company_admin",
+      "name": "company-admin",
+      "module": false,
+      "file": {
+        "path": "src/routes/company-admin",
+        "dir": "src/routes",
+        "base": "company-admin",
+        "ext": "",
+        "name": "company-admin"
+      },
+      "children": [
+        {
+          "meta": {
+            "isDefault": true
+          },
+          "id": "_default_company_admin_index_svelte",
+          "name": "index",
+          "file": {
+            "path": "src/routes/company-admin/index.svelte",
+            "dir": "src/routes/company-admin",
+            "base": "index.svelte",
+            "ext": ".svelte",
+            "name": "index"
+          },
+          "asyncModule": () => import('../src/routes/company-admin/index.svelte'),
+          "children": []
+        }
+      ]
+    },
+    {
+      "meta": {},
+      "id": "_default_company_setup",
+      "name": "company-setup",
+      "module": false,
+      "file": {
+        "path": "src/routes/company-setup",
+        "dir": "src/routes",
+        "base": "company-setup",
+        "ext": "",
+        "name": "company-setup"
+      },
+      "children": [
+        {
+          "meta": {
+            "isDefault": true
+          },
+          "id": "_default_company_setup_index_svelte",
+          "name": "index",
+          "file": {
+            "path": "src/routes/company-setup/index.svelte",
+            "dir": "src/routes/company-setup",
+            "base": "index.svelte",
+            "ext": ".svelte",
+            "name": "index"
+          },
+          "asyncModule": () => import('../src/routes/company-setup/index.svelte'),
+          "children": []
+        }
+      ]
+    },
+    {
+      "meta": {},
       "id": "_default_dashboard",
       "name": "dashboard",
       "module": false,

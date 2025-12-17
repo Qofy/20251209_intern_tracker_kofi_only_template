@@ -9,18 +9,29 @@ export class StudentsController {
   constructor(private studentsService: StudentsService) {}
 
   @Get()
-  async findAll(@Request() req, @Query('mentor_email') mentorEmail?: string) {
+  async findAll(@Request() req, @Query('mentor_email') mentorEmail?: string, @Query('student_email') studentEmail?: string) {
+    const userCompanyId = req.user.company_id;
+    
+    if (studentEmail) {
+      const student = await this.studentsService.findByEmail(studentEmail);
+      return student && student.company_id === userCompanyId ? [student] : [];
+    }
+    
     if (mentorEmail) {
-      return this.studentsService.findByMentor(mentorEmail);
+      return this.studentsService.findByMentor(mentorEmail, userCompanyId);
     }
+    
     if (req.user.role === 'mentor') {
-      return this.studentsService.findByMentor(req.user.email);
+      return this.studentsService.findByMentor(req.user.email, userCompanyId);
     }
+    
     if (req.user.role === 'student') {
       const student = await this.studentsService.findByEmail(req.user.email);
       return student ? [student] : [];
     }
-    return this.studentsService.findAll();
+    
+    // Admin can see all students in their company
+    return this.studentsService.findAll(userCompanyId);
   }
 
   @Get(':id')

@@ -8,6 +8,8 @@ import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { TasksModule } from './tasks/tasks.module';
 import { SchedulesModule } from './schedules/schedules.module';
 import { LlmModule } from './llm/llm.module';
+import { CompaniesModule } from './companies/companies.module';
+import { ProjectsModule } from './projects/projects.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { LlmModule } from './llm/llm.module';
     TasksModule,
     SchedulesModule,
     LlmModule,
+    CompaniesModule,
+    ProjectsModule,
   ],
 })
 export class AppModule {}

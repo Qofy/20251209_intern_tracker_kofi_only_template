@@ -15,12 +15,19 @@ export class StudentsService {
     return this.studentsRepository.save(student);
   }
 
-  async findAll(): Promise<Student[]> {
+  async findAll(companyId?: number): Promise<Student[]> {
+    if (companyId) {
+      return this.studentsRepository.find({ where: { company_id: companyId } });
+    }
     return this.studentsRepository.find();
   }
 
-  async findByMentor(mentorEmail: string): Promise<Student[]> {
-    return this.studentsRepository.find({ where: { mentor_email: mentorEmail } });
+  async findByMentor(mentorEmail: string, companyId?: number): Promise<Student[]> {
+    const where: any = { mentor_email: mentorEmail };
+    if (companyId) {
+      where.company_id = companyId;
+    }
+    return this.studentsRepository.find({ where });
   }
 
   async findByEmail(email: string): Promise<Student> {
@@ -38,5 +45,9 @@ export class StudentsService {
 
   async remove(id: number): Promise<void> {
     await this.studentsRepository.delete(id);
+  }
+
+  async findByCompany(companyId: number): Promise<Student[]> {
+    return this.studentsRepository.find({ where: { company_id: companyId } });
   }
 }

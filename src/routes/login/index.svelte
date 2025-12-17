@@ -6,7 +6,7 @@
   let isLoading = false;
   let error = '';
   let showSignup = false;
-  let signupData = { email: '', password: '', full_name: '', role: 'student' };
+  let signupData = { email: '', password: '', full_name: '', role: 'student', companyKey: '' };
 
   async function handleSubmit() {
     console.log('!!!handleSubmit called with email:', email);
@@ -78,6 +78,7 @@
 
     <div class="mt-6 text-center">
       <p class="text-white/70 text-sm">Don't have an account? <button type="button" on:click={() => showSignup = true} class="text-white font-semibold underline hover:text-white/80">Sign up here</button></p>
+      <p class="text-white/70 text-sm mt-2">Need a company account? <a href="/company-setup" class="text-white font-semibold underline hover:text-white/80">Create company</a></p>
     </div>
 
     <div class="mt-6 pt-6 border-t border-white/20">
@@ -127,6 +128,12 @@
           <div>
             <label class="block text-white text-sm font-medium mb-2">Password</label>
             <input type="password" bind:value={signupData.password} class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:border-white/40 transition-colors text-white placeholder-white/50" placeholder="Enter your password" required />
+          </div>
+
+          <div>
+            <label class="block text-white text-sm font-medium mb-2">Company Key <span class="text-red-400">*</span></label>
+            <input type="text" bind:value={signupData.companyKey} class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:border-white/40 transition-colors text-white placeholder-white/50" placeholder="Enter your company key" required />
+            <p class="text-white/50 text-xs mt-1">Get this key from your company admin</p>
           </div>
 
           <div>

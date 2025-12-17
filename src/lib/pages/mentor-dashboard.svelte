@@ -85,12 +85,8 @@
       const allStudents = await Student.list();
       assignedStudents = allStudents.filter(s => s.mentor_email === user?.email);
       
-      // Load tasks
-      const allTasks = await Task.list();
-      tasks = allTasks.filter(t => {
-        const assignedStudent = assignedStudents.find(s => s.student_email === t.assigned_to);
-        return assignedStudent !== undefined;
-      });
+      // Load tasks assigned to this mentor using mentor_email filter
+      tasks = await Task.list({ mentor_email: user?.email });
 
       // Load time entries for assigned students
       const allEntries = await TimeEntry.list();
@@ -114,7 +110,8 @@
       console.log('[Mentor] Loaded data:', {
         students: assignedStudents.length,
         tasks: tasks.length,
-        entries: timeEntries.length
+        entries: timeEntries.length,
+        mentorEmail: user?.email
       });
     } catch (error) {
       console.error('[Mentor] Error loading data:', error);
@@ -125,9 +122,22 @@
   // Task Management
   async function createTask() {
     try {
+      // Find the student by email to get their ID
+      const student = assignedStudents.find(s => s.student_email === taskForm.assigned_to);
+      if (!student) {
+        alert('Please select a valid student');
+        return;
+      }
+
       const newTask = await Task.create({
-        ...taskForm,
-        created_by: user?.email,
+        title: taskForm.title,
+        description: taskForm.description,
+        student_id: student.id,
+        due_date: taskForm.due_date,
+        priority: taskForm.priority,
+        status: taskForm.status,
+        assigned_by: user?.email,
+        mentor_email: user?.email,
         created_at: new Date().toISOString()
       });
       console.log('[Mentor] Created task:', newTask);
@@ -137,6 +147,7 @@
       await loadMentorData();
     } catch (error) {
       console.error('[Mentor] Error creating task:', error);
+      alert('Failed to create task: ' + error.message);
     }
   }
 
@@ -300,8 +311,14 @@
     return student?.full_name || email;
   }
 
+  function getStudentNameById(studentId) {
+    const student = assignedStudents.find(s => s.id === studentId);
+    return student?.full_name || `Student #${studentId}`;
+  }
+
   function getTasksByStudent(studentEmail) {
-    return tasks.filter(t => t.assigned_to === studentEmail);
+    const student = assignedStudents.find(s => s.student_email === studentEmail);
+    return tasks.filter(t => t.student_id === student?.id);
   }
 
   function getEntriesByStudent(studentEmail) {
@@ -522,7 +539,7 @@
                     </div>
                     <p class="text-white/70 text-sm mb-2">{task.description}</p>
                     <div class="flex items-center gap-4 text-xs text-white/50">
-                      <span>Assigned to: {getStudentName(task.assigned_to)}</span>
+                      <span>Assigned to: {getStudentNameById(task.student_id)}</span>
                       <span>Due: {task.due_date || 'No deadline'}</span>
                     </div>
                   </div>

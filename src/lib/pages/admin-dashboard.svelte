@@ -107,7 +107,12 @@
       stats.pendingApprovals = allTimeEntries.filter(e => e.status === 'draft').length;
       stats.activeInterns = allStudents.filter(s => s.contract_hours > 0).length;
 
-      console.log('[Admin Dashboard] Data loaded:', stats);
+      console.log('[Admin Dashboard] Data loaded:', {
+        stats,
+        studentsCount: allStudents.length,
+        mentorsCount: allMentors.length,
+        studentsData: allStudents
+      });
     } catch (error) {
       console.error('[Admin Dashboard] Error loading data:', error);
     }
@@ -858,11 +863,21 @@
         <div class="space-y-4">
           <div>
             <label class="text-white/70 text-sm block mb-2">Select Student</label>
+            {#if allStudents.length === 0}
+              <div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
+                <p class="text-yellow-200 text-sm">
+                  ⚠️ No students found. You need to create student records first using "Create Contract" button.
+                </p>
+              </div>
+            {/if}
             <select
               bind:value={assignmentData.studentId}
               class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+              disabled={allStudents.length === 0}
             >
-              <option value={null}>Choose a student...</option>
+              <option value={null}>
+                {allStudents.length === 0 ? 'No students available' : 'Choose a student...'}
+              </option>
               {#each allStudents as student}
                 <option value={student.id}>{student.full_name} ({student.student_email})</option>
               {/each}
@@ -871,11 +886,21 @@
 
           <div>
             <label class="text-white/70 text-sm block mb-2">Select Mentor</label>
+            {#if allMentors.length === 0}
+              <div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
+                <p class="text-yellow-200 text-sm">
+                  ⚠️ No mentors found. You need to create users with "mentor" role first.
+                </p>
+              </div>
+            {/if}
             <select
               bind:value={assignmentData.mentorEmail}
               class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+              disabled={allMentors.length === 0}
             >
-              <option value="">Choose a mentor...</option>
+              <option value="">
+                {allMentors.length === 0 ? 'No mentors available' : 'Choose a mentor...'}
+              </option>
               {#each allMentors as mentor}
                 <option value={mentor.email}>{mentor.full_name || mentor.email}</option>
               {/each}

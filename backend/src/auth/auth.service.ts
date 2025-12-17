@@ -1,6 +1,7 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
+import { CompaniesService } from '../companies/companies.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
+    private companiesService: CompaniesService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -20,7 +22,7 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.email, sub: user.id, role: user.role };
+    const payload = { email: user.email, sub: user.id, role: user.role, company_id: user.company_id };
     return {
       token: this.jwtService.sign(payload),
       user: {
@@ -29,14 +31,25 @@ export class AuthService {
         full_name: user.full_name,
         role: user.role,
         company_id: user.company_id,
+        companyKey: user.companyKey,
       },
     };
   }
 
-  async register(userData: { email: string; password: string; full_name: string; role?: string }) {
+  async register(userData: { email: string; password: string; full_name: string; role?: string; companyKey: string }) {
     const existingUser = await this.usersService.findByEmail(userData.email);
     if (existingUser) {
       throw new UnauthorizedException('Email already exists');
+    }
+
+    // Validate company key
+    if (!userData.companyKey) {
+      throw new BadRequestException('Company key is required');
+    }
+
+    const company = await this.companiesService.findByKey(userData.companyKey);
+    if (!company) {
+      throw new BadRequestException('Invalid company key');
     }
 
     const user = await this.usersService.create({
@@ -44,7 +57,8 @@ export class AuthService {
       password: userData.password,
       full_name: userData.full_name,
       role: userData.role as any || 'student',
-      company_id: 1,
+      company_id: company.id,
+      companyKey: userData.companyKey,
     });
 
     return this.login(user);

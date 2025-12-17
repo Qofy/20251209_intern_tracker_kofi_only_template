@@ -26,6 +26,12 @@ export class Task {
   @Column({ nullable: true })
   assigned_by: string;
 
+  @Column({ nullable: true })
+  mentor_email: string;
+
+  @Column({ nullable: true })
+  company_id: number;
+
   @CreateDateColumn()
   created_at: Date;
 
