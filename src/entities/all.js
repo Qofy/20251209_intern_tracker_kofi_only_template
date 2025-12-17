@@ -489,3 +489,95 @@ export class Project {
     });
   }
 }
+
+export class Contract {
+  static async list(filters = {}) {
+    if (isDemoMode()) {
+      const demoContracts = JSON.parse(localStorage.getItem('demo_contracts') || '[]');
+      return demoContracts;
+    }
+    return apiClient.getContracts(filters);
+  }
+
+  static async create(data) {
+    if (isDemoMode()) {
+      const demoContracts = JSON.parse(localStorage.getItem('demo_contracts') || '[]');
+      const newContract = {
+        ...data,
+        id: `demo_contract_${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      demoContracts.push(newContract);
+      localStorage.setItem('demo_contracts', JSON.stringify(demoContracts));
+      return newContract;
+    }
+    return apiClient.createContract(data);
+  }
+
+  static async update(id, data) {
+    if (isDemoMode()) {
+      const demoContracts = JSON.parse(localStorage.getItem('demo_contracts') || '[]');
+      const index = demoContracts.findIndex(c => c.id === id);
+      if (index !== -1) {
+        demoContracts[index] = { ...demoContracts[index], ...data, updated_at: new Date().toISOString() };
+        localStorage.setItem('demo_contracts', JSON.stringify(demoContracts));
+        return demoContracts[index];
+      }
+      throw new Error('Contract not found');
+    }
+    return apiClient.updateContract(id, data);
+  }
+
+  static async signAsStudent(id, signatureData) {
+    if (isDemoMode()) {
+      return this.update(id, {
+        student_signature: signatureData.signature,
+        student_signed_date: signatureData.date,
+        status: 'mentor_review'
+      });
+    }
+    return apiClient.signContractAsStudent(id, signatureData);
+  }
+
+  static async submitToAdmin(id, signatureData) {
+    if (isDemoMode()) {
+      return this.update(id, {
+        mentor_signature: signatureData.signature,
+        mentor_signed_date: signatureData.date,
+        status: 'pending_approval'
+      });
+    }
+    return apiClient.submitContractToAdmin(id, signatureData);
+  }
+
+  static async approve(id, adminNotes = '') {
+    if (isDemoMode()) {
+      return this.update(id, {
+        status: 'approved',
+        admin_notes: adminNotes
+      });
+    }
+    return apiClient.approveContract(id, adminNotes);
+  }
+
+  static async reject(id, rejectionReason) {
+    if (isDemoMode()) {
+      return this.update(id, {
+        status: 'rejected',
+        rejection_reason: rejectionReason
+      });
+    }
+    return apiClient.rejectContract(id, rejectionReason);
+  }
+
+  static async delete(id) {
+    if (isDemoMode()) {
+      const demoContracts = JSON.parse(localStorage.getItem('demo_contracts') || '[]');
+      const filtered = demoContracts.filter(c => c.id !== id);
+      localStorage.setItem('demo_contracts', JSON.stringify(filtered));
+      return { success: true };
+    }
+    return apiClient.deleteContract(id);
+  }
+}

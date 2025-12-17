@@ -332,6 +332,64 @@ class ApiClient {
   async getStudentUsers() {
     return this.getUsers('student');
   }
+
+  // Contract methods
+  async getContracts(filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/api/contracts${query ? `?${query}` : ''}`);
+  }
+
+  async getContract(id) {
+    return this.request(`/api/contracts/${id}`);
+  }
+
+  async createContract(contractData) {
+    return this.request('/api/contracts', {
+      method: 'POST',
+      body: JSON.stringify(contractData),
+    });
+  }
+
+  async updateContract(id, contractData) {
+    return this.request(`/api/contracts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(contractData),
+    });
+  }
+
+  async signContractAsStudent(id, signatureData) {
+    return this.request(`/api/contracts/${id}/sign-student`, {
+      method: 'PUT',
+      body: JSON.stringify(signatureData),
+    });
+  }
+
+  async submitContractToAdmin(id, signatureData) {
+    return this.request(`/api/contracts/${id}/submit-to-admin`, {
+      method: 'PUT',
+      body: JSON.stringify(signatureData),
+    });
+  }
+
+  async approveContract(id, adminNotes = '') {
+    return this.request(`/api/contracts/${id}/approve`, {
+      method: 'PUT',
+      body: JSON.stringify({ admin_notes: adminNotes }),
+    });
+  }
+
+  async rejectContract(id, rejectionReason) {
+    return this.request(`/api/contracts/${id}/reject`, {
+      method: 'PUT',
+      body: JSON.stringify({ rejection_reason: rejectionReason }),
+    });
+  }
+
+  async deleteContract(id) {
+    return this.request(`/api/contracts/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create singleton instance

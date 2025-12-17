@@ -1,8 +1,5 @@
 <script>
-  import Dialog from '$lib/components/ui/dialog.svelte';
-  import DialogContent from '$lib/components/ui/DialogContent.svelte';
-  import DialogHeader from '$lib/components/ui/DialogHeader.svelte';
-  import DialogTitle from '$lib/components/ui/DialogTitle.svelte';
+  import Button from '$lib/components/ui/button.svelte';
 
   export let onClose;
 
@@ -19,35 +16,32 @@
     { key: 'company_name', description: 'The name of the company' },
     { key: 'company_address', description: 'The address of the company' },
   ];
-
-  let open = true;
-
-  function handleOpenChange(isOpen) {
-    if (!isOpen) {
-      onClose();
-    }
-  }
 </script>
 
-<Dialog bind:open on:openChange={(e) => handleOpenChange(e.detail)}>
-  <DialogContent class="bg-white/10 backdrop-blur-md border-white/20 text-white">
-    <DialogHeader>
-      <DialogTitle>Placeholder Guide</DialogTitle>
-    </DialogHeader>
-    <div class="max-h-[60vh] overflow-y-auto">
-      <p class="text-white/70 mb-4">
-        Use these placeholders in your contract text. They will be replaced with actual data when a contract is generated for a student.
-      </p>
-      <div class="space-y-2">
-        {#each placeholders as p}
-          <div class="flex items-start gap-3 p-2 bg-white/5 rounded-lg">
-            <code class="px-2 py-1 bg-amber-500/20 text-amber-300 rounded-md text-sm whitespace-nowrap">
-              {`{{${p.key}}}`}
-            </code>
-            <p class="text-white/80 text-sm pt-1">{p.description}</p>
-          </div>
-        {/each}
+<!-- Modal Overlay -->
+<div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+  <div class="bg-gray-900 border border-white/20 rounded-xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+    <div class="flex items-start justify-between mb-4">
+      <div>
+        <h2 class="text-xl font-bold text-white mb-2">Placeholder Guide</h2>
+        <p class="text-white/70 text-sm">
+          Use these placeholders in your contract text. They will be replaced with actual data.
+        </p>
       </div>
+      <Button on:click={onClose} variant="outline" class="text-white/70 hover:text-white">
+        Close
+      </Button>
     </div>
-  </DialogContent>
-</Dialog>
+    
+    <div class="space-y-2">
+      {#each placeholders as p}
+        <div class="flex items-start gap-3 p-3 bg-white/5 rounded-lg border border-white/10">
+          <code class="px-2 py-1 bg-amber-500/20 text-amber-300 rounded-md text-sm whitespace-nowrap font-mono">
+            {`{{${p.key}}}`}
+          </code>
+          <p class="text-white/80 text-sm pt-1">{p.description}</p>
+        </div>
+      {/each}
+    </div>
+  </div>
+</div>

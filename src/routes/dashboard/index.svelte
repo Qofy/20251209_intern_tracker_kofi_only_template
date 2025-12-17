@@ -18,7 +18,8 @@
   import MentorDashboard from '../../lib/pages/mentor-dashboard.svelte';
   import AdminDashboard from '../../lib/pages/admin-dashboard.svelte';
   import StudentDashboard from '../../lib/pages/student-dashboard.svelte';
-  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield, GraduationCap, Upload, TrendingUp, MessageSquare, BookOpen } from 'lucide-svelte';
+  import Contracts from '../../lib/pages/contracts.svelte';
+  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield, GraduationCap, Upload, TrendingUp, MessageSquare, BookOpen, FileText } from 'lucide-svelte';
   
 
   // Reactive variables that will be updated by store subscription
@@ -278,6 +279,14 @@
             <span class="font-medium">Tasks & Projects</span>
           </a>
           <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-contracts' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/mentor/contracts"
+            on:click|preventDefault={() => setActiveView('mentor-contracts')}
+          >
+            <FileText class="w-5 h-5"/>
+            <span class="font-medium">Contracts</span>
+          </a>
+          <a
             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'mentor-submissions' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
             href="/mentor/submissions"
             on:click|preventDefault={() => setActiveView('mentor-submissions')}
@@ -314,6 +323,8 @@
         <!-- Render Mentor Dashboard with the specific tab -->
         {#if activeView === 'mentor-students' || activeView === 'mentor-tasks' || activeView === 'mentor-submissions' || activeView === 'mentor-reports' || activeView === 'mentor-profile'}
           <MentorDashboard initialTab={activeView.replace('mentor-', '')} />
+        {:else if activeView === 'mentor-contracts'}
+          <Contracts userRole="mentor" />
         {/if}
 
         <!-- Action Buttons (bottom left) -->
@@ -384,6 +395,14 @@
             <span class="font-medium">Programs & Projects</span>
           </a>
           <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-contracts' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/contracts"
+            on:click|preventDefault={() => setActiveView('admin-contracts')}
+          >
+            <FileText class="w-5 h-5"/>
+            <span class="font-medium">Contract Approvals</span>
+          </a>
+          <a
             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-reports' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
             href="/admin/reports"
             on:click|preventDefault={() => setActiveView('admin-reports')}
@@ -436,6 +455,8 @@
         <!-- Render Admin Dashboard with the specific tab -->
         {#if activeView === 'admin-users' || activeView === 'admin-assignments' || activeView === 'admin-programs' || activeView === 'admin-reports' || activeView === 'admin-settings' || activeView === 'admin-disputes' || activeView === 'admin-applications' || activeView === 'admin-profile'}
           <AdminDashboard initialTab={activeView.replace('admin-', '')} />
+        {:else if activeView === 'admin-contracts'}
+          <Contracts userRole="admin" />
         {/if}
 
         <!-- Action Buttons (bottom left) -->
@@ -498,6 +519,14 @@
             <span class="font-medium">Submissions</span>
           </a>
           <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-contracts' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/contracts"
+            on:click|preventDefault={() => setActiveView('student-contracts')}
+          >
+            <FileText class="w-5 h-5"/>
+            <span class="font-medium">My Contract</span>
+          </a>
+          <a
             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-progress' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
             href="/student/progress"
             on:click|preventDefault={() => setActiveView('student-progress')}
@@ -558,6 +587,8 @@
         <!-- Render Student Dashboard with the specific tab -->
         {#if activeView === 'student-tasks' || activeView === 'student-submissions' || activeView === 'student-progress' || activeView === 'student-feedback' || activeView === 'student-messages' || activeView === 'student-profile' || activeView === 'student-resources' || activeView === 'student-schedule'}
           <StudentDashboard initialTab={activeView.replace('student-', '')} />
+        {:else if activeView === 'student-contracts'}
+          <Contracts userRole="student" />
         {:else if activeView === 'dashboard'}
         <div class="p-8">
           {#if role === 'admin'}
