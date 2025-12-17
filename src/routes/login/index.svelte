@@ -134,6 +134,7 @@
             <select bind:value={signupData.role} class="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl focus:outline-none focus:border-white/40 transition-colors text-white">
               <option value="student" class="bg-purple-900">Student</option>
               <option value="mentor" class="bg-purple-900">Mentor</option>
+              <option value="admin" class="bg-purple-900">Admin</option>
             </select>
           </div>
 

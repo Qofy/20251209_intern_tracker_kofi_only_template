@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
 		server: {
 			proxy: {
 				"/api": {
-					target: "https://intern.intuivo.com",
+					target: "http://localhost:3000",
 					changeOrigin: true,
 					secure: false,
 					ws: true,
@@ -24,20 +24,13 @@ export default defineConfig(({ mode }) => {
 						proxy.on("proxyReq", (proxyReq, req, _res) => {
 							const headers = proxyReq.getHeaders();
 							console.log("[Proxy Request]", req.method, req.url);
-							console.log("[Proxy Target]", "https://intern.intuivo.com" + req.url);
-							console.log("[Proxy Headers]", JSON.stringify(headers, null, 2));
-							console.log("[X-Company-Id]", headers["x-company-id"] || "NOT SET");
+							console.log("[Proxy Target]", "http://localhost:3000" + req.url);
 							console.log("[Authorization]", headers["authorization"] ? "Bearer ***" : "NOT SET");
 						});
 						proxy.on("proxyRes", (proxyRes, req, _res) => {
 							console.log("[Proxy Response]", proxyRes.statusCode, req.url);
 						});
 					},
-				},
-				"/auth": {
-					target: "https://intern.intuivo.com",
-					changeOrigin: true,
-					secure: false,
 				},
 			},
 		},
