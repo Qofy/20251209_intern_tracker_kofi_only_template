@@ -401,29 +401,91 @@ export class Application {
 
 export class ContractTemplate {
   static async list(params = {}) {
-    return apiClient.request('/api/contract-templates', { 
-      method: 'GET', 
-      params 
+    return apiClient.request('/api/contract-templates', {
+      method: 'GET',
+      params
     });
   }
 
   static async create(data) {
-    return apiClient.request('/api/contract-templates', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
+    return apiClient.request('/api/contract-templates', {
+      method: 'POST',
+      body: JSON.stringify(data)
     });
   }
 
   static async update(id, data) {
-    return apiClient.request(`/api/contract-templates/${id}`, { 
-      method: 'PUT', 
-      body: JSON.stringify(data) 
+    return apiClient.request(`/api/contract-templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
     });
   }
 
   static async delete(id) {
-    return apiClient.request(`/api/contract-templates/${id}`, { 
-      method: 'DELETE' 
+    return apiClient.request(`/api/contract-templates/${id}`, {
+      method: 'DELETE'
+    });
+  }
+}
+
+export class Project {
+  static async list(params = {}) {
+    if (isDemoMode()) {
+      const demoProjects = JSON.parse(localStorage.getItem('demo_projects') || '[]');
+      return demoProjects;
+    }
+    return apiClient.request('/api/projects', {
+      method: 'GET',
+      params
+    });
+  }
+
+  static async create(data) {
+    if (isDemoMode()) {
+      const demoProjects = JSON.parse(localStorage.getItem('demo_projects') || '[]');
+      const newProject = {
+        ...data,
+        id: `demo_project_${Date.now()}`,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: data.status || 'active'
+      };
+      demoProjects.push(newProject);
+      localStorage.setItem('demo_projects', JSON.stringify(demoProjects));
+      return newProject;
+    }
+    return apiClient.request('/api/projects', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  static async update(id, data) {
+    if (isDemoMode()) {
+      const demoProjects = JSON.parse(localStorage.getItem('demo_projects') || '[]');
+      const index = demoProjects.findIndex(p => p.id === id);
+      if (index !== -1) {
+        demoProjects[index] = { ...demoProjects[index], ...data, updated_at: new Date().toISOString() };
+        localStorage.setItem('demo_projects', JSON.stringify(demoProjects));
+        return demoProjects[index];
+      }
+      throw new Error('Project not found');
+    }
+    return apiClient.request(`/api/projects/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  }
+
+  static async delete(id) {
+    if (isDemoMode()) {
+      const demoProjects = JSON.parse(localStorage.getItem('demo_projects') || '[]');
+      const filtered = demoProjects.filter(p => p.id !== id);
+      localStorage.setItem('demo_projects', JSON.stringify(filtered));
+      return { success: true };
+    }
+    return apiClient.request(`/api/projects/${id}`, {
+      method: 'DELETE'
     });
   }
 }

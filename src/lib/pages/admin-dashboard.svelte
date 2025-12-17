@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { User, Student, Task, TimeEntry } from '../../entities/all';
+  import { User, Student, Task, TimeEntry, Project } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
@@ -29,6 +29,7 @@
   let allMentors = [];
   let allTasks = [];
   let allTimeEntries = [];
+  let allProjects = [];
   let isLoading = false;
   let searchQuery = '';
 
@@ -37,6 +38,7 @@
   let showAssignModal = false;
   let showCreateContractModal = false;
   let showSettingsModal = false;
+  let showCreateProjectModal = false;
 
   // Form data
   let newUser = {
@@ -62,6 +64,16 @@
     mentorEmail: ''
   };
 
+  let newProject = {
+    name: '',
+    description: '',
+    type: 'program', // program or project
+    start_date: '',
+    end_date: '',
+    status: 'active',
+    assigned_students: []
+  };
+
   // Stats
   let stats = {
     totalUsers: 0,
@@ -85,12 +97,13 @@
       allMentors = allUsers.filter(u => u.role === 'mentor');
       allTasks = await Task.list();
       allTimeEntries = await TimeEntry.list();
+      allProjects = await Project.list();
 
       // Calculate stats
       stats.totalUsers = allUsers.length;
       stats.totalStudents = allStudents.length;
       stats.totalMentors = allMentors.length;
-      stats.totalProjects = allTasks.length;
+      stats.totalProjects = allProjects.length;
       stats.pendingApprovals = allTimeEntries.filter(e => e.status === 'draft').length;
       stats.activeInterns = allStudents.filter(s => s.contract_hours > 0).length;
 
@@ -166,6 +179,38 @@
     }
   }
 
+  async function createProject() {
+    try {
+      await Project.create(newProject);
+      alert(`${newProject.type === 'program' ? 'Program' : 'Project'} created successfully!`);
+      showCreateProjectModal = false;
+      newProject = {
+        name: '',
+        description: '',
+        type: 'program',
+        start_date: '',
+        end_date: '',
+        status: 'active',
+        assigned_students: []
+      };
+      await loadData();
+    } catch (error) {
+      console.error('Error creating project:', error);
+      alert('Failed to create project');
+    }
+  }
+
+  async function deleteProject(projectId) {
+    if (!confirm('Are you sure you want to delete this project?')) return;
+    try {
+      await Project.delete(projectId);
+      await loadData();
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      alert('Failed to delete project');
+    }
+  }
+
   function getStudentsByMentor(mentorEmail) {
     return allStudents.filter(s => s.mentor_email === mentorEmail);
   }
@@ -184,8 +229,20 @@
 <div class="p-8">
   <!-- Header -->
   <div class="mb-8">
-    <h1 class="text-4xl font-bold text-white mb-2">Admin Dashboard</h1>
-    <p class="text-white/70">Full system access - manage all users, students, and system settings</p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-4xl font-bold text-white mb-2">Admin Dashboard</h1>
+        <p class="text-white/70">Full system access - manage all users, students, and system settings</p>
+      </div>
+      <Button
+        on:click={loadData}
+        class="bg-blue-500 hover:bg-blue-600 text-white flex h-10 px-4 items-center rounded-md"
+        disabled={isLoading}
+      >
+        <Activity class="w-5 h-5 mr-2 {isLoading ? 'animate-spin' : ''}" />
+        {isLoading ? 'Loading...' : 'Reload All Data'}
+      </Button>
+    </div>
   </div>
 
   <!-- Stats Overview -->
@@ -230,23 +287,33 @@
       <!-- User Management -->
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">User Management</h2>
-        <Button
-          on:click={() => showCreateUserModal = true}
-          class="bg-green-500 hover:bg-green-600 text-white"
-        >
-          <UserPlus class="w-4 h-4 mr-2" />
-          Create User
-        </Button>
+        <div class="flex gap-2">
+          <Button
+            on:click={loadData}
+            class="bg-blue-500 hover:bg-blue-600 text-white flex h-10 px-2 items-center rounded-md"
+            disabled={isLoading}
+          >
+            <Activity class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+            {isLoading ? 'Loading...' : 'Reload Data'}
+          </Button>
+          <Button
+            on:click={() => showCreateUserModal = true}
+            class="bg-green-500 hover:bg-green-600 text-white flex h-10 px-2 items-center rounded-md"
+          >
+            <UserPlus class="w-4 h-4 mr-2" />
+            Create User
+          </Button>
+        </div>
       </div>
 
       <!-- Search -->
       <div class="mb-6">
         <div class="relative">
-          <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
+          <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50"/>
           <Input
             bind:value={searchQuery}
             placeholder="Search users by name or email..."
-            class="pl-10 bg-white/5 border-white/20 text-white"
+            class="pl-10 bg-white/5 border-white/20 text-white h-10 px-2 rounded-sm"
           />
         </div>
       </div>
@@ -290,13 +357,23 @@
       <!-- Student Assignments -->
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">Student Assignments</h2>
-        <Button
-          on:click={() => showAssignModal = true}
-          class="bg-purple-500 hover:bg-purple-600 text-white"
-        >
-          <UserCog class="w-4 h-4 mr-2" />
-          Assign Student
-        </Button>
+        <div class="flex gap-2">
+          <Button
+            on:click={loadData}
+            class="bg-blue-500 hover:bg-blue-600 text-white flex h-10 px-2 items-center rounded-md"
+            disabled={isLoading}
+          >
+            <Activity class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+            {isLoading ? 'Loading...' : 'Reload Data'}
+          </Button>
+          <Button
+            on:click={() => showAssignModal = true}
+            class="bg-purple-500 hover:bg-purple-600 text-white flex h-10 px-2 rounded-md items-center"
+          >
+            <UserCog class="w-4 h-4 mr-2" />
+            Assign Student
+          </Button>
+        </div>
       </div>
 
       <!-- Unassigned Students -->
@@ -349,13 +426,26 @@
       <!-- Programs & Projects -->
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">Internship Programs & Projects</h2>
-        <Button class="bg-green-500 hover:bg-green-600 text-white">
-          <FolderOpen class="w-4 h-4 mr-2" />
-          New Program
-        </Button>
+        <div class="flex gap-2">
+          <Button
+            on:click={loadData}
+            class="bg-blue-500 hover:bg-blue-600 text-white flex h-10 px-2 items-center rounded-md"
+            disabled={isLoading}
+          >
+            <Activity class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+            {isLoading ? 'Loading...' : 'Reload Data'}
+          </Button>
+          <Button
+            on:click={() => showCreateProjectModal = true}
+            class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md flex items-center px-2"
+          >
+            <FolderOpen class="w-4 h-4 mr-2" />
+            New Program
+          </Button>
+        </div>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <div class="bg-white/5 rounded-xl border border-white/20 p-6">
           <GitBranch class="w-8 h-8 text-blue-400 mb-3" />
           <h3 class="text-white font-bold text-lg mb-2">Total Projects</h3>
@@ -364,27 +454,76 @@
 
         <div class="bg-white/5 rounded-xl border border-white/20 p-6">
           <Activity class="w-8 h-8 text-green-400 mb-3" />
-          <h3 class="text-white font-bold text-lg mb-2">Active Programs</h3>
-          <p class="text-3xl font-bold text-white">5</p>
+          <h3 class="text-white font-bold text-lg mb-2">Active</h3>
+          <p class="text-3xl font-bold text-white">{allProjects.filter(p => p.status === 'active').length}</p>
         </div>
 
         <div class="bg-white/5 rounded-xl border border-white/20 p-6">
           <CheckCircle class="w-8 h-8 text-purple-400 mb-3" />
           <h3 class="text-white font-bold text-lg mb-2">Completed</h3>
-          <p class="text-3xl font-bold text-white">12</p>
+          <p class="text-3xl font-bold text-white">{allProjects.filter(p => p.status === 'completed').length}</p>
         </div>
       </div>
 
       <div class="mt-6 bg-white/5 rounded-xl border border-white/20 p-6">
-        <h3 class="text-white font-bold mb-4">Recent Projects</h3>
-        <p class="text-white/50 text-sm">Project management features coming soon...</p>
+        <h3 class="text-white font-bold mb-4">All Programs & Projects</h3>
+        {#if allProjects.length === 0}
+          <div class="text-center py-8">
+            <FolderOpen class="w-16 h-16 text-white/30 mx-auto mb-4" />
+            <p class="text-white/70">No programs or projects yet</p>
+            <Button
+              on:click={() => showCreateProjectModal = true}
+              class="mt-4 bg-green-500 hover:bg-green-600 text-white h-10  px-2 rounded-md"
+            >
+              Create Your First Program
+            </Button>
+          </div>
+        {:else}
+          <div class="space-y-3">
+            {#each allProjects as project}
+              <div class="bg-white/5 rounded-xl border border-white/20 p-4 flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2">
+                    <h4 class="text-white font-bold text-lg">{project.name}</h4>
+                    <span class="px-3 py-1 rounded-full text-xs capitalize {project.status === 'active' ? 'bg-green-500/20 text-green-400' : project.status === 'completed' ? 'bg-purple-500/20 text-purple-400' : 'bg-gray-500/20 text-gray-400'}">
+                      {project.status}
+                    </span>
+                    <span class="px-3 py-1 rounded-full text-xs capitalize bg-blue-500/20 text-blue-400">
+                      {project.type}
+                    </span>
+                  </div>
+                  {#if project.description}
+                    <p class="text-white/70 text-sm mb-2">{project.description}</p>
+                  {/if}
+                  <div class="flex items-center gap-4 text-xs text-white/50">
+                    {#if project.start_date}
+                      <span>Start: {project.start_date}</span>
+                    {/if}
+                    {#if project.end_date}
+                      <span>End: {project.end_date}</span>
+                    {/if}
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <Button
+                    on:click={() => deleteProject(project.id)}
+                    variant="ghost"
+                    class="text-red-400 hover:text-red-300 h-8 px-2"
+                  >
+                    <Trash2 class="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
 
     {:else if activeTab === 'reports'}
       <!-- Reports & Analytics -->
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">Reports & Analytics</h2>
-        <Button class="bg-blue-500 hover:bg-blue-600 text-white">
+        <Button class="bg-blue-500 hover:bg-blue-600 text-white flex h-10 items-center rounded-md px-2">
           <FileText class="w-4 h-4 mr-2" />
           Generate Report
         </Button>
@@ -478,7 +617,7 @@
         <div class="bg-white/5 rounded-xl border border-white/20 p-6">
           <h3 class="text-white font-bold mb-4">Notification Settings</h3>
           <p class="text-white/70 text-sm">Configure system-wide notification preferences</p>
-          <Button class="mt-4 bg-blue-500 hover:bg-blue-600 text-white">
+          <Button class="mt-4 bg-blue-500 hover:bg-blue-600 text-white flex h-10 items-center px-2 rounded-md">
             <Mail class="w-4 h-4 mr-2" />
             Configure Notifications
           </Button>
@@ -512,7 +651,7 @@
           </div>
           <p class="text-white/70 text-sm mb-4">Student disputes rejected time entry for 8 hours on 2025-12-15</p>
           <div class="flex gap-2">
-            <Button class="bg-green-500 hover:bg-green-600 text-white">Review & Resolve</Button>
+            <Button class="bg-green-500 hover:bg-green-600 text-white px-2 rounded-md">Review & Resolve</Button>
             <Button variant="ghost" class="text-white/70 hover:text-white">View Details</Button>
           </div>
         </div>
@@ -527,7 +666,7 @@
           </div>
           <p class="text-white/70 text-sm mb-4">Student requests mentor change due to scheduling conflicts</p>
           <div class="flex gap-2">
-            <Button class="bg-blue-500 hover:bg-blue-600 text-white">Reassign Mentor</Button>
+            <Button class="bg-blue-500 hover:bg-blue-600 text-white px-2 rounded-md">Reassign Mentor</Button>
             <Button variant="ghost" class="text-white/70 hover:text-white">Contact Student</Button>
           </div>
         </div>
@@ -562,15 +701,15 @@
             </div>
           </div>
           <div class="flex gap-2">
-            <Button class="bg-green-500 hover:bg-green-600 text-white">
+            <Button class="bg-green-500 hover:bg-green-600 text-white h-10 px-2 items-center flex rounded-md">
               <CheckCircle class="w-4 h-4 mr-2" />
               Approve
             </Button>
-            <Button class="bg-red-500 hover:bg-red-600 text-white">
+            <Button class="bg-red-500 hover:bg-red-600 text-white h-10 px-2 items-center flex rounded-md">
               <AlertTriangle class="w-4 h-4 mr-2" />
               Reject
             </Button>
-            <Button variant="ghost" class="text-white/70 hover:text-white">View Application</Button>
+            <Button variant="ghost" class="text-white/70 hover:text-white h-10 px-2 items-center flex rounded-md">View Application</Button>
           </div>
         </div>
       </div>
@@ -590,7 +729,7 @@
               <Input
                 value={user?.full_name || user?.email}
                 disabled
-                class="bg-white/5 border-white/20 text-white mt-1"
+                class="bg-white/5 border-white/20 text-white mt-1 px-2 rounded-sm"
               />
             </div>
             <div>
@@ -598,7 +737,7 @@
               <Input
                 value={user?.email}
                 disabled
-                class="bg-white/5 border-white/20 text-white mt-1"
+                class="bg-white/5 border-white/20 text-white mt-1 px-2 rounded-sm"
               />
             </div>
             <div>
@@ -606,7 +745,7 @@
               <Input
                 value="Administrator"
                 disabled
-                class="bg-white/5 border-white/20 text-white mt-1"
+                class="bg-white/5 border-white/20 text-white mt-1 px-2 rounded-sm"
               />
             </div>
           </div>
@@ -641,8 +780,8 @@
 <!-- Create User Modal -->
 {#if showCreateUserModal}
   <Dialog bind:open={showCreateUserModal}>
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-gray-900 rounded-xl border border-white/20 p-6 max-w-2xl w-full">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full">
         <h2 class="text-2xl font-bold text-white mb-6">Create New User</h2>
 
         <div class="space-y-4">
@@ -652,7 +791,7 @@
               bind:value={newUser.email}
               type="email"
               placeholder="user@example.com"
-              class="bg-white/5 border-white/20 text-white"
+              class="bg-white/5 border-white/20 text-white h-10 rounded-md px-2 w-full"
             />
           </div>
 
@@ -661,7 +800,7 @@
             <Input
               bind:value={newUser.full_name}
               placeholder="John Doe"
-              class="bg-white/5 border-white/20 text-white"
+              class="bg-white/5 border-white/20 text-white h-10 rounded-md px-2 w-full"
             />
           </div>
 
@@ -671,7 +810,7 @@
               bind:value={newUser.password}
               type="password"
               placeholder="Enter password"
-              class="bg-white/5 border-white/20 text-white"
+              class="bg-white/5 border-white/20 text-white h-10 rounded-md px-2 w-full"
             />
           </div>
 
@@ -691,7 +830,7 @@
         <div class="flex gap-3 mt-6">
           <Button
             on:click={createUser}
-            class="flex-1 bg-green-500 hover:bg-green-600 text-white"
+            class="flex-1 bg-green-500 hover:bg-green-600 text-white h-10 flex items-center rounded-md justify-center"
             disabled={!newUser.email || !newUser.password}
           >
             Create User
@@ -712,8 +851,8 @@
 <!-- Assign Student Modal -->
 {#if showAssignModal}
   <Dialog bind:open={showAssignModal}>
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-gray-900 rounded-xl border border-white/20 p-6 max-w-2xl w-full">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full">
         <h2 class="text-2xl font-bold text-white mb-6">Assign Student to Mentor</h2>
 
         <div class="space-y-4">
@@ -747,7 +886,7 @@
         <div class="flex gap-3 mt-6">
           <Button
             on:click={assignStudentToMentor}
-            class="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+            class="flex-1 bg-purple-500 hover:bg-purple-600 text-white h-10 justify-center items-center flex rounded-md"
             disabled={!assignmentData.studentId || !assignmentData.mentorEmail}
           >
             Assign Student
@@ -854,6 +993,98 @@
           </Button>
           <Button
             on:click={() => { showCreateContractModal = false; }}
+            variant="ghost"
+            class="text-white/70 hover:text-white"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  </Dialog>
+{/if}
+
+<!-- Create Project/Program Modal -->
+{#if showCreateProjectModal}
+  <Dialog bind:open={showCreateProjectModal}>
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h2 class="text-2xl font-bold text-white mb-6">Create New Program/Project</h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Type</label>
+            <select
+              bind:value={newProject.type}
+              class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+            >
+              <option value="program">Program</option>
+              <option value="project">Project</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Name</label>
+            <Input
+              bind:value={newProject.name}
+              placeholder="e.g., Summer Internship Program 2025"
+              class="bg-white/5 border-white/20 text-white h-10 rounded-md px-2 w-full"
+            />
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Description</label>
+            <textarea
+              bind:value={newProject.description}
+              placeholder="Brief description of the program/project..."
+              class="w-full bg-white/5 border border-white/20 rounded-lg p-3 text-white placeholder-white/50 min-h-[100px]"
+            />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-white/70 text-sm block mb-2">Start Date</label>
+              <Input
+                bind:value={newProject.start_date}
+                type="date"
+                class="bg-white/5 border-white/20 text-white h-10 rounded-md px-2 w-full"
+              />
+            </div>
+            <div>
+              <label class="text-white/70 text-sm block mb-2">End Date</label>
+              <Input
+                bind:value={newProject.end_date}
+                type="date"
+                class="bg-white/5 border-white/20 text-white h-10 rounded-md px-2 w-full"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Status</label>
+            <select
+              bind:value={newProject.status}
+              class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+            >
+              <option value="active">Active</option>
+              <option value="planned">Planned</option>
+              <option value="completed">Completed</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <Button
+            on:click={createProject}
+            class="flex-1 bg-green-500 hover:bg-green-600 text-white h-10 flex items-center rounded-md justify-center"
+            disabled={!newProject.name}
+          >
+            <FolderOpen class="w-4 h-4 mr-2" />
+            Create {newProject.type === 'program' ? 'Program' : 'Project'}
+          </Button>
+          <Button
+            on:click={() => { showCreateProjectModal = false; newProject = { name: '', description: '', type: 'program', start_date: '', end_date: '', status: 'active', assigned_students: [] }; }}
             variant="ghost"
             class="text-white/70 hover:text-white"
           >
