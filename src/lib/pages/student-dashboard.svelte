@@ -265,7 +265,7 @@
                   </Button>
                   <Button
                     on:click={() => { submitWorkForm.taskId = task.id; showSubmitWorkModal = true; }}
-                    class="bg-green-500 hover:bg-green-600 text-white"
+                    class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center"
                   >
                     <Upload class="w-4 h-4 mr-2" />
                     Submit Work
@@ -288,7 +288,7 @@
         <h2 class="text-2xl font-bold text-white">My Submissions</h2>
         <Button
           on:click={() => showSubmitWorkModal = true}
-          class="bg-green-500 hover:bg-green-600 text-white"
+          class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center"
         >
           <Upload class="w-4 h-4 mr-2" />
           Submit New Work
@@ -344,7 +344,7 @@
             <p class="text-white/70">No submissions yet</p>
             <Button
               on:click={() => showSubmitWorkModal = true}
-              class="mt-4 bg-green-500 hover:bg-green-600 text-white"
+              class="mt-4 bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 "
             >
               Submit Your First Work
             </Button>
@@ -494,7 +494,7 @@
         <h2 class="text-2xl font-bold text-white">Messages</h2>
         <Button
           on:click={() => showMessageModal = true}
-          class="bg-blue-500 hover:bg-blue-600 text-white"
+          class="bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md px-2 flex items-center"
         >
           <Send class="w-4 h-4 mr-2" />
           New Message
@@ -519,7 +519,7 @@
               </div>
               <Button
                 on:click={() => showMessageModal = true}
-                class="w-full bg-blue-500 hover:bg-blue-600 text-white mt-4"
+                class="w-full bg-blue-500 hover:bg-blue-600 text-white mt-4 h-10 rounded-md px-2 flex items-center justify-center"
               >
                 <Mail class="w-4 h-4 mr-2" />
                 Send Message
@@ -564,7 +564,7 @@
       <!-- My Profile & Portfolio -->
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">My Profile & Portfolio</h2>
-        <Button class="bg-blue-500 hover:bg-blue-600 text-white">
+        <Button class="bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md px-2 flex items-center">
           Edit Profile
         </Button>
       </div>
@@ -644,7 +644,7 @@
         <p class="text-white/70 text-sm mb-4">
           Showcase your work, projects, and achievements during your internship.
         </p>
-        <Button class="bg-purple-500 hover:bg-purple-600 text-white">
+        <Button class="bg-purple-500 hover:bg-purple-600 text-white h-10 rounded-md px-2 flex items-center">
           <Upload class="w-4 h-4 mr-2" />
           Upload Portfolio Item
         </Button>
@@ -661,7 +661,7 @@
           <BookOpen class="w-10 h-10 text-blue-400 mb-3" />
           <h3 class="text-white font-bold mb-2">Documentation</h3>
           <p class="text-white/60 text-sm mb-4">Access project documentation and guides</p>
-          <Button class="w-full bg-blue-500 hover:bg-blue-600 text-white">
+          <Button class="w-full bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md px-2 flex items-center justify-center">
             View Docs
           </Button>
         </div>
@@ -670,7 +670,7 @@
           <GraduationCap class="w-10 h-10 text-green-400 mb-3" />
           <h3 class="text-white font-bold mb-2">Training Materials</h3>
           <p class="text-white/60 text-sm mb-4">Onboarding and skill development resources</p>
-          <Button class="w-full bg-green-500 hover:bg-green-600 text-white">
+          <Button class="w-full bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center justify-center">
             Start Learning
           </Button>
         </div>
@@ -679,7 +679,7 @@
           <FileText class="w-10 h-10 text-purple-400 mb-3" />
           <h3 class="text-white font-bold mb-2">Templates</h3>
           <p class="text-white/60 text-sm mb-4">Download templates for reports and submissions</p>
-          <Button class="w-full bg-purple-500 hover:bg-purple-600 text-white">
+          <Button class="w-full bg-purple-500 hover:bg-purple-600 text-white h-10 rounded-md px-2 flex items-center justify-center">
             <Download class="w-4 h-4 mr-2" />
             Download
           </Button>
@@ -824,8 +824,8 @@
 <!-- Submit Work Modal -->
 {#if showSubmitWorkModal}
   <Dialog bind:open={showSubmitWorkModal}>
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-gray-900 rounded-xl border border-white/20 p-6 max-w-2xl w-full">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full">
         <h2 class="text-2xl font-bold text-white mb-6">Submit Work</h2>
 
         <div class="space-y-4">
@@ -863,7 +863,7 @@
         <div class="flex gap-3 mt-6">
           <Button
             on:click={submitWork}
-            class="flex-1 bg-green-500 hover:bg-green-600 text-white"
+            class="flex-1 bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center justify-center"
           >
             <Upload class="w-4 h-4 mr-2" />
             Submit Work
@@ -884,8 +884,8 @@
 <!-- Message Modal -->
 {#if showMessageModal}
   <Dialog bind:open={showMessageModal}>
-    <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div class="bg-gray-900 rounded-xl border border-white/20 p-6 max-w-2xl w-full">
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full">
         <h2 class="text-2xl font-bold text-white mb-6">Send Message to Mentor</h2>
 
         <div class="space-y-4">
@@ -911,7 +911,7 @@
         <div class="flex gap-3 mt-6">
           <Button
             on:click={sendMessage}
-            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md px-2 flex items-center justify-center"
             disabled={!messageForm.subject || !messageForm.message}
           >
             <Send class="w-4 h-4 mr-2" />
