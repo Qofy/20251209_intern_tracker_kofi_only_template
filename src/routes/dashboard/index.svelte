@@ -16,7 +16,9 @@
   import Students from '../../lib/pages/students.svelte';
   import AdminManagement from '../../lib/pages/admin-management.svelte';
   import MentorDashboard from '../../lib/pages/mentor-dashboard.svelte';
-  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield, GraduationCap } from 'lucide-svelte';
+  import AdminDashboard from '../../lib/pages/admin-dashboard.svelte';
+  import StudentDashboard from '../../lib/pages/student-dashboard.svelte';
+  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield, GraduationCap, Upload, TrendingUp, MessageSquare, BookOpen } from 'lucide-svelte';
   
 
   // Reactive variables that will be updated by store subscription
@@ -35,6 +37,10 @@
   // Set default view based on role
   $: if (role === 'mentor' && activeView === 'dashboard') {
     activeView = 'mentor-students';
+  } else if (role === 'admin' && activeView === 'dashboard') {
+    activeView = 'admin-users';
+  } else if (role === 'student' && activeView === 'dashboard') {
+    activeView = 'student-tasks';
   }
 
   let stats = {
@@ -164,7 +170,72 @@
   }
 </script>
 
-{#if role === 'mentor'}
+{#if !role || !user}
+  <!-- DEFAULT LAYOUT (Not logged in or no role) -->
+  <div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
+    <aside class="w-64 p-6 flex-shrink-0">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col min-h-full">
+        <!-- Logo & User Info -->
+        <div class="mb-8 text-center">
+          <div class="w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <Home class="w-8 h-8 text-white"/>
+          </div>
+          <h1 class="text-xl font-bold text-white">WorkTracker</h1>
+          <p class="text-white/70 text-sm">Intern Hours Manager</p>
+
+          <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
+            <p class="text-white/60 text-sm">Please log in</p>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="space-y-2 flex-1">
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white/50 cursor-not-allowed"
+            href="/dashboard"
+          >
+            <Home class="w-5 h-5"/>
+            <span class="font-medium">Dashboard</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/10 text-white/50 cursor-not-allowed"
+            href="#"
+          >
+            <Users class="w-5 h-5"/>
+            <span class="font-medium">Features</span>
+          </a>
+        </nav>
+
+        <!-- Login Button -->
+        <div class="mt-4 pt-4 border-t border-white/20">
+          <a
+            href="/"
+            class="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-semibold text-center block transition-all"
+          >
+            Go to Login
+          </a>
+        </div>
+      </div>
+    </aside>
+    <main class="flex-1 p-6 relative">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full p-8">
+        <div class="text-center py-12">
+          <Shield class="w-24 h-24 text-white/30 mx-auto mb-6" />
+          <h1 class="text-4xl font-bold text-white mb-4">Welcome to WorkTracker</h1>
+          <p class="text-white/70 text-lg mb-8">
+            Please log in to access your dashboard and features
+          </p>
+          <a
+            href="/"
+            class="inline-block px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white rounded-xl font-semibold text-lg transition-all"
+          >
+            Go to Login Page
+          </a>
+        </div>
+      </div>
+    </main>
+  </div>
+{:else if role === 'mentor'}
   <!-- MENTOR LAYOUT -->
   <div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
     <aside class="w-64 p-6 flex-shrink-0">
@@ -262,18 +333,18 @@
       </div>
     </main>
   </div>
-{:else}
-  <!-- ADMIN/STUDENT LAYOUT -->
+{:else if role === 'admin'}
+  <!-- ADMIN LAYOUT -->
   <div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
     <aside class="w-64 p-6 flex-shrink-0">
       <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col min-h-full">
         <!-- Logo & User Info -->
         <div class="mb-8 text-center">
-          <div class="w-16 h-16 bg-gradient-to-r from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <Clock class="w-8 h-8 text-white"/>
+          <div class="w-16 h-16 bg-gradient-to-r from-red-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <Shield class="w-8 h-8 text-white"/>
           </div>
-          <h1 class="text-xl font-bold text-white">WorkTracker</h1>
-          <p class="text-white/70 text-sm">Intern Hours Manager</p>
+          <h1 class="text-xl font-bold text-white">Admin Portal</h1>
+          <p class="text-white/70 text-sm">System Management</p>
 
           <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
             {#if user}
@@ -285,146 +356,71 @@
           </div>
         </div>
 
-        <!-- Student Management Section -->
-        {#if role === 'admin'}
-          <!-- ADMIN: Shows ALL students -->
-          <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-            <div class="flex items-center justify-between mb-3">
-              <h4 class="text-white/80 text-sm font-medium">All Students</h4>
-              <button
-                class="inline-flex items-center justify-center rounded-md font-medium transition-colors h-7 px-2 text-xs text-white/60 hover:text-white hover:bg-white/10"
-                on:click={() => setActiveView('admin-management')}
-                title="Create new student contract"
-              >
-                <Plus class="w-3 h-3 mr-1"/>
-                Add
-              </button>
-            </div>
-            {#if myStudents && myStudents.length > 0}
-              <div class="space-y-2 max-h-64 overflow-y-auto">
-                {#each myStudents as student}
-                  <button
-                    class="w-full text-left p-3 rounded-lg transition-all {selectedStudent?.id === student.id ? 'bg-white/20 border border-white/30' : 'bg-white/5 hover:bg-white/10'}"
-                    on:click={() => userStore.setSelectedStudent(student)}
-                  >
-                    <p class="text-white text-sm font-medium">{student.full_name}</p>
-                    <p class="text-white/60 text-xs">{student.student_email}</p>
-                  </button>
-                {/each}
-              </div>
-            {:else}
-              <div class="text-center py-4">
-                <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
-                <p class="text-white/60 text-sm mb-3">No students yet</p>
-                <button
-                  class="inline-flex items-center justify-center rounded-md text-xs transition-colors bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3"
-                  on:click={() => setActiveView('admin-management')}
-                >
-                  <Plus class="w-3 h-3 mr-1"/>
-                  Create Contract
-                </button>
-              </div>
-            {/if}
-          </div>
-        {:else}
-          <!-- STUDENT: Shows "Your Profile" card -->
-          <div class="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
-            <h4 class="text-white/80 text-sm font-medium mb-3">Your Profile</h4>
-            {#if selectedStudent}
-              <div class="p-3 rounded-lg bg-white/10 border border-white/20">
-                <p class="text-white text-sm font-medium">{selectedStudent.full_name}</p>
-                <p class="text-white/60 text-xs mt-1">{selectedStudent.student_email}</p>
-                <div class="mt-2 pt-2 border-t border-white/20">
-                  <p class="text-white/60 text-xs">Contract Hours</p>
-                  <p class="text-white font-semibold">{selectedStudent.contract_hours || 600}h</p>
-                </div>
-              </div>
-            {:else}
-              <div class="text-center py-4">
-                <User class="w-8 h-8 text-white/30 mx-auto mb-2"/>
-                <p class="text-white/60 text-sm">Loading profile...</p>
-              </div>
-            {/if}
-          </div>
-        {/if}
-
-        <!-- Navigation -->
+        <!-- Navigation for Admin -->
         <nav class="space-y-2 flex-1">
           <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'dashboard' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/dashboard"
-            on:click|preventDefault={() => setActiveView('dashboard')}
-          >
-            <Home class="w-5 h-5"/>
-            <span class="font-medium">Dashboard</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'daily-tracker' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/dailytracker"
-            on:click|preventDefault={() => setActiveView('daily-tracker')}
-          >
-            <Clock class="w-5 h-5"/>
-            <span class="font-medium">Daily Tracker</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'schedule' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/schedulemanager"
-            on:click|preventDefault={() => setActiveView('schedule')}
-          >
-            <Calendar class="w-5 h-5"/>
-            <span class="font-medium">Schedule</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'tasks' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/tasks"
-            on:click|preventDefault={() => setActiveView('tasks')}
-          >
-            <SquareCheckBig class="w-5 h-5"/>
-            <span class="font-medium">Tasks</span>
-          </a>
-          <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'reports' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/reports"
-            on:click|preventDefault={() => setActiveView('reports')}
-          >
-            <ChartColumnIncreasing class="w-5 h-5"/>
-            <span class="font-medium">Reports</span>
-          </a>
-
-          {#if role === 'admin'}
-            <!-- Admin Management - Only for admin -->
-            <a
-              class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-management' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-              href="/admin"
-              on:click|preventDefault={() => setActiveView('admin-management')}
-            >
-              <Shield class="w-5 h-5"/>
-              <span class="font-medium">Admin Panel</span>
-            </a>
-          {/if}
-
-          {#if role === 'admin'}
-            <!-- Proof & Approval - Only for admin -->
-            <a
-              class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'proof-approval' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-              href="/proofapproval"
-              on:click|preventDefault={() => setActiveView('proof-approval')}
-            >
-              <ReceiptText class="w-5 h-5"/>
-              <span class="font-medium">Proof & Approval</span>
-            </a>
-          {/if}
-
-          <a
-            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'students' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
-            href="/students"
-            on:click|preventDefault={() => setActiveView('students')}
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-users' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/users"
+            on:click|preventDefault={() => setActiveView('admin-users')}
           >
             <Users class="w-5 h-5"/>
-            <span class="font-medium">Student Contracts</span>
-            {#if role === 'student'}
-              <span class="ml-auto text-[10px] text-white/50">(view)</span>
-            {/if}
+            <span class="font-medium">User Management</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-assignments' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/assignments"
+            on:click|preventDefault={() => setActiveView('admin-assignments')}
+          >
+            <User class="w-5 h-5"/>
+            <span class="font-medium">Student Assignments</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-programs' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/programs"
+            on:click|preventDefault={() => setActiveView('admin-programs')}
+          >
+            <SquareCheckBig class="w-5 h-5"/>
+            <span class="font-medium">Programs & Projects</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-reports' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/reports"
+            on:click|preventDefault={() => setActiveView('admin-reports')}
+          >
+            <ChartColumnIncreasing class="w-5 h-5"/>
+            <span class="font-medium">Reports & Analytics</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-settings' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/settings"
+            on:click|preventDefault={() => setActiveView('admin-settings')}
+          >
+            <Home class="w-5 h-5"/>
+            <span class="font-medium">System Settings</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-disputes' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/disputes"
+            on:click|preventDefault={() => setActiveView('admin-disputes')}
+          >
+            <ReceiptText class="w-5 h-5"/>
+            <span class="font-medium">Disputes & Issues</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-applications' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/applications"
+            on:click|preventDefault={() => setActiveView('admin-applications')}
+          >
+            <GraduationCap class="w-5 h-5"/>
+            <span class="font-medium">Applications</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-profile' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/profile"
+            on:click|preventDefault={() => setActiveView('admin-profile')}
+          >
+            <User class="w-5 h-5"/>
+            <span class="font-medium">My Profile</span>
           </a>
         </nav>
 
@@ -436,8 +432,132 @@
     </aside>
     <main class="flex-1 p-6 relative">
       <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full">
-        <!-- TEMP: Showing dashboard regardless of loading/selectedStudent state for UI review -->
-        {#if activeView === 'dashboard'}
+        <!-- Render Admin Dashboard with the specific tab -->
+        {#if activeView === 'admin-users' || activeView === 'admin-assignments' || activeView === 'admin-programs' || activeView === 'admin-reports' || activeView === 'admin-settings' || activeView === 'admin-disputes' || activeView === 'admin-applications' || activeView === 'admin-profile'}
+          <AdminDashboard initialTab={activeView.replace('admin-', '')} />
+        {/if}
+
+        <!-- Action Buttons (bottom left) -->
+        <div class="absolute bottom-6 right-5 flex flex-col gap-3 z-50">
+          <button
+            class="inline-flex items-center justify-center rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-14 h-14 bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+            title="Report a Bug"
+          >
+           <Bug size={24}/>
+          </button>
+          <button
+            class="inline-flex items-center justify-center rounded-full font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 w-14 h-14 bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110"
+            title="Request Enhancement"
+          >
+           <Hammer size={24}/>
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+{:else}
+  <!-- STUDENT LAYOUT -->
+  <div class="min-h-screen flex gap-6 bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 px-10 py-11 text-white">
+    <aside class="w-64 p-6 flex-shrink-0">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 p-6 shadow-2xl flex flex-col min-h-full">
+        <!-- Logo & User Info -->
+        <div class="mb-8 text-center">
+          <div class="w-16 h-16 bg-gradient-to-r from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+            <GraduationCap class="w-8 h-8 text-white"/>
+          </div>
+          <h1 class="text-xl font-bold text-white">Student Portal</h1>
+          <p class="text-white/70 text-sm">Internship Management</p>
+
+          <div class="mt-3 p-2 bg-white/5 rounded-lg border border-white/10">
+            {#if user}
+              <p class="text-white/80 text-sm font-medium">{user.email}</p>
+              <p class="text-white/60 text-xs capitalize">{role} Account</p>
+            {:else}
+              <p class="text-white/60 text-sm">Loading...</p>
+            {/if}
+          </div>
+        </div>
+
+        <!-- Navigation for Student -->
+        <nav class="space-y-2 flex-1">
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-tasks' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/tasks"
+            on:click|preventDefault={() => setActiveView('student-tasks')}
+          >
+            <SquareCheckBig class="w-5 h-5"/>
+            <span class="font-medium">My Tasks</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-submissions' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/submissions"
+            on:click|preventDefault={() => setActiveView('student-submissions')}
+          >
+            <Upload class="w-5 h-5"/>
+            <span class="font-medium">Submissions</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-progress' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/progress"
+            on:click|preventDefault={() => setActiveView('student-progress')}
+          >
+            <TrendingUp class="w-5 h-5"/>
+            <span class="font-medium">My Progress</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-feedback' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/feedback"
+            on:click|preventDefault={() => setActiveView('student-feedback')}
+          >
+            <ChartColumnIncreasing class="w-5 h-5"/>
+            <span class="font-medium">Feedback</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-messages' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/messages"
+            on:click|preventDefault={() => setActiveView('student-messages')}
+          >
+            <MessageSquare class="w-5 h-5"/>
+            <span class="font-medium">Messages</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-profile' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/profile"
+            on:click|preventDefault={() => setActiveView('student-profile')}
+          >
+            <User class="w-5 h-5"/>
+            <span class="font-medium">My Profile</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-resources' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/resources"
+            on:click|preventDefault={() => setActiveView('student-resources')}
+          >
+            <BookOpen class="w-5 h-5"/>
+            <span class="font-medium">Resources</span>
+          </a>
+          <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-schedule' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/student/schedule"
+            on:click|preventDefault={() => setActiveView('student-schedule')}
+          >
+            <Calendar class="w-5 h-5"/>
+            <span class="font-medium">Schedule</span>
+          </a>
+        </nav>
+
+        <!-- Logout Button -->
+        <div class="mt-4 pt-4 border-t border-white/20">
+          <LogoutButton />
+        </div>
+      </div>
+    </aside>
+    <main class="flex-1 p-6 relative">
+      <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full">
+        <!-- Render Student Dashboard with the specific tab -->
+        {#if activeView === 'student-tasks' || activeView === 'student-submissions' || activeView === 'student-progress' || activeView === 'student-feedback' || activeView === 'student-messages' || activeView === 'student-profile' || activeView === 'student-resources' || activeView === 'student-schedule'}
+          <StudentDashboard initialTab={activeView.replace('student-', '')} />
+        {:else if activeView === 'dashboard'}
         <div class="p-8">
           {#if role === 'admin'}
             <!-- ADMIN Dashboard -->
@@ -509,61 +629,6 @@
               </div>
             {/if}
             
-          {:else}
-            <!-- STUDENT Dashboard -->
-            <h1 class="text-3xl font-bold text-white mb-2">My Dashboard</h1>
-            <p class="text-white/70 mb-8">Track your hours and progress toward completion</p>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-                <h3 class="text-white/80 text-sm mb-2">Total Hours</h3>
-                <p class="text-3xl font-bold text-white">{stats.totalApproved}</p>
-                <p class="text-white/50 text-xs mt-1">All approved hours</p>
-              </div>
-              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-                <h3 class="text-white/80 text-sm mb-2">Today</h3>
-                <p class="text-3xl font-bold text-white">{stats.dailyHours}</p>
-                <p class="text-white/50 text-xs mt-1">Hours worked today</p>
-              </div>
-              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-                <h3 class="text-white/80 text-sm mb-2">This Week</h3>
-                <p class="text-3xl font-bold text-white">{stats.weeklyHours}</p>
-                <p class="text-white/50 text-xs mt-1">Weekly total</p>
-              </div>
-              <div class="bg-white/5 backdrop-blur-sm rounded-xl border border-white/20 p-6">
-                <h3 class="text-white/80 text-sm mb-2">Progress</h3>
-                <p class="text-3xl font-bold text-white">{stats.completionPercentage}%</p>
-                <p class="text-white/50 text-xs mt-1">of {selectedStudent?.contract_hours || 600}h goal</p>
-              </div>
-            </div>
-            
-            <!-- Quick Actions for Students -->
-            <div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                class="p-4 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 rounded-xl transition-all text-left"
-                on:click={() => setActiveView('daily-tracker')}
-              >
-                <Clock class="w-6 h-6 text-emerald-400 mb-2"/>
-                <h3 class="text-white font-semibold">Log Hours</h3>
-                <p class="text-white/60 text-sm">Track your daily work</p>
-              </button>
-              <button
-                class="p-4 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 rounded-xl transition-all text-left"
-                on:click={() => setActiveView('tasks')}
-              >
-                <SquareCheckBig class="w-6 h-6 text-blue-400 mb-2"/>
-                <h3 class="text-white font-semibold">View Tasks</h3>
-                <p class="text-white/60 text-sm">Check assigned work</p>
-              </button>
-              <button
-                class="p-4 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 rounded-xl transition-all text-left"
-                on:click={() => setActiveView('schedule')}
-              >
-                <Calendar class="w-6 h-6 text-purple-400 mb-2"/>
-                <h3 class="text-white font-semibold">My Schedule</h3>
-                <p class="text-white/60 text-sm">View upcoming events</p>
-              </button>
-            </div>
           {/if}
         </div>
       {:else if activeView === 'daily-tracker'}
