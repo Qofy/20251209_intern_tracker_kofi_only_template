@@ -487,7 +487,7 @@
           <h2 class="text-2xl font-bold text-white">Tasks & Projects</h2>
           <Button 
             on:click={() => showTaskDialog = true}
-            class="bg-green-500 hover:bg-green-600 text-white"
+            class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center"
           >
             <Plus class="w-4 h-4 mr-2" />
             Create Task
@@ -500,7 +500,7 @@
             <p class="text-white/70">No tasks created yet</p>
             <Button 
               on:click={() => showTaskDialog = true}
-              class="mt-4 bg-green-500 hover:bg-green-600 text-white"
+              class="mt-4 bg-green-500 hover:bg-green-600 text-white h-10 px-2 rounded-md"
             >
               Create First Task
             </Button>
@@ -660,7 +660,7 @@
           <h2 class="text-2xl font-bold text-white">Progress Reports</h2>
           <Button 
             on:click={() => showReportDialog = true}
-            class="bg-purple-500 hover:bg-purple-600 text-white"
+            class="bg-purple-500 hover:bg-purple-600 text-white h-10 rounded-md px-2 flex items-center"
           >
             <Plus class="w-4 h-4 mr-2" />
             Submit Report
@@ -691,7 +691,7 @@
 
           <Button 
             on:click={() => showReportDialog = true}
-            class="bg-purple-500 hover:bg-purple-600 text-white w-full"
+            class="bg-purple-500 hover:bg-purple-600 text-white w-full h-10 rounded-md px-2 flex items-center justify-center"
           >
             <FileText class="w-4 h-4 mr-2" />
             Create Detailed Report
@@ -763,7 +763,7 @@
         <div class="mt-6 bg-white/5 rounded-xl border border-white/20 p-6">
           <h3 class="text-lg font-bold text-white mb-4">Request Support</h3>
           <p class="text-white/70 mb-4">Need additional resources, have concerns, or require administrative support?</p>
-          <Button class="bg-orange-500 hover:bg-orange-600 text-white">
+          <Button class="bg-orange-500 hover:bg-orange-600 text-white h-10 rounded-md px-2 flex items-center">
             <Mail class="w-4 h-4 mr-2" />
             Contact Admin
           </Button>
