@@ -48,13 +48,25 @@ export class Contract {
   mentor_signed_date: string;
 
   @Column({ default: 'draft' })
-  status: string; // draft, student_review, mentor_review, pending_approval, approved, rejected
+  status: string; // draft, student_signed, mentor_reviewing, mentor_approved, admin_reviewing, admin_approved, admin_rejected
 
   @Column({ nullable: true })
   admin_notes: string;
 
   @Column({ nullable: true })
   rejection_reason: string;
+
+  @Column({ type: 'text', nullable: true })
+  mentor_feedback: string;
+
+  @Column({ type: 'text', nullable: true })
+  admin_feedback: string;
+
+  @Column({ type: 'date', nullable: true })
+  mentor_reviewed_at: string;
+
+  @Column({ type: 'date', nullable: true })
+  admin_reviewed_at: string;
 
   @Column({ nullable: true })
   company_id: number;

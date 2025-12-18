@@ -1127,11 +1127,15 @@
           {#if userRole === 'student' && selectedContract.status === 'student_review'}
             <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
               <p class="text-blue-200 mb-4">Please review and sign this contract</p>
-              <Input
-                bind:value={signatureText}
-                placeholder="Type your full name as signature"
-                class="mb-3"
-              />
+              <div class="mb-3">
+                <label class="text-white/70 text-sm block mb-2">📝 Digital Signature</label>
+                <Input
+                  bind:value={signatureText}
+                  placeholder="Type your full name as signature"
+                  class="bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border-2 border-amber-400/40 text-orange-400 placeholder-amber-200/60 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 font-semibold text-lg italic tracking-wide"
+                />
+                <p class="text-amber-200/80 text-xs mt-1">✨ Your signature will be legally binding</p>
+              </div>
               <Button
                 on:click={() => signAsStudent(selectedContract)}
                 class="w-full bg-blue-500 hover:bg-blue-600 text-white h-10 justify-center flex items-center rounded-md"
@@ -1146,11 +1150,15 @@
           {#if userRole === 'mentor' && selectedContract.status === 'mentor_review'}
             <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
               <p class="text-yellow-200 mb-4">Student has signed. Review and submit to admin.</p>
-              <Input
-                bind:value={signatureText}
-                placeholder="Type your full name as signature"
-                class="mb-3"
-              />
+              <div class="mb-3">
+                <label class="text-white/70 text-sm block mb-2">🖋️ Mentor Approval Signature</label>
+                <Input
+                  bind:value={signatureText}
+                  placeholder="Type your full name as signature"
+                  class="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border-2 border-amber-400/40  text-orange-400 placeholder-amber-200/60 focus:border-amber-400 focus:ring-2 focus:ring-amber-400/30 font-semibold text-lg italic tracking-wide"
+                />
+                <p class="text-amber-200/80 text-xs mt-1">✅ Confirms student contract review</p>
+              </div>
               <Button
                 on:click={() => submitToAdmin(selectedContract)}
                 class="w-full bg-yellow-500 hover:bg-yellow-600 text-white h-10 justify-center flex items-center rounded-md"

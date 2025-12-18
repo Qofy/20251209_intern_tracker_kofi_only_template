@@ -448,6 +448,27 @@ class ApiClient {
       body: JSON.stringify({ content: replyContent }),
     });
   }
+
+  // Contract workflow methods
+  async studentSignContract(contractId) {
+    return this.request(`/api/contracts/${contractId}/student-sign`, {
+      method: 'PUT',
+    });
+  }
+
+  async mentorReviewContract(contractId, approved, feedback) {
+    return this.request(`/api/contracts/${contractId}/mentor-review`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved, feedback }),
+    });
+  }
+
+  async adminReviewContract(contractId, approved, feedback) {
+    return this.request(`/api/contracts/${contractId}/admin-review`, {
+      method: 'PUT',
+      body: JSON.stringify({ approved, feedback }),
+    });
+  }
 }
 
 // Create singleton instance

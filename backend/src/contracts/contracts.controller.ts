@@ -67,4 +67,41 @@ export class ContractsController {
   async remove(@Param('id') id: string) {
     return this.contractsService.remove(+id);
   }
+
+  @Put(':id/student-sign')
+  async studentSignContract(@Param('id') id: string, @Request() req) {
+    const contract = await this.contractsService.studentSignContract(+id);
+    console.log('[Contract] Student signed contract, notifying mentor:', contract.mentor_email);
+    return contract;
+  }
+
+  @Put(':id/mentor-review')
+  async mentorReviewContract(
+    @Param('id') id: string,
+    @Body() reviewData: { approved: boolean; feedback?: string },
+    @Request() req
+  ) {
+    const contract = await this.contractsService.mentorReviewContract(
+      +id,
+      reviewData.approved,
+      reviewData.feedback
+    );
+    console.log('[Contract] Mentor reviewed contract:', id, 'approved:', reviewData.approved);
+    return contract;
+  }
+
+  @Put(':id/admin-review')
+  async adminReviewContract(
+    @Param('id') id: string,
+    @Body() reviewData: { approved: boolean; feedback?: string },
+    @Request() req
+  ) {
+    const contract = await this.contractsService.adminReviewContract(
+      +id,
+      reviewData.approved,
+      reviewData.feedback
+    );
+    console.log('[Contract] Admin reviewed contract:', id, 'approved:', reviewData.approved);
+    return contract;
+  }
 }

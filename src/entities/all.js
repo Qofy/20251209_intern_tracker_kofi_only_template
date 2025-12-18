@@ -656,6 +656,67 @@ export class Contract {
     }
     return apiClient.deleteContract(id);
   }
+
+  // Contract workflow methods
+  static async studentSign(contractId) {
+    if (isDemoMode()) {
+      const demoContracts = JSON.parse(localStorage.getItem('demo_contracts') || '[]');
+      const index = demoContracts.findIndex(c => c.id === contractId);
+      if (index !== -1) {
+        demoContracts[index].status = 'mentor_reviewing';
+        demoContracts[index].student_signed_date = new Date().toISOString().split('T')[0];
+        localStorage.setItem('demo_contracts', JSON.stringify(demoContracts));
+        return demoContracts[index];
+      }
+      throw new Error('Contract not found');
+    }
+    return apiClient.studentSignContract(contractId);
+  }
+
+  static async mentorReview(contractId, approved, feedback) {
+    if (isDemoMode()) {
+      const demoContracts = JSON.parse(localStorage.getItem('demo_contracts') || '[]');
+      const index = demoContracts.findIndex(c => c.id === contractId);
+      if (index !== -1) {
+        demoContracts[index].status = approved ? 'admin_reviewing' : 'student_signed';
+        demoContracts[index].mentor_reviewed_at = new Date().toISOString().split('T')[0];
+        demoContracts[index].mentor_feedback = feedback;
+        localStorage.setItem('demo_contracts', JSON.stringify(demoContracts));
+        return demoContracts[index];
+      }
+      throw new Error('Contract not found');
+    }
+    return apiClient.mentorReviewContract(contractId, approved, feedback);
+  }
+
+  static async adminReview(contractId, approved, feedback) {
+    if (isDemoMode()) {
+      const demoContracts = JSON.parse(localStorage.getItem('demo_contracts') || '[]');
+      const index = demoContracts.findIndex(c => c.id === contractId);
+      if (index !== -1) {
+        demoContracts[index].status = approved ? 'admin_approved' : 'admin_rejected';
+        demoContracts[index].admin_reviewed_at = new Date().toISOString().split('T')[0];
+        demoContracts[index].admin_feedback = feedback;
+        localStorage.setItem('demo_contracts', JSON.stringify(demoContracts));
+        return demoContracts[index];
+      }
+      throw new Error('Contract not found');
+    }
+    return apiClient.adminReviewContract(contractId, approved, feedback);
+  }
+
+  static getStatusDisplay(status) {
+    const statusMap = {
+      'draft': 'Draft',
+      'student_signed': 'Awaiting Mentor Review',
+      'mentor_reviewing': 'Under Mentor Review',
+      'mentor_approved': 'Pending Admin Approval',
+      'admin_reviewing': 'Under Admin Review',
+      'admin_approved': 'Approved',
+      'admin_rejected': 'Rejected'
+    };
+    return statusMap[status] || status;
+  }
 }
 
 export class Message {

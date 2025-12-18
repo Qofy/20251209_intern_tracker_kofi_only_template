@@ -48,4 +48,35 @@ export class ContractsService {
     await this.contractsRepository.update(id, updateData);
     return this.contractsRepository.findOne({ where: { id } });
   }
+
+  async studentSignContract(id: number): Promise<Contract> {
+    const currentDate = new Date().toISOString().split('T')[0];
+    await this.contractsRepository.update(id, {
+      status: 'mentor_reviewing',
+      student_signed_date: currentDate
+    });
+    return this.contractsRepository.findOne({ where: { id } });
+  }
+
+  async mentorReviewContract(id: number, approved: boolean, feedback?: string): Promise<Contract> {
+    const status = approved ? 'admin_reviewing' : 'student_signed';
+    const currentDate = new Date().toISOString().split('T')[0];
+    await this.contractsRepository.update(id, {
+      status,
+      mentor_reviewed_at: currentDate,
+      mentor_feedback: feedback
+    });
+    return this.contractsRepository.findOne({ where: { id } });
+  }
+
+  async adminReviewContract(id: number, approved: boolean, feedback?: string): Promise<Contract> {
+    const status = approved ? 'admin_approved' : 'admin_rejected';
+    const currentDate = new Date().toISOString().split('T')[0];
+    await this.contractsRepository.update(id, {
+      status,
+      admin_reviewed_at: currentDate,
+      admin_feedback: feedback
+    });
+    return this.contractsRepository.findOne({ where: { id } });
+  }
 }

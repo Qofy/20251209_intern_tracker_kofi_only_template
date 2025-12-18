@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
-  import { User, Student, Task, TimeEntry, Project, Message } from '../../entities/all';
+  import { User, Student, Task, TimeEntry, Project, Message, Contract } from '../../entities/all';
+  import { ContractWorkflowService } from '../services/contractWorkflow.js';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
@@ -10,7 +11,8 @@
     FileText, TrendingUp, AlertTriangle, CheckCircle,
     Search, Edit2, Trash2, Mail, Clock, Calendar,
     BarChart3, PieChart, Activity, UserCheck,
-    FolderOpen, GitBranch, MessageSquare, Send
+    FolderOpen, GitBranch, MessageSquare, Send,
+    GraduationCap
   } from 'lucide-svelte';
 
   $: user = $userStore.user;
@@ -92,6 +94,15 @@
   let showReplyDialog = false;
   let replyContent = '';
 
+  // Contract workflow state
+  let allContracts = [];
+  let selectedContract = null;
+  let showContractReviewDialog = false;
+  let contractReviewForm = {
+    approved: true,
+    feedback: ''
+  };
+
   onMount(async () => {
     await loadData();
   });
@@ -105,6 +116,7 @@
       allTasks = await Task.list();
       allTimeEntries = await TimeEntry.list();
       allProjects = await Project.list();
+      allContracts = await Contract.list();
 
       // Load admin messages and reports
       await loadAdminMessages();
@@ -128,7 +140,8 @@
         studentsCount: allStudents.length,
         mentorsCount: allMentors.length,
         studentsData: allStudents,
-        reportsCount: adminReports.length
+        reportsCount: adminReports.length,
+        contractsCount: allContracts.length
       });
     } catch (error) {
       console.error('[Admin Dashboard] Error loading data:', error);
@@ -180,6 +193,73 @@
     } catch (error) {
       return {};
     }
+  }
+
+  // Contract workflow functions
+  async function reviewContract(contract) {
+    selectedContract = contract;
+    contractReviewForm.approved = true;
+    contractReviewForm.feedback = '';
+    showContractReviewDialog = true;
+  }
+
+  async function submitContractReview() {
+    try {
+      if (!contractReviewForm.approved && !contractReviewForm.feedback.trim()) {
+        alert('Please provide feedback for rejection');
+        return;
+      }
+
+      await Contract.adminReview(
+        selectedContract.id, 
+        contractReviewForm.approved, 
+        contractReviewForm.feedback
+      );
+
+      // Send notifications via workflow service
+      await ContractWorkflowService.notifyMentorOfAdminDecision(
+        selectedContract,
+        user?.email,
+        contractReviewForm.approved,
+        contractReviewForm.feedback
+      );
+
+      if (contractReviewForm.approved) {
+        await ContractWorkflowService.notifyStudentOfFinalDecision(
+          selectedContract,
+          true,
+          selectedContract.mentor_email,
+          null
+        );
+      } else {
+        await ContractWorkflowService.notifyStudentOfFinalDecision(
+          selectedContract,
+          false,
+          selectedContract.mentor_email,
+          contractReviewForm.feedback
+        );
+      }
+
+      alert(`Contract ${contractReviewForm.approved ? 'approved' : 'rejected'} successfully!`);
+      showContractReviewDialog = false;
+      selectedContract = null;
+      await loadData();
+    } catch (error) {
+      console.error('[Admin Dashboard] Error reviewing contract:', error);
+      alert('Failed to review contract. Please try again.');
+    }
+  }
+
+  function getContractStatusColor(status) {
+    const colorMap = {
+      'draft': 'text-gray-400',
+      'student_signed': 'text-yellow-400',
+      'mentor_reviewing': 'text-blue-400',
+      'admin_reviewing': 'text-purple-400',
+      'admin_approved': 'text-green-400',
+      'admin_rejected': 'text-red-400'
+    };
+    return colorMap[status] || 'text-gray-400';
   }
 
   async function syncStudentRecords() {
@@ -311,6 +391,41 @@
 
   function getUnassignedStudents() {
     return allStudents.filter(s => !s.mentor_email || s.mentor_email === '');
+  }
+
+  // Contract management functions
+  async function approveContract(contractId, adminNotes = '') {
+    try {
+      const contractWorkflow = new ContractWorkflowService();
+      await contractWorkflow.adminReview(contractId, 'admin_approved', adminNotes, user.email);
+      
+      alert('Contract approved successfully! Mentor and student will be notified.');
+      await loadData();
+    } catch (error) {
+      console.error('Error approving contract:', error);
+      alert('Failed to approve contract: ' + error.message);
+    }
+  }
+
+  async function rejectContract(contractId, adminNotes = '') {
+    const reason = adminNotes || prompt('Please provide a reason for rejecting this contract:');
+    if (!reason) return;
+
+    try {
+      const contractWorkflow = new ContractWorkflowService();
+      await contractWorkflow.adminReview(contractId, 'admin_rejected', reason, user.email);
+      
+      alert('Contract rejected. Mentor and student will be notified with feedback.');
+      await loadData();
+    } catch (error) {
+      console.error('Error rejecting contract:', error);
+      alert('Failed to reject contract: ' + error.message);
+    }
+  }
+
+  function viewContractDetails(contract) {
+    // You can implement a modal or navigation to full contract view
+    alert(`Viewing full contract details for ${contract.full_name}`);
   }
 
   $: filteredUsers = allUsers.filter(u =>
@@ -813,43 +928,154 @@
       </div>
 
     {:else if activeTab === 'applications'}
-      <!-- Applications -->
+      <!-- Applications & Contract Approvals -->
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-white">Internship Applications</h2>
-        <span class="px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-400 font-semibold">
-          5 Pending
-        </span>
+        <h2 class="text-2xl font-bold text-white">Applications & Contract Approvals</h2>
+        <div class="flex gap-2">
+          <span class="px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-400 font-semibold">
+            5 Pending Applications
+          </span>
+          <span class="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-400 font-semibold">
+            {allContracts.filter(c => c.status === 'pending_approval').length} Contracts to Approve
+          </span>
+        </div>
       </div>
 
-      <div class="space-y-4">
-        <div class="bg-white/5 rounded-xl border border-white/20 p-6">
-          <div class="flex items-start justify-between mb-4">
-            <div>
-              <h3 class="text-white font-bold text-lg">Sarah Johnson</h3>
-              <p class="text-white/60 text-sm">sarah.johnson@example.com</p>
-            </div>
-            <span class="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">Pending Review</span>
+      <!-- Contract Approvals Section -->
+      {#if allContracts.filter(c => c.status === 'pending_approval').length > 0}
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <FileText class="w-5 h-5 text-purple-400" />
+            Contracts Awaiting Admin Approval
+          </h3>
+          <div class="space-y-4">
+            {#each allContracts.filter(c => c.status === 'pending_approval') as contract}
+              <div class="bg-purple-500/10 border border-purple-500/30 rounded-xl p-6">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <h4 class="text-white font-bold text-lg">{contract.full_name}</h4>
+                      <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400">
+                        Contract - Pending Admin Approval
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
+                      <div>
+                        <p class="text-white/60">Student Email</p>
+                        <p class="text-white font-medium">{contract.student_email}</p>
+                      </div>
+                      <div>
+                        <p class="text-white/60">Mentor</p>
+                        <p class="text-white font-medium">{contract.mentor_email}</p>
+                      </div>
+                      <div>
+                        <p class="text-white/60">Contract Hours</p>
+                        <p class="text-white font-medium">{contract.contract_hours}h</p>
+                      </div>
+                      <div>
+                        <p class="text-white/60">Department</p>
+                        <p class="text-white font-medium">{contract.department || 'Not specified'}</p>
+                      </div>
+                    </div>
+                    
+                    <!-- Signature Status -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                      {#if contract.student_signature}
+                        <div class="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
+                          <p class="text-green-400 text-sm font-medium">✓ Student Signed: {contract.student_signature}</p>
+                          <p class="text-white/60 text-xs">{contract.student_signature_date}</p>
+                        </div>
+                      {/if}
+                      {#if contract.mentor_signature}
+                        <div class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                          <p class="text-blue-400 text-sm font-medium">✓ Mentor Approved: {contract.mentor_signature}</p>
+                          <p class="text-white/60 text-xs">{contract.mentor_signature_date}</p>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Admin Review Section -->
+                <div class="border-t border-purple-500/30 pt-4">
+                  <h5 class="text-purple-400 font-semibold mb-3 flex items-center gap-2">
+                    <Shield class="w-4 h-4" />
+                    Admin Review Required
+                  </h5>
+                  <div class="mb-4">
+                    <label class="text-white/70 text-sm block mb-2">Admin Notes (Optional)</label>
+                    <textarea
+                      bind:value={contract.adminNotes}
+                      placeholder="Add feedback or notes for this contract approval/rejection..."
+                      class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 h-20 resize-none"
+                    ></textarea>
+                  </div>
+                  <div class="flex gap-3">
+                    <Button
+                      on:click={() => approveContract(contract.id, contract.adminNotes)}
+                      class="bg-green-500 hover:bg-green-600 text-white h-10 px-4 flex items-center rounded-md"
+                    >
+                      <CheckCircle class="w-4 h-4 mr-2" />
+                      Approve Contract
+                    </Button>
+                    <Button
+                      on:click={() => rejectContract(contract.id, contract.adminNotes)}
+                      class="bg-red-500 hover:bg-red-600 text-white h-10 px-4 flex items-center rounded-md"
+                    >
+                      <AlertTriangle class="w-4 h-4 mr-2" />
+                      Reject Contract
+                    </Button>
+                    <Button
+                      on:click={() => viewContractDetails(contract)}
+                      variant="ghost"
+                      class="text-white/70 hover:text-white h-10 px-4 flex items-center rounded-md"
+                    >
+                      View Full Contract
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            {/each}
           </div>
-          <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <p class="text-white/60 text-sm">Applied For</p>
-              <p class="text-white font-medium">Software Engineering Intern</p>
+        </div>
+      {/if}
+
+      <!-- Regular Applications Section -->
+      <div class="mb-4">
+        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <GraduationCap class="w-5 h-5 text-yellow-400" />
+          Internship Applications
+        </h3>
+        <div class="space-y-4">
+          <div class="bg-white/5 rounded-xl border border-white/20 p-6">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h4 class="text-white font-bold text-lg">Sarah Johnson</h4>
+                <p class="text-white/60 text-sm">sarah.johnson@example.com</p>
+              </div>
+              <span class="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">Pending Review</span>
             </div>
-            <div>
-              <p class="text-white/60 text-sm">Applied On</p>
-              <p class="text-white font-medium">Dec 15, 2025</p>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <p class="text-white/60 text-sm">Applied For</p>
+                <p class="text-white font-medium">Software Engineering Intern</p>
+              </div>
+              <div>
+                <p class="text-white/60 text-sm">Applied On</p>
+                <p class="text-white font-medium">Dec 15, 2025</p>
+              </div>
             </div>
-          </div>
-          <div class="flex gap-2">
-            <Button class="bg-green-500 hover:bg-green-600 text-white h-10 px-2 items-center flex rounded-md">
-              <CheckCircle class="w-4 h-4 mr-2" />
-              Approve
-            </Button>
-            <Button class="bg-red-500 hover:bg-red-600 text-white h-10 px-2 items-center flex rounded-md">
-              <AlertTriangle class="w-4 h-4 mr-2" />
-              Reject
-            </Button>
-            <Button variant="ghost" class="text-white/70 hover:text-white h-10 px-2 items-center flex rounded-md">View Application</Button>
+            <div class="flex gap-2">
+              <Button class="bg-green-500 hover:bg-green-600 text-white h-10 px-2 items-center flex rounded-md">
+                <CheckCircle class="w-4 h-4 mr-2" />
+                Approve Application
+              </Button>
+              <Button class="bg-red-500 hover:bg-red-600 text-white h-10 px-2 items-center flex rounded-md">
+                <AlertTriangle class="w-4 h-4 mr-2" />
+                Reject Application
+              </Button>
+              <Button variant="ghost" class="text-white/70 hover:text-white h-10 px-2 items-center flex rounded-md">View Application</Button>
+            </div>
           </div>
         </div>
       </div>
