@@ -20,11 +20,11 @@ import { ContractsModule } from './contracts/contracts.module';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        type: 'sqljs',
-        location: configService.get('DB_DATABASE') || 'intern_tracker.db',
-        autoSave: true,
+        type: 'better-sqlite3',
+        database: configService.get('DB_DATABASE') || 'intern_tracker.db',
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Set to false in production
+        logging: false,
       }),
       inject: [ConfigService],
     }),

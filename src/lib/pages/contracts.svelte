@@ -54,32 +54,118 @@
   let signatureText = '';
   let adminNotes = '';
   let rejectionReason = '';
+  let isEditingDraft = false;
+  let editMentorEmail = '';
+  let editTaskId = null;
+  let showPreviousContracts = false;
+  let previousContracts = [];
+
+  // Computed array to display based on toggle
+  $: displayedContracts = showPreviousContracts ? previousContracts : contracts;
+
+  // Auto-save to localStorage whenever contracts, students, or tasks change
+  $: if (contracts.length > 0 || students.length > 0 || tasks.length > 0 || previousContracts.length > 0) {
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('contracts_cache', JSON.stringify(contracts));
+        localStorage.setItem('students_cache', JSON.stringify(students));
+        localStorage.setItem('tasks_cache', JSON.stringify(tasks));
+        localStorage.setItem('previous_contracts_cache', JSON.stringify(previousContracts));
+      } catch (e) {
+        console.error('[Contracts] Auto-save to localStorage failed:', e);
+      }
+    }
+  }
+
+  function togglePreviousContracts() {
+    showPreviousContracts = !showPreviousContracts;
+  }
 
   onMount(async () => {
+    loadFromLocalStorage();
     await loadData();
   });
+
+  function loadFromLocalStorage() {
+    try {
+      const cachedContracts = localStorage.getItem('contracts_cache');
+      const cachedStudents = localStorage.getItem('students_cache');
+      const cachedTasks = localStorage.getItem('tasks_cache');
+      const cachedPreviousContracts = localStorage.getItem('previous_contracts_cache');
+
+      if (cachedContracts) {
+        contracts = JSON.parse(cachedContracts);
+      }
+      if (cachedStudents) {
+        students = JSON.parse(cachedStudents);
+      }
+      if (cachedTasks) {
+        tasks = JSON.parse(cachedTasks);
+      }
+      if (cachedPreviousContracts) {
+        previousContracts = JSON.parse(cachedPreviousContracts);
+      }
+
+      console.log('[Contracts] Loaded from localStorage:', {
+        contractsCount: contracts.length,
+        studentsCount: students.length,
+        tasksCount: tasks.length,
+        previousContractsCount: previousContracts.length
+      });
+    } catch (error) {
+      console.error('[Contracts] Error loading from localStorage:', error);
+    }
+  }
+
+  function saveToLocalStorage() {
+    try {
+      localStorage.setItem('contracts_cache', JSON.stringify(contracts));
+      localStorage.setItem('students_cache', JSON.stringify(students));
+      localStorage.setItem('tasks_cache', JSON.stringify(tasks));
+      localStorage.setItem('previous_contracts_cache', JSON.stringify(previousContracts));
+      console.log('[Contracts] Saved to localStorage');
+    } catch (error) {
+      console.error('[Contracts] Error saving to localStorage:', error);
+    }
+  }
 
   async function loadData() {
     isLoading = true;
     try {
+      let allUserContracts = [];
+
       if (userRole === 'admin') {
-        contracts = await Contract.list();
+        allUserContracts = await Contract.list();
         students = await Student.list();
         tasks = await Task.list();
       } else if (userRole === 'mentor') {
         const allContracts = await Contract.list();
-        contracts = allContracts.filter(c => c.mentor_email === user?.email);
+        allUserContracts = allContracts.filter(c => c.mentor_email === user?.email);
         const allStudents = await Student.list();
         students = allStudents.filter(s => s.mentor_email === user?.email);
         tasks = await Task.list({ mentor_email: user?.email });
       } else if (userRole === 'student') {
         const allContracts = await Contract.list();
-        contracts = allContracts.filter(c => c.student_email === user?.email);
+        allUserContracts = allContracts.filter(c => c.student_email === user?.email);
       }
+
+      // Separate current and previous contracts
+      // Previous = approved or rejected (final states)
+      // Current = everything else (draft, student_review, mentor_review, pending_approval)
+      previousContracts = allUserContracts.filter(c =>
+        c.status === 'approved' || c.status === 'rejected'
+      );
+      contracts = allUserContracts.filter(c =>
+        c.status !== 'approved' && c.status !== 'rejected'
+      );
+
+      // Save to localStorage after successful load
+      saveToLocalStorage();
 
       console.log('[Contracts] Loaded:', {
         role: userRole,
-        contractsCount: contracts.length,
+        currentContractsCount: contracts.length,
+        previousContractsCount: previousContracts.length,
         studentsCount: students.length
       });
     } catch (error) {
@@ -127,12 +213,13 @@
       console.log('[Contracts] Sending contract data:', contractData);
       const created = await Contract.create(contractData);
       console.log('[Contracts] Contract created successfully:', created);
-      
+
       contracts = [...contracts, created];
+      saveToLocalStorage();
       showCreateModal = false;
       resetForm();
       await loadData();
-      
+
       alert('Contract created successfully!');
     } catch (error) {
       console.error('[Contracts] Error creating contract:', error);
@@ -182,11 +269,12 @@
         signature: signatureText,
         date: new Date().toISOString().split('T')[0]
       });
-      
+
       alert('Contract signed! Sent to mentor for review.');
       signatureText = '';
       showViewModal = false;
       await loadData();
+      saveToLocalStorage();
     } catch (error) {
       console.error('[Contracts] Error signing:', error);
       alert('Failed to sign contract');
@@ -204,11 +292,12 @@
         signature: signatureText,
         date: new Date().toISOString().split('T')[0]
       });
-      
+
       alert('Contract submitted to admin for approval!');
       signatureText = '';
       showViewModal = false;
       await loadData();
+      saveToLocalStorage();
     } catch (error) {
       console.error('[Contracts] Error submitting:', error);
       alert('Failed to submit contract');
@@ -222,6 +311,7 @@
       adminNotes = '';
       showViewModal = false;
       await loadData();
+      saveToLocalStorage();
     } catch (error) {
       console.error('[Contracts] Error approving:', error);
       alert('Failed to approve contract');
@@ -240,18 +330,78 @@
       rejectionReason = '';
       showViewModal = false;
       await loadData();
+      saveToLocalStorage();
     } catch (error) {
       console.error('[Contracts] Error rejecting:', error);
       alert('Failed to reject contract');
     }
   }
 
+  async function sendToStudent(contract) {
+    if (!contract.student_email || !contract.mentor_email) {
+      alert('Please ensure student and mentor are assigned before sending');
+      return;
+    }
+
+    try {
+      await Contract.update(contract.id, { status: 'student_review' });
+      alert('Contract sent to student for review!');
+      showViewModal = false;
+      await loadData();
+      saveToLocalStorage();
+    } catch (error) {
+      console.error('[Contracts] Error sending contract:', error);
+      alert('Failed to send contract');
+    }
+  }
+
+  function startEditingDraft(contract) {
+    isEditingDraft = true;
+    editMentorEmail = contract.mentor_email || '';
+    editTaskId = contract.assigned_task_id || null;
+  }
+
+  async function updateDraftContract(contract) {
+    try {
+      const updates = {
+        mentor_email: editMentorEmail || contract.mentor_email,
+        assigned_task_id: editTaskId || contract.assigned_task_id
+      };
+
+      // Find mentor name from email
+      const allStudents = await Student.list();
+      const mentor = allStudents.find(s => s.mentor_email === editMentorEmail);
+      if (mentor) {
+        // This is a simplified approach - in production you'd fetch mentor details properly
+        updates.mentor_name = editMentorEmail.split('@')[0]; // fallback
+      }
+
+      await Contract.update(contract.id, updates);
+      alert('Contract updated successfully!');
+      isEditingDraft = false;
+      await loadData();
+      saveToLocalStorage();
+      selectedContract = { ...contract, ...updates };
+    } catch (error) {
+      console.error('[Contracts] Error updating contract:', error);
+      alert('Failed to update contract');
+    }
+  }
+
+  function cancelEditingDraft() {
+    isEditingDraft = false;
+    editMentorEmail = '';
+    editTaskId = null;
+  }
+
   async function deleteContract(contractId) {
     if (!confirm('Are you sure you want to delete this contract?')) return;
-    
+
     try {
       await Contract.delete(contractId);
       contracts = contracts.filter(c => c.id !== contractId);
+      saveToLocalStorage();
+      alert('Contract deleted successfully!');
     } catch (error) {
       console.error('[Contracts] Error deleting:', error);
       alert('Failed to delete contract');
@@ -261,6 +411,9 @@
   function viewContract(contract) {
     selectedContract = contract;
     showViewModal = true;
+    isEditingDraft = false;
+    editMentorEmail = '';
+    editTaskId = null;
   }
 
   function resetForm() {
@@ -310,21 +463,7 @@
   }
 
   function previewContract() {
-    // Prepare contract with all necessary data for preview
-    const previewData = {
-      ...newContract,
-      title: newContract.title || 'Internship Contract',
-      paragraphs: newContract.paragraphs || [],
-      student_name: newContract.student_name || 'Student Name',
-      start_date: newContract.start_date || 'TBD',
-      end_date: newContract.end_date || 'TBD',
-      mentor_name: newContract.mentor_name || 'Mentor Name',
-      work_area: newContract.work_area || 'Work Area',
-      work_description: newContract.work_description || 'Work Description',
-      weekly_hours: newContract.weekly_hours || '40',
-      company_name: newContract.company_name || 'Company Name',
-      company_address: newContract.company_address || 'Company Address'
-    };
+    // Show preview modal directly - the ContractPreview component will handle the data
     showPreviewModal = true;
   }
 
@@ -360,13 +499,14 @@
     }
   }
 
-  $: filteredContracts = contracts;
+  $: filteredContracts = displayedContracts;
   $: stats = {
     total: contracts.length,
     draft: contracts.filter(c => c.status === 'draft').length,
     pending: contracts.filter(c => ['student_review', 'mentor_review', 'pending_approval'].includes(c.status)).length,
-    approved: contracts.filter(c => c.status === 'approved').length,
-    rejected: contracts.filter(c => c.status === 'rejected').length
+    previous: previousContracts.length,
+    approved: previousContracts.filter(c => c.status === 'approved').length,
+    rejected: previousContracts.filter(c => c.status === 'rejected').length
   };
 </script>
 
@@ -401,7 +541,7 @@
     <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-4">
       <FileText class="w-6 h-6 text-white/60 mb-2" />
       <p class="text-2xl font-bold text-white">{stats.total}</p>
-      <p class="text-white/60 text-sm">Total</p>
+      <p class="text-white/60 text-sm">Current</p>
     </div>
     <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-4">
       <Edit class="w-6 h-6 text-gray-400 mb-2" />
@@ -427,18 +567,31 @@
 
   <!-- Contracts List -->
   <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6">
-    <h2 class="text-2xl font-bold text-white mb-6">Contracts</h2>
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold text-white">
+        {showPreviousContracts ? 'Previous Contracts' : 'Current Contracts'}
+      </h2>
+      <Button
+        on:click={togglePreviousContracts}
+        class="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2 h-10 px-4 rounded-md"
+      >
+        <FileText class="w-4 h-4" />
+        {showPreviousContracts ? `View Current (${contracts.length})` : `View Previous (${previousContracts.length})`}
+      </Button>
+    </div>
 
     {#if isLoading}
       <div class="text-center py-12">
         <Clock class="w-12 h-12 text-white/50 mx-auto animate-spin mb-4" />
         <p class="text-white/70">Loading contracts...</p>
       </div>
-    {:else if contracts.length === 0}
+    {:else if displayedContracts.length === 0}
       <div class="text-center py-12">
         <FileText class="w-16 h-16 text-white/30 mx-auto mb-4" />
-        <p class="text-white/70 mb-2">No contracts yet</p>
-        {#if userRole === 'mentor' || userRole === 'admin'}
+        <p class="text-white/70 mb-2">
+          {showPreviousContracts ? 'No previous contracts' : 'No current contracts'}
+        </p>
+        {#if !showPreviousContracts && (userRole === 'mentor' || userRole === 'admin')}
           <Button
             on:click={() => showCreateModal = true}
             class="mt-4 bg-green-500 hover:bg-green-600 text-white h-10 px-4 rounded-md"
@@ -516,55 +669,55 @@
 {#if showCreateModal}
   <Dialog bind:open={showCreateModal}>
     <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div class="bg-gray-900 rounded-xl border border-white/20 p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl border border-white/30 shadow-2xl p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto">
         <h2 class="text-2xl font-bold text-white mb-6">Create New Contract</h2>
 
         <div class="space-y-4">
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-white/70 text-sm block mb-2">Contract Title *</label>
+              <label class="text-white text-sm font-medium block mb-2">Contract Title *</label>
               <Input
                 bind:value={newContract.title}
                 placeholder="e.g., Software Engineering Internship"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
             <div>
-              <label class="text-white/70 text-sm block mb-2">Contract Hours *</label>
+              <label class="text-white text-sm font-medium block mb-2">Contract Hours *</label>
               <Input
                 bind:value={newContract.contract_hours}
                 type="number"
                 placeholder="600"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
           </div>
 
           <div>
-            <label class="text-white/70 text-sm block mb-2">Description</label>
+            <label class="text-white text-sm font-medium block mb-2">Description</label>
             <textarea
               bind:value={newContract.description}
               rows="2"
               placeholder="Brief description of the internship..."
-              class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+              class="w-full bg-white/10 border border-white/30 rounded-lg p-3 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-white/70 text-sm block mb-2">Student Email *</label>
+              <label class="text-white text-sm font-medium block mb-2">Student Email *</label>
               {#if userRole === 'admin'}
                 <Input
                   bind:value={newContract.student_email}
                   type="email"
                   placeholder="student@example.com"
-                  class="w-full"
+                  class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
                 />
               {:else}
                 <select
                   bind:value={newContract.student_email}
                   on:change={onStudentSelect}
-                  class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+                  class="w-full bg-white/10 border border-white/30 rounded-lg p-2 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 >
                   <option value="">Select student...</option>
                   {#each students as student}
@@ -576,11 +729,11 @@
               {/if}
             </div>
             <div>
-              <label class="text-white/70 text-sm block mb-2">Student Name *</label>
+              <label class="text-white text-sm font-medium block mb-2">Student Name *</label>
               <Input
                 bind:value={newContract.student_name}
                 placeholder="Student full name"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
           </div>
@@ -588,30 +741,30 @@
           {#if userRole === 'admin'}
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="text-white/70 text-sm block mb-2">Mentor Email</label>
+                <label class="text-white text-sm font-medium block mb-2">Mentor Email</label>
                 <Input
                   bind:value={newContract.mentor_email}
                   type="email"
                   placeholder="mentor@example.com"
-                  class="w-full"
+                  class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
                 />
               </div>
               <div>
-                <label class="text-white/70 text-sm block mb-2">Mentor Name</label>
+                <label class="text-white text-sm font-medium block mb-2">Mentor Name</label>
                 <Input
                   bind:value={newContract.mentor_name}
                   placeholder="Mentor full name"
-                  class="w-full"
+                  class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
                 />
               </div>
             </div>
 
             {#if tasks.length > 0}
               <div>
-                <label class="text-white/70 text-sm block mb-2">Assign Task (Optional)</label>
+                <label class="text-white text-sm font-medium block mb-2">Assign Task (Optional)</label>
                 <select
                   bind:value={newContract.assigned_task_id}
-                  class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+                  class="w-full bg-white/10 border border-white/30 rounded-lg p-2 text-white focus:bg-white/15 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 >
                   <option value={null}>No task</option>
                   {#each tasks as task}
@@ -624,19 +777,19 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-white/70 text-sm block mb-2">Start Date</label>
+              <label class="text-white text-sm font-medium block mb-2">Start Date</label>
               <Input
                 bind:value={newContract.start_date}
                 type="date"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
             <div>
-              <label class="text-white/70 text-sm block mb-2">End Date</label>
+              <label class="text-white text-sm font-medium block mb-2">End Date</label>
               <Input
                 bind:value={newContract.end_date}
                 type="date"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
           </div>
@@ -644,64 +797,64 @@
           <!-- Additional Contract Fields -->
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-white/70 text-sm block mb-2">Work Area</label>
+              <label class="text-white text-sm font-medium block mb-2">Work Area</label>
               <Input
                 bind:value={newContract.work_area}
                 placeholder="e.g., Software Development"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
             <div>
-              <label class="text-white/70 text-sm block mb-2">Weekly Hours</label>
+              <label class="text-white text-sm font-medium block mb-2">Weekly Hours</label>
               <Input
                 bind:value={newContract.weekly_hours}
                 type="number"
                 placeholder="40"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
           </div>
 
           <div>
-            <label class="text-white/70 text-sm block mb-2">Work Description</label>
+            <label class="text-white text-sm font-medium block mb-2">Work Description</label>
             <textarea
               bind:value={newContract.work_description}
               rows="2"
               placeholder="Detailed description of tasks and responsibilities..."
-              class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+              class="w-full bg-white/10 border border-white/30 rounded-lg p-3 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             />
           </div>
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-white/70 text-sm block mb-2">Company Name</label>
+              <label class="text-white text-sm font-medium block mb-2">Company Name</label>
               <Input
                 bind:value={newContract.company_name}
                 placeholder="e.g., Tech Solutions GmbH"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
             <div>
-              <label class="text-white/70 text-sm block mb-2">Company Address</label>
+              <label class="text-white text-sm font-medium block mb-2">Company Address</label>
               <Input
                 bind:value={newContract.company_address}
                 placeholder="Street, City, ZIP"
-                class="w-full"
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
               />
             </div>
           </div>
 
           <!-- Contract Paragraphs -->
-          <div class="border-t border-white/20 pt-6 mt-6">
+          <div class="border-t border-white/30 pt-6 mt-6">
             <div class="flex items-center justify-between mb-4">
               <div>
                 <h3 class="text-xl font-bold text-white">Contract Paragraphs (Bilingual)</h3>
-                <p class="text-white/60 text-sm">Edit German and English versions of each paragraph</p>
+                <p class="text-white/70 text-sm">Edit German and English versions of each paragraph</p>
               </div>
               <Button
                 on:click={() => showPlaceholderGuide = true}
                 variant="outline"
-                class="text-amber-400 border-amber-400/30 hover:bg-amber-400/10"
+                class="text-amber-400 border-amber-400/50 hover:bg-amber-400/20 hover:border-amber-400/70"
               >
                 <HelpCircle class="w-4 h-4 mr-2" />
                 Placeholders
@@ -738,17 +891,17 @@
           </div>
         </div>
 
-        <div class="flex gap-3 mt-6">
+        <div class="flex gap-3 mt-6 pt-4 border-t border-white/20">
           <Button
             on:click={previewContract}
-            class="bg-amber-500 hover:bg-amber-600 text-white h-10 px-4 rounded-md flex items-center"
+            class="bg-amber-500 hover:bg-amber-600 text-white h-10 px-4 rounded-md flex items-center shadow-lg hover:shadow-xl transition-all"
           >
             <Eye class="w-4 h-4 mr-2" />
             Preview
           </Button>
           <Button
             on:click={createContract}
-            class="flex-1 bg-green-500 hover:bg-green-600 text-white h-10 justify-center flex items-center rounded-md"
+            class="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white h-10 justify-center flex items-center rounded-md shadow-lg hover:shadow-xl transition-all"
             disabled={!newContract.title || !newContract.student_email || !newContract.student_name}
           >
             <FilePlus class="w-4 h-4 mr-2" />
@@ -757,7 +910,7 @@
           <Button
             on:click={() => { showCreateModal = false; resetForm(); }}
             variant="ghost"
-            class="text-white/70 hover:text-white"
+            class="text-white hover:text-white hover:bg-white/10"
           >
             Cancel
           </Button>
@@ -859,6 +1012,88 @@
 
         <!-- Actions based on role and status -->
         <div class="space-y-4">
+          {#if userRole === 'admin' && selectedContract.status === 'draft'}
+            <div class="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-4">
+              <h3 class="text-amber-200 font-semibold mb-3">Assign Mentor & Task (Optional)</h3>
+
+              {#if !isEditingDraft}
+                <div class="mb-4 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="text-white/70 text-sm">Assigned Mentor:</span>
+                    <span class="text-white">{selectedContract.mentor_email || 'Not assigned'}</span>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="text-white/70 text-sm">Assigned Task:</span>
+                    <span class="text-white">{selectedContract.assigned_task_id ? `Task #${selectedContract.assigned_task_id}` : 'Not assigned'}</span>
+                  </div>
+                </div>
+                <Button
+                  on:click={() => startEditingDraft(selectedContract)}
+                  class="w-full bg-amber-500 hover:bg-amber-600 text-white h-10 justify-center flex items-center rounded-md"
+                >
+                  <Edit class="w-4 h-4 mr-2" />
+                  Edit Assignments
+                </Button>
+              {:else}
+                <div class="space-y-3 mb-3">
+                  <div>
+                    <label class="text-white/70 text-sm block mb-2">Assign Mentor</label>
+                    <Input
+                      bind:value={editMentorEmail}
+                      type="email"
+                      placeholder="mentor@example.com"
+                      class="w-full bg-white/5 border-white/20 text-white"
+                    />
+                  </div>
+                  {#if tasks.length > 0}
+                    <div>
+                      <label class="text-white/70 text-sm block mb-2">Assign Task (Optional)</label>
+                      <select
+                        bind:value={editTaskId}
+                        class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
+                      >
+                        <option value={null}>No task</option>
+                        {#each tasks as task}
+                          <option value={task.id}>{task.title}</option>
+                        {/each}
+                      </select>
+                    </div>
+                  {/if}
+                </div>
+                <div class="flex gap-2">
+                  <Button
+                    on:click={() => updateDraftContract(selectedContract)}
+                    class="flex-1 bg-green-500 hover:bg-green-600 text-white h-10 justify-center flex items-center rounded-md"
+                  >
+                    Save Changes
+                  </Button>
+                  <Button
+                    on:click={cancelEditingDraft}
+                    variant="ghost"
+                    class="text-white/70 hover:text-white"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              {/if}
+            </div>
+
+            <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
+              <p class="text-green-200 mb-4">Send this contract to the student to start the review process.</p>
+              <Button
+                on:click={() => sendToStudent(selectedContract)}
+                class="w-full bg-green-500 hover:bg-green-600 text-white h-10 justify-center flex items-center rounded-md"
+                disabled={!selectedContract.student_email || !selectedContract.mentor_email}
+              >
+                <Send class="w-4 h-4 mr-2" />
+                Send to Student
+              </Button>
+              {#if !selectedContract.student_email || !selectedContract.mentor_email}
+                <p class="text-yellow-200 text-xs mt-2">⚠️ Please ensure student and mentor are assigned first</p>
+              {/if}
+            </div>
+          {/if}
+
           {#if userRole === 'student' && selectedContract.status === 'student_review'}
             <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
               <p class="text-blue-200 mb-4">Please review and sign this contract</p>
