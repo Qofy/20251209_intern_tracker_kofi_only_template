@@ -189,28 +189,31 @@
   async function provideFeedback() {
     try {
       const entry = timeEntries.find(e => e.id === feedbackForm.entry_id);
-      if (!entry) return;
+      if (!entry) {
+        alert('Entry not found');
+        return;
+      }
 
+      // Only update fields that exist in the database
       await TimeEntry.update(entry.id, {
         status: feedbackForm.status,
-        mentor_comments: feedbackForm.comments,
-        rating: feedbackForm.rating,
-        reviewed_by: user?.email,
-        reviewed_at: new Date().toISOString()
+        mentor_comments: feedbackForm.comments
       });
 
       timeEntries = timeEntries.map(e => 
         e.id === entry.id 
-          ? { ...e, status: feedbackForm.status, mentor_comments: feedbackForm.comments, rating: feedbackForm.rating }
+          ? { ...e, status: feedbackForm.status, mentor_comments: feedbackForm.comments }
           : e
       );
 
       showFeedbackDialog = false;
       resetFeedbackForm();
       await loadMentorData();
+      alert('Feedback provided successfully!');
       console.log('[Mentor] Provided feedback for entry:', entry.id);
     } catch (error) {
       console.error('[Mentor] Error providing feedback:', error);
+      alert('Failed to provide feedback: ' + (error.message || 'Unknown error'));
     }
   }
 
