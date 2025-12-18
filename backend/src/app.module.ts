@@ -7,6 +7,7 @@ import { StudentsModule } from './students/students.module';
 import { TimeEntriesModule } from './time-entries/time-entries.module';
 import { TasksModule } from './tasks/tasks.module';
 import { SchedulesModule } from './schedules/schedules.module';
+import { MessagesModule } from './messages/messages.module';
 import { LlmModule } from './llm/llm.module';
 import { CompaniesModule } from './companies/companies.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -34,6 +35,7 @@ import { ContractsModule } from './contracts/contracts.module';
     TimeEntriesModule,
     TasksModule,
     SchedulesModule,
+    MessagesModule,
     LlmModule,
     CompaniesModule,
     ProjectsModule,

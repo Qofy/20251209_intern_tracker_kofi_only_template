@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { Student, Task, TimeEntry, User } from '../../entities/all';
+  import { Student, Task, TimeEntry, User, Message } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
@@ -19,14 +19,16 @@
   export let initialTab = 'students';
 
   // State variables
-  let activeTab = initialTab; // students, tasks, submissions, reports, profile
+  let activeTab = initialTab; // students, tasks, submissions, messages, reports, profile
 
   // Update activeTab when initialTab changes
   $: activeTab = initialTab;
   let assignedStudents = [];
   let tasks = [];
   let timeEntries = [];
+  let messages = [];
   let selectedStudent = null;
+  let selectedConversation = null;
   let isLoading = false;
 
   // Dialog states
@@ -108,6 +110,9 @@
         return assignedStudents.some(s => s.student_email === e.created_by);
       });
 
+      // Load messages for this mentor
+      await loadMessages();
+
       // Calculate stats
       stats.totalStudents = assignedStudents.length;
       stats.pendingSubmissions = timeEntries.filter(e => e.status === 'draft').length;
@@ -125,12 +130,92 @@
         students: assignedStudents.length,
         tasks: tasks.length,
         entries: timeEntries.length,
+        messages: messages.length,
         mentorEmail: user?.email
       });
     } catch (error) {
       console.error('[Mentor] Error loading data:', error);
     }
     isLoading = false;
+  }
+
+  async function loadMessages() {
+    try {
+      messages = await Message.getMentorMessages();
+      console.log('[Mentor] Loaded messages:', messages.length);
+      console.log('[Mentor] Messages:', messages);
+      console.log('[Mentor] User email:', user?.email);
+      
+      // Debug: Show all to_email addresses in messages
+      messages.forEach((msg, index) => {
+        console.log(`[Mentor] Message ${index}: from="${msg.from_email}" to="${msg.to_email}" role="${msg.to_role}"`);
+      });
+      
+      const messagesToMentor = messages.filter(m => m.to_email === user?.email);
+      console.log('[Mentor] Messages to mentor:', messagesToMentor);
+    } catch (error) {
+      console.error('[Mentor] Error loading messages:', error);
+    }
+  }
+
+  function getConversationPreview(studentEmail) {
+    // Get all messages in conversation with this student (both directions)
+    const studentMessages = messages.filter(m => 
+      (m.from_email === studentEmail && m.to_email === user?.email) || 
+      (m.from_email === user?.email && m.to_email === studentEmail)
+    );
+    if (studentMessages.length === 0) return null;
+    
+    const latestMessage = studentMessages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    return {
+      ...latestMessage,
+      unreadCount: studentMessages.filter(m => !m.is_read && m.to_email === user?.email).length
+    };
+  }
+
+  async function viewConversation(studentEmail) {
+    try {
+      selectedConversation = await Message.getConversation(studentEmail);
+      // Mark messages as read
+      const unreadMessages = selectedConversation.filter(m => !m.is_read && m.to_email === user?.email);
+      for (const msg of unreadMessages) {
+        await Message.markAsRead(msg.id);
+      }
+      await loadMessages(); // Refresh the message list
+    } catch (error) {
+      console.error('[Mentor] Error loading conversation:', error);
+    }
+  }
+
+  async function replyToMessage() {
+    try {
+      if (!messageForm.to_student || !messageForm.subject || !messageForm.message) {
+        alert('Please fill in all fields');
+        return;
+      }
+
+      await Message.send({
+        to_email: messageForm.to_student,
+        to_role: 'Student',
+        subject: messageForm.subject,
+        content: messageForm.message,
+        student_id: assignedStudents.find(s => s.student_email === messageForm.to_student)?.id,
+        mentor_email: user?.email
+      });
+
+      alert('Reply sent successfully!');
+      showMessageDialog = false;
+      resetMessageForm();
+      await loadMessages();
+      
+      // Refresh conversation if viewing one
+      if (selectedConversation && selectedConversation.length > 0) {
+        await viewConversation(messageForm.to_student);
+      }
+    } catch (error) {
+      console.error('[Mentor] Error sending reply:', error);
+      alert('Failed to send reply. Please try again.');
+    }
   }
 
   // Task Management
@@ -273,11 +358,7 @@
   }
 
   async function sendMessage() {
-    console.log('[Mentor] Sending message:', messageForm);
-    // TODO: Implement messaging system
-    alert('Message sent! (Messaging system to be implemented)');
-    showMessageDialog = false;
-    resetMessageForm();
+    await replyToMessage();
   }
 
   // Progress Reports
@@ -817,6 +898,136 @@
             Create Detailed Report
           </Button>
         </div>
+
+      {:else if activeTab === 'messages'}
+        <!-- Messages Management -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-white">Student Messages</h2>
+            <p class="text-white/70">
+              {messages.filter(m => !m.is_read && m.to_email === user?.email).length} unread messages | 
+              Total: {messages.length} messages | 
+              To mentor: {messages.filter(m => m.to_email === user?.email).length}
+            </p>
+          </div>
+          <Button
+            on:click={loadMessages}
+            class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 rounded-md flex items-center"
+            disabled={isLoading}
+          >
+            <RefreshCw class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+            {isLoading ? 'Refreshing...' : 'Refresh Messages'}
+          </Button>
+        </div>
+
+        {#if selectedConversation}
+          <!-- Conversation View -->
+          <div class="bg-white/5 rounded-xl border border-white/20 p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-bold text-white">
+                Conversation with {getStudentName(selectedConversation[0]?.from_email || selectedConversation[0]?.to_email)}
+              </h3>
+              <Button
+                on:click={() => selectedConversation = null}
+                variant="ghost"
+                class="text-white/70 hover:text-white"
+              >
+                <X class="w-4 h-4" />
+              </Button>
+            </div>
+
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+              {#each selectedConversation as msg}
+                <div class="p-4 rounded-lg {msg.from_email === user?.email ? 'bg-blue-500/20 ml-8' : 'bg-white/10 mr-8'}">
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="text-white font-semibold text-sm">
+                      {msg.from_email === user?.email ? 'You' : getStudentName(msg.from_email)}
+                    </span>
+                    <span class="text-white/50 text-xs">
+                      {format(parseISO(msg.created_at), 'MMM d, yyyy h:mm a')}
+                    </span>
+                  </div>
+                  <p class="text-white/80 font-semibold text-sm mb-2">{msg.subject}</p>
+                  <p class="text-white/70 text-sm">{msg.content}</p>
+                </div>
+              {/each}
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-white/20">
+              <Button
+                on:click={() => {
+                  messageForm.to_student = selectedConversation.find(m => m.from_email !== user?.email)?.from_email || selectedConversation.find(m => m.to_email !== user?.email)?.to_email;
+                  messageForm.subject = 'Re: ' + (selectedConversation[0]?.subject || 'Message');
+                  showMessageDialog = true;
+                }}
+                class="bg-green-500 hover:bg-green-600 text-white h-10 px-4 rounded-md flex items-center"
+              >
+                <Send class="w-4 h-4 mr-2" />
+                Reply to Message
+              </Button>
+            </div>
+          </div>
+        {:else}
+          <!-- Message List -->
+          {#if messages.length === 0}
+            <div class="text-center py-12 bg-white/5 rounded-xl">
+              <MessageSquare class="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <p class="text-white/70">No messages yet</p>
+              <p class="text-white/50 text-sm mt-2">Messages from your students will appear here</p>
+            </div>
+          {:else}
+            <div class="space-y-4">
+              {#each messages as message}
+                <div class="bg-white/5 rounded-xl border border-white/20 p-6 hover:bg-white/10 transition-all">
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                          <UserIcon class="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <h3 class="text-white font-semibold">{getStudentName(message.from_email)}</h3>
+                          <p class="text-white/50 text-sm">{message.from_email} → {message.to_email}</p>
+                          <p class="text-white/40 text-xs">Roles: {message.from_role} → {message.to_role}</p>
+                        </div>
+                      </div>
+                      <div class="ml-13">
+                        <p class="text-white/80 font-medium text-sm mb-1">{message.subject}</p>
+                        <p class="text-white/60 text-sm line-clamp-3">{message.content}</p>
+                        <p class="text-white/40 text-xs mt-2">
+                          {format(parseISO(message.created_at), 'MMM d, yyyy h:mm a')}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                      <Button
+                        on:click={() => {
+                          messageForm.to_student = message.from_email;
+                          messageForm.subject = 'Re: ' + (message.subject || 'Message');
+                          showMessageDialog = true;
+                        }}
+                        class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 text-xs"
+                      >
+                        <Send class="w-3 h-3 mr-1" />
+                        Reply
+                      </Button>
+                      <Button
+                        on:click={() => viewConversation(message.from_email)}
+                        variant="ghost"
+                        class="text-white/70 hover:text-white px-3 py-1 text-xs"
+                      >
+                        View Thread
+                      </Button>
+                      {#if !message.is_read}
+                        <span class="px-2 py-1 rounded-full text-xs bg-red-500 text-white">New</span>
+                      {/if}
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
+        {/if}
 
       {:else if activeTab === 'profile'}
         <!-- Mentor Profile -->

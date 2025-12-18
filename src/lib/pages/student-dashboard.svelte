@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { Task, TimeEntry, Student, Schedule } from '../../entities/all';
+  import { Task, TimeEntry, Student, Schedule, Message, User } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
@@ -30,7 +30,10 @@
   let mySubmissions = [];
   let mySchedule = [];
   let myFeedback = [];
+  let mentorInfo = null;
+  let messages = [];
   let isLoading = false;
+  let isLoadingMessages = false;
 
   // Modal states
   let showSubmitWorkModal = false;
@@ -76,7 +79,20 @@
 
   onMount(async () => {
     await loadStudentData();
+    await loadMessages();
   });
+
+  async function loadMessages() {
+    isLoadingMessages = true;
+    try {
+      messages = await Message.getStudentMessages();
+      console.log('[Student Dashboard] Loaded messages:', messages.length);
+    } catch (error) {
+      console.error('[Student Dashboard] Error loading messages:', error);
+      messages = [];
+    }
+    isLoadingMessages = false;
+  }
 
   async function loadStudentData() {
     isLoading = true;
@@ -85,6 +101,54 @@
       const allStudents = await Student.list();
       const studentRecord = allStudents.find(s => s.student_email === user?.email);
       console.log('[Student Dashboard] Student record found:', studentRecord);
+
+      // Load mentor information if student has mentor assigned
+      if (studentRecord?.mentor_email) {
+        try {
+          const allUsers = await User.list();
+          console.log('[Student Dashboard] All users:', allUsers);
+          console.log('[Student Dashboard] Looking for mentor:', studentRecord.mentor_email);
+          
+          mentorInfo = allUsers.find(u => u.email === studentRecord.mentor_email);
+          if (!mentorInfo) {
+            // If mentor not found, let's see what mentors exist
+            const mentors = allUsers.filter(u => u.role && u.role.toLowerCase().includes('mentor'));
+            console.log('[Student Dashboard] Available mentors:', mentors);
+            
+            // If there's only one mentor, use that one
+            if (mentors.length === 1) {
+              console.log('[Student Dashboard] Using the only available mentor:', mentors[0].email);
+              mentorInfo = mentors[0];
+              // Update the student record to use the correct mentor
+              studentRecord.mentor_email = mentors[0].email;
+            } else {
+              // Create a basic info object
+              mentorInfo = {
+                email: studentRecord.mentor_email,
+                full_name: studentRecord.mentor_email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                role: 'mentor'
+              };
+            }
+          }
+          console.log('[Student Dashboard] Mentor info loaded:', mentorInfo);
+        } catch (error) {
+          console.error('Error loading mentor info:', error);
+          mentorInfo = {
+            email: studentRecord.mentor_email,
+            full_name: 'Mentor',
+            role: 'mentor'
+          };
+        }
+        
+        // Update selectedStudent to use the correct mentor email and info
+        selectedStudent = {
+          ...studentRecord,
+          mentor_email: mentorInfo.email
+        };
+        
+        // Update the userStore using the proper method
+        userStore.setSelectedStudent(selectedStudent);
+      }
 
       // Load tasks assigned to this student using student_id
       const allTasks = await Task.list();
@@ -200,10 +264,35 @@
   }
 
   async function sendMessage() {
-    console.log('[Student] Sending message:', messageForm);
-    alert('Message sent to mentor! (Messaging system to be implemented)');
-    showMessageModal = false;
-    messageForm = { subject: '', message: '' };
+    try {
+      console.log('[Student] Sending message:', messageForm);
+      console.log('[Student] Selected student record:', selectedStudent);
+      console.log('[Student] Mentor email from selectedStudent:', selectedStudent?.mentor_email);
+      
+      if (!selectedStudent?.mentor_email) {
+        alert('No mentor assigned. Please contact your admin.');
+        return;
+      }
+
+      await Message.send({
+        to_email: selectedStudent.mentor_email,
+        to_role: 'Mentor',
+        subject: messageForm.subject,
+        content: messageForm.message,
+        student_id: selectedStudent.id,
+        mentor_email: selectedStudent.mentor_email
+      });
+
+      console.log('[Student] Message sent to:', selectedStudent.mentor_email);
+
+      alert('Message sent to mentor successfully!');
+      showMessageModal = false;
+      messageForm = { subject: '', message: '' };
+      await loadMessages(); // Reload messages to show sent message
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Failed to send message. Please try again.');
+    }
   }
 
   // Time tracking functions
@@ -764,7 +853,25 @@
             <UserIcon class="w-5 h-5 text-blue-400" />
             Your Mentor
           </h3>
-          {#if selectedStudent?.mentor_email}
+          {#if mentorInfo}
+            <div class="space-y-3">
+              <div>
+                <p class="text-white/70 text-sm">Name</p>
+                <p class="text-white font-medium">{mentorInfo.full_name || mentorInfo.email}</p>
+              </div>
+              <div>
+                <p class="text-white/70 text-sm">Email</p>
+                <p class="text-white/80 text-sm">{mentorInfo.email}</p>
+              </div>
+              <Button
+                on:click={() => showMessageModal = true}
+                class="w-full bg-blue-500 hover:bg-blue-600 text-white mt-4 h-10 rounded-md px-2 flex items-center justify-center"
+              >
+                <Mail class="w-4 h-4 mr-2" />
+                Send Message
+              </Button>
+            </div>
+          {:else if selectedStudent?.mentor_email}
             <div class="space-y-3">
               <div>
                 <p class="text-white/70 text-sm">Name</p>
@@ -809,12 +916,61 @@
         </div>
       </div>
 
-      <!-- Message History (placeholder) -->
+      <!-- Message History -->
       <div class="mt-6 bg-white/5 rounded-xl border border-white/20 p-6">
-        <h3 class="text-white font-bold mb-4">Message History</h3>
-        <p class="text-white/50 text-sm text-center py-8">
-          Messaging system coming soon. You'll be able to view your conversation history here.
-        </p>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-white font-bold">Message History</h3>
+          <Button
+            on:click={loadMessages}
+            variant="ghost"
+            class="text-white/70 hover:text-white"
+            disabled={isLoadingMessages}
+          >
+            <RefreshCw class="w-4 h-4 mr-2 {isLoadingMessages ? 'animate-spin' : ''}" />
+            {isLoadingMessages ? 'Loading...' : 'Refresh'}
+          </Button>
+        </div>
+
+        {#if isLoadingMessages}
+          <div class="text-center py-8">
+            <div class="animate-spin w-8 h-8 border-2 border-white/20 border-t-white rounded-full mx-auto mb-4"></div>
+            <p class="text-white/60">Loading messages...</p>
+          </div>
+        {:else if messages.length === 0}
+          <div class="text-center py-8">
+            <MessageSquare class="w-12 h-12 text-white/30 mx-auto mb-4" />
+            <p class="text-white/50 text-sm">No messages yet</p>
+            <p class="text-white/40 text-xs mt-2">Your conversation with your mentor will appear here</p>
+          </div>
+        {:else}
+          <div class="space-y-4 max-h-80 overflow-y-auto">
+            {#each messages as message}
+              <div class="bg-white/5 rounded-lg border border-white/10 p-4">
+                <div class="flex items-start justify-between mb-2">
+                  <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center">
+                      <UserIcon class="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <p class="text-white font-medium text-sm">
+                        {message.from_email === user?.email ? 'You' : (mentorInfo?.full_name || 'Mentor')}
+                      </p>
+                      <p class="text-white/50 text-xs">
+                        {format(parseISO(message.created_at), 'MMM d, yyyy h:mm a')}
+                      </p>
+                    </div>
+                  </div>
+                  {#if !message.is_read && message.to_email === user?.email}
+                    <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded-full">New</span>
+                  {/if}
+                </div>
+                
+                <h4 class="text-white font-semibold text-sm mb-2">{message.subject}</h4>
+                <p class="text-white/80 text-sm leading-relaxed">{message.content}</p>
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
 
     {:else if activeTab === 'profile'}

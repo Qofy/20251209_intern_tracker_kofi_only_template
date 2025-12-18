@@ -390,6 +390,48 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Message methods
+  async sendMessage(messageData) {
+    return this.request('/api/messages', {
+      method: 'POST',
+      body: JSON.stringify(messageData),
+    });
+  }
+
+  async getMentorMessages() {
+    return this.request('/api/messages/mentor');
+  }
+
+  async getStudentMessages() {
+    return this.request('/api/messages/student');
+  }
+
+  async getConversation(otherEmail) {
+    return this.request(`/api/messages/conversation/${encodeURIComponent(otherEmail)}`);
+  }
+
+  async markMessageAsRead(messageId) {
+    return this.request(`/api/messages/${messageId}/read`, {
+      method: 'PUT',
+    });
+  }
+
+  async markAllMessagesAsRead() {
+    return this.request('/api/messages/mark-all-read', {
+      method: 'PUT',
+    });
+  }
+
+  async getUnreadMessageCount() {
+    return this.request('/api/messages/unread-count');
+  }
+
+  async deleteMessage(messageId) {
+    return this.request(`/api/messages/${messageId}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create singleton instance
