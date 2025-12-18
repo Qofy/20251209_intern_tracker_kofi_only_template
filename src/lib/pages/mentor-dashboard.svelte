@@ -34,6 +34,7 @@
   let showFeedbackDialog = false;
   let showReportDialog = false;
   let showMessageDialog = false;
+  let showTimeEntryDialog = false;
 
   // Form data
   let taskForm = {
@@ -64,6 +65,18 @@
     to_student: '',
     subject: '',
     message: ''
+  };
+
+  let timeEntryForm = {
+    student_id: '',
+    date: format(new Date(), 'yyyy-MM-dd'),
+    start_time: '',
+    end_time: '',
+    break_start: '',
+    break_end: '',
+    manually_inputted_hours: 0,
+    notes: '',
+    status: 'draft'
   };
 
   // Stats
@@ -262,6 +275,30 @@
     resetReportForm();
   }
 
+  async function createTimeEntry() {
+    try {
+      if (!timeEntryForm.student_id) {
+        alert('Please select a student');
+        return;
+      }
+
+      const timeEntryData = {
+        ...timeEntryForm,
+        created_by: user?.email,
+        created_at: new Date().toISOString()
+      };
+
+      await TimeEntry.create(timeEntryData);
+      alert('Time entry created successfully!');
+      showTimeEntryDialog = false;
+      resetTimeEntryForm();
+      await loadMentorData();
+    } catch (error) {
+      console.error('Error creating time entry:', error);
+      alert('Failed to create time entry');
+    }
+  }
+
   // Form helpers
   function resetTaskForm() {
     taskForm = {
@@ -298,6 +335,20 @@
       to_student: '',
       subject: '',
       message: ''
+    };
+  }
+
+  function resetTimeEntryForm() {
+    timeEntryForm = {
+      student_id: '',
+      date: format(new Date(), 'yyyy-MM-dd'),
+      start_time: '',
+      end_time: '',
+      break_start: '',
+      break_end: '',
+      manually_inputted_hours: 0,
+      notes: '',
+      status: 'draft'
     };
   }
 
@@ -527,6 +578,13 @@
             >
               <Plus class="w-4 h-4 mr-2" />
               Create Task
+            </Button>
+            <Button 
+              on:click={() => showTimeEntryDialog = true}
+              class="bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md px-4 flex items-center"
+            >
+              <Clock class="w-4 h-4 mr-2" />
+              Add Time Entry
             </Button>
           </div>
         </div>
@@ -900,6 +958,90 @@
             class="text-white/70 hover:text-white"
           >
             Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  </Dialog>
+{/if}
+
+<!-- Time Entry Dialog -->
+{#if showTimeEntryDialog}
+  <Dialog bind:open={showTimeEntryDialog}>
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h2 class="text-2xl font-bold text-white mb-6">Add Time Entry</h2>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Student</label>
+            <select 
+              bind:value={timeEntryForm.student_id} 
+              class="w-full p-3 bg-white/5 border border-white/20 rounded-lg text-white"
+            >
+              <option value="">Select a student</option>
+              {#each assignedStudents as student}
+                <option value={student.id}>{student.full_name} ({student.student_email})</option>
+              {/each}
+            </select>
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Date</label>
+            <Input bind:value={timeEntryForm.date} type="date" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-white/70 text-sm block mb-2">Start Time</label>
+              <Input bind:value={timeEntryForm.start_time} type="time" />
+            </div>
+            <div>
+              <label class="text-white/70 text-sm block mb-2">End Time</label>
+              <Input bind:value={timeEntryForm.end_time} type="time" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="text-white/70 text-sm block mb-2">Break Start</label>
+              <Input bind:value={timeEntryForm.break_start} type="time" />
+            </div>
+            <div>
+              <label class="text-white/70 text-sm block mb-2">Break End</label>
+              <Input bind:value={timeEntryForm.break_end} type="time" />
+            </div>
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Manual Hours</label>
+            <Input bind:value={timeEntryForm.manually_inputted_hours} type="number" step="0.25" min="0" />
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Notes</label>
+            <textarea 
+              bind:value={timeEntryForm.notes}
+              placeholder="Additional notes about the work session..."
+              class="w-full p-3 bg-white/5 border border-white/20 rounded-lg text-white min-h-[100px] resize-none"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 mt-6">
+          <Button 
+            on:click={() => { showTimeEntryDialog = false; resetTimeEntryForm(); }}
+            variant="outline" 
+            class="text-white border-white/20"
+          >
+            Cancel
+          </Button>
+          <Button 
+            on:click={createTimeEntry}
+            class="bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            <Clock class="w-4 h-4 mr-2" />
+            Add Time Entry
           </Button>
         </div>
       </div>

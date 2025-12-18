@@ -36,6 +36,7 @@
   let showSubmitWorkModal = false;
   let showMessageModal = false;
   let showResourceModal = false;
+  let showTimeTrackerModal = false;
 
   // Form data
   let submitWorkForm = {
@@ -48,6 +49,17 @@
   let messageForm = {
     subject: '',
     message: ''
+  };
+
+  // Time tracking state
+  let timeTracker = {
+    isWorking: false,
+    startTime: null,
+    endTime: null,
+    breakStart: null,
+    breakEnd: null,
+    isOnBreak: false,
+    currentSession: null
   };
 
   // Stats
@@ -165,6 +177,102 @@
     messageForm = { subject: '', message: '' };
   }
 
+  // Time tracking functions
+  async function startWork() {
+    try {
+      const now = new Date();
+      timeTracker.isWorking = true;
+      timeTracker.startTime = now.toISOString();
+      timeTracker.endTime = null;
+      
+      // Find student record
+      const allStudents = await Student.list();
+      const studentRecord = allStudents.find(s => s.student_email === user?.email);
+      
+      if (studentRecord) {
+        // Create a new time entry session
+        const sessionData = {
+          student_id: studentRecord.id,
+          date: format(now, 'yyyy-MM-dd'),
+          start_time: format(now, 'HH:mm'),
+          status: 'draft',
+          created_by: user?.email,
+          created_at: now.toISOString()
+        };
+        
+        const session = await TimeEntry.create(sessionData);
+        timeTracker.currentSession = session;
+        
+        alert('Work session started!');
+      }
+    } catch (error) {
+      console.error('Error starting work session:', error);
+      alert('Failed to start work session');
+    }
+  }
+
+  async function endWork() {
+    try {
+      if (!timeTracker.currentSession) {
+        alert('No active session found');
+        return;
+      }
+
+      const now = new Date();
+      timeTracker.isWorking = false;
+      timeTracker.endTime = now.toISOString();
+      
+      // Update the current session with end time
+      const updatedData = {
+        end_time: format(now, 'HH:mm'),
+        break_start: timeTracker.breakStart ? format(new Date(timeTracker.breakStart), 'HH:mm') : null,
+        break_end: timeTracker.breakEnd ? format(new Date(timeTracker.breakEnd), 'HH:mm') : null,
+        status: 'submitted'
+      };
+      
+      await TimeEntry.update(timeTracker.currentSession.id, updatedData);
+      
+      // Reset tracker
+      timeTracker = {
+        isWorking: false,
+        startTime: null,
+        endTime: null,
+        breakStart: null,
+        breakEnd: null,
+        isOnBreak: false,
+        currentSession: null
+      };
+      
+      alert('Work session ended and submitted!');
+      await loadStudentData();
+    } catch (error) {
+      console.error('Error ending work session:', error);
+      alert('Failed to end work session');
+    }
+  }
+
+  async function startBreak() {
+    if (!timeTracker.isWorking) {
+      alert('Start work session first');
+      return;
+    }
+    
+    timeTracker.isOnBreak = true;
+    timeTracker.breakStart = new Date().toISOString();
+    alert('Break started');
+  }
+
+  async function endBreak() {
+    if (!timeTracker.isOnBreak) {
+      alert('No active break to end');
+      return;
+    }
+    
+    timeTracker.isOnBreak = false;
+    timeTracker.breakEnd = new Date().toISOString();
+    alert('Break ended');
+  }
+
   function getTaskPriorityColor(priority) {
     switch (priority) {
       case 'high': return 'bg-red-500/20 text-red-400';
@@ -239,14 +347,50 @@
           <h2 class="text-2xl font-bold text-white">My Tasks & Projects</h2>
           <span class="text-white/70">{stats.completedTasks} of {stats.totalTasks} completed</span>
         </div>
-        <Button
-          on:click={loadStudentData}
-          class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 rounded-md flex items-center"
-          disabled={isLoading}
-        >
-          <RefreshCw class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
-          {isLoading ? 'Refreshing...' : 'Reload Tasks'}
-        </Button>
+        <div class="flex gap-2">
+          {#if timeTracker.isWorking}
+            <Button
+              on:click={endWork}
+              class="bg-red-500 hover:bg-red-600 text-white h-10 px-4 rounded-md flex items-center"
+            >
+              <Clock class="w-4 h-4 mr-2" />
+              End Work
+            </Button>
+            {#if timeTracker.isOnBreak}
+              <Button
+                on:click={endBreak}
+                class="bg-yellow-500 hover:bg-yellow-600 text-white h-10 px-4 rounded-md flex items-center"
+              >
+                <Clock class="w-4 h-4 mr-2" />
+                End Break
+              </Button>
+            {:else}
+              <Button
+                on:click={startBreak}
+                class="bg-yellow-500 hover:bg-yellow-600 text-white h-10 px-4 rounded-md flex items-center"
+              >
+                <Clock class="w-4 h-4 mr-2" />
+                Start Break
+              </Button>
+            {/if}
+          {:else}
+            <Button
+              on:click={startWork}
+              class="bg-green-500 hover:bg-green-600 text-white h-10 px-4 rounded-md flex items-center"
+            >
+              <Clock class="w-4 h-4 mr-2" />
+              Start Work
+            </Button>
+          {/if}
+          <Button
+            on:click={loadStudentData}
+            class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 rounded-md flex items-center"
+            disabled={isLoading}
+          >
+            <RefreshCw class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+            {isLoading ? 'Refreshing...' : 'Reload Tasks'}
+          </Button>
+        </div>
       </div>
 
       {#if isLoading}
