@@ -32,6 +32,15 @@ export class Task {
   @Column({ nullable: true })
   company_id: number;
 
+  @Column({ type: 'decimal', precision: 5, scale: 2, default: 0 })
+  hours_worked: number;
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  estimated_hours: number;
+
+  @Column({ type: 'int', default: 0 })
+  progress_percentage: number;
+
   @CreateDateColumn()
   created_at: Date;
 

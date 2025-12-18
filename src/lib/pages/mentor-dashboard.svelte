@@ -43,7 +43,8 @@
     assigned_to: '',
     due_date: '',
     priority: 'medium',
-    status: 'assigned'
+    status: 'assigned',
+    estimated_hours: 8
   };
 
   let feedbackForm = {
@@ -320,7 +321,8 @@
       assigned_to: '',
       due_date: '',
       priority: 'medium',
-      status: 'assigned'
+      status: 'assigned',
+      estimated_hours: 8
     };
   }
 
@@ -629,9 +631,19 @@
                       </span>
                     </div>
                     <p class="text-white/70 text-sm mb-2">{task.description}</p>
-                    <div class="flex items-center gap-4 text-xs text-white/50">
+                    <div class="flex items-center gap-4 text-xs text-white/50 mb-3">
                       <span>Assigned to: {getStudentNameById(task.student_id)}</span>
                       <span>Due: {task.due_date || 'No deadline'}</span>
+                      <span>Hours: {task.hours_worked || 0}/{task.estimated_hours || 8}</span>
+                      <span>Progress: {task.progress_percentage || 0}%</span>
+                    </div>
+                    
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-white/10 rounded-full h-2 mb-2">
+                      <div 
+                        class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                        style="width: {task.progress_percentage || 0}%"
+                      ></div>
                     </div>
                   </div>
                   <div class="flex gap-2">
@@ -941,6 +953,19 @@
                 <option value="medium">Medium</option>
                 <option value="high">High</option>
               </select>
+            </div>
+
+            <div>
+              <label class="text-white/70 text-sm block mb-2">Estimated Hours</label>
+              <Input 
+                type="number"
+                step="0.5"
+                min="0.5"
+                max="40"
+                bind:value={taskForm.estimated_hours}
+                placeholder="8"
+                class="bg-white/5 border-white/20 text-white"
+              />
             </div>
 
             <div>

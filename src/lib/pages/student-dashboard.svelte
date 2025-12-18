@@ -43,6 +43,7 @@
     taskId: null,
     description: '',
     file: null,
+    hoursWorked: 1,
     submittedAt: new Date().toISOString()
   };
 
@@ -149,18 +150,46 @@
         student_id: studentRecord.id,
         date: format(new Date(), 'yyyy-MM-dd'),
         description: submitWorkForm.description,
-        status: 'draft',
+        status: 'submitted',
         created_by: user?.email,
         created_at: new Date().toISOString()
       };
 
       await TimeEntry.create(submission);
+
+      // If a task is selected, update its completion status
+      if (submitWorkForm.taskId) {
+        try {
+          // Calculate hours worked (default to 1 hour if not specified)
+          const hoursWorked = submitWorkForm.hoursWorked || 1;
+          
+          // Get current task to update its hours
+          const currentTask = myTasks.find(t => t.id === submitWorkForm.taskId);
+          if (currentTask) {
+            const newHoursWorked = (currentTask.hours_worked || 0) + hoursWorked;
+            const estimatedHours = currentTask.estimated_hours || 8; // Default 8 hours if not set
+            const progressPercentage = Math.min(100, Math.round((newHoursWorked / estimatedHours) * 100));
+            
+            await Task.update(submitWorkForm.taskId, {
+              status: 'completed',
+              hours_worked: newHoursWorked,
+              progress_percentage: progressPercentage
+            });
+            
+            console.log(`Task ${submitWorkForm.taskId} marked as completed with ${newHoursWorked}h worked`);
+          }
+        } catch (taskError) {
+          console.error('Error updating task status:', taskError);
+          // Don't fail the whole submission if task update fails
+        }
+      }
       alert('Work submitted successfully!');
       showSubmitWorkModal = false;
       submitWorkForm = {
         taskId: null,
         description: '',
         file: null,
+        hoursWorked: 1,
         submittedAt: new Date().toISOString()
       };
       await loadStudentData();
@@ -231,6 +260,36 @@
       };
       
       await TimeEntry.update(timeTracker.currentSession.id, updatedData);
+      
+      // Calculate hours worked and update related task if any
+      if (timeTracker.startTime) {
+        const startTime = new Date(timeTracker.startTime);
+        const endTime = now;
+        const breakTime = timeTracker.breakStart && timeTracker.breakEnd ? 
+          (new Date(timeTracker.breakEnd) - new Date(timeTracker.breakStart)) / (1000 * 60 * 60) : 0;
+        const hoursWorked = Math.max(0, (endTime - startTime) / (1000 * 60 * 60) - breakTime);
+        
+        // Update any in-progress task for this student
+        try {
+          const studentTasks = myTasks.filter(t => t.status === 'in_progress');
+          if (studentTasks.length > 0) {
+            const task = studentTasks[0]; // Take the first in-progress task
+            const newHoursWorked = (task.hours_worked || 0) + hoursWorked;
+            const estimatedHours = task.estimated_hours || 8;
+            const progressPercentage = Math.min(100, Math.round((newHoursWorked / estimatedHours) * 100));
+            
+            await Task.update(task.id, {
+              hours_worked: newHoursWorked,
+              progress_percentage: progressPercentage,
+              status: progressPercentage >= 100 ? 'completed' : 'in_progress'
+            });
+            
+            console.log(`Updated task ${task.id}: ${hoursWorked.toFixed(2)}h added, ${progressPercentage}% complete`);
+          }
+        } catch (taskError) {
+          console.error('Error updating task progress:', taskError);
+        }
+      }
       
       // Reset tracker
       timeTracker = {
@@ -420,7 +479,7 @@
                     </span>
                   </div>
                   <p class="text-white/70 text-sm mb-3">{task.description}</p>
-                  <div class="flex items-center gap-4 text-xs text-white/50">
+                  <div class="flex items-center gap-4 text-xs text-white/50 mb-3">
                     <span class="flex items-center gap-1">
                       <Calendar class="w-4 h-4" />
                       Due: {task.due_date || 'No deadline'}
@@ -429,6 +488,19 @@
                       <UserIcon class="w-4 h-4" />
                       Assigned by: {task.created_by || 'Mentor'}
                     </span>
+                    <span class="flex items-center gap-1">
+                      <Clock class="w-4 h-4" />
+                      {task.hours_worked || 0}h / {task.estimated_hours || 8}h
+                    </span>
+                    <span>{task.progress_percentage || 0}% complete</span>
+                  </div>
+                  
+                  <!-- Progress Bar -->
+                  <div class="w-full bg-white/10 rounded-full h-2 mb-3">
+                    <div 
+                      class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
+                      style="width: {task.progress_percentage || 0}%"
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -1033,6 +1105,19 @@
               bind:value={submitWorkForm.description}
               placeholder="Describe what you worked on..."
               class="w-full bg-white/5 border border-white/20 rounded-lg p-3 text-white placeholder-white/50 min-h-[120px]"
+            />
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Hours Worked</label>
+            <Input
+              bind:value={submitWorkForm.hoursWorked}
+              type="number"
+              step="0.25"
+              min="0.25"
+              max="24"
+              placeholder="1.0"
+              class="bg-white/5 border-white/20 text-white"
             />
           </div>
 
