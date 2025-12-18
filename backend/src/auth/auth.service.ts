@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { CompaniesService } from '../companies/companies.service';
+import { StudentsService } from '../students/students.service';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private companiesService: CompaniesService,
+    private studentsService: StudentsService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -60,6 +62,20 @@ export class AuthService {
       company_id: company.id,
       companyKey: userData.companyKey,
     });
+
+    // If user is registering as a student, automatically create a student record
+    if (user.role === 'student') {
+      try {
+        await this.studentsService.create({
+          student_email: user.email,
+          full_name: user.full_name,
+          company_id: company.id,
+          status: 'active'
+        });
+      } catch (error) {
+        console.log('Student record may already exist or failed to create:', error.message);
+      }
+    }
 
     return this.login(user);
   }

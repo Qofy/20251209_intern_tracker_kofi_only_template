@@ -99,6 +99,12 @@
       allTimeEntries = await TimeEntry.list();
       allProjects = await Project.list();
 
+      // Sync student records for registered users who don't have student records
+      await syncStudentRecords();
+
+      // Reload students after sync
+      allStudents = await Student.list();
+
       // Calculate stats
       stats.totalUsers = allUsers.length;
       stats.totalStudents = allStudents.length;
@@ -117,6 +123,32 @@
       console.error('[Admin Dashboard] Error loading data:', error);
     }
     isLoading = false;
+  }
+
+  async function syncStudentRecords() {
+    try {
+      // Find users with role 'student' who don't have student records
+      const studentUsers = allUsers.filter(u => u.role === 'student');
+      const existingStudentEmails = allStudents.map(s => s.student_email || s.email);
+      
+      for (const studentUser of studentUsers) {
+        if (!existingStudentEmails.includes(studentUser.email)) {
+          console.log('[Admin Dashboard] Creating student record for:', studentUser.email);
+          try {
+            await Student.create({
+              student_email: studentUser.email,
+              full_name: studentUser.full_name,
+              company_id: studentUser.company_id,
+              status: 'active'
+            });
+          } catch (error) {
+            console.log('[Admin Dashboard] Failed to create student record for', studentUser.email, ':', error.message);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Admin Dashboard] Error syncing student records:', error);
+    }
   }
 
   async function createUser() {

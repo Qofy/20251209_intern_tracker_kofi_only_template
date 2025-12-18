@@ -9,7 +9,7 @@
     Users, ClipboardList, MessageSquare, TrendingUp, 
     Plus, Check, X, Edit, Trash2, Send, FileText,
     Clock, Calendar, AlertCircle, CheckCircle, Target,
-    User as UserIcon, Mail, Phone, Award
+    User as UserIcon, Mail, Phone, Award, RefreshCw
   } from 'lucide-svelte';
   import { format, parseISO } from 'date-fns';
 
@@ -81,9 +81,9 @@
   async function loadMentorData() {
     isLoading = true;
     try {
-      // Load students assigned to this mentor
-      const allStudents = await Student.list();
-      assignedStudents = allStudents.filter(s => s.mentor_email === user?.email);
+      // Load students assigned to this mentor using the filter method
+      assignedStudents = await Student.filter({ mentor_email: user?.email });
+      console.log('[Mentor Dashboard] Loaded students for mentor:', user?.email, assignedStudents);
       
       // Load tasks assigned to this mentor using mentor_email filter
       tasks = await Task.list({ mentor_email: user?.email });
@@ -380,8 +380,18 @@
       {#if activeTab === 'students'}
         <!-- Students Management -->
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-white">My Students</h2>
-          <p class="text-white/70">{assignedStudents.length} total students</p>
+          <div>
+            <h2 class="text-2xl font-bold text-white">My Students</h2>
+            <p class="text-white/70">{assignedStudents.length} total students</p>
+          </div>
+          <Button
+            on:click={loadMentorData}
+            class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 rounded-md flex items-center"
+            disabled={isLoading}
+          >
+            <RefreshCw class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+            {isLoading ? 'Refreshing...' : 'Reload Students'}
+          </Button>
         </div>
 
         {#if isLoading}

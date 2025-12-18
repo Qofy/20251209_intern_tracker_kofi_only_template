@@ -26,6 +26,9 @@ export class Student {
   @Column({ nullable: true })
   company_id: number;
 
+  @Column({ default: 'active' })
+  status: string;
+
   @CreateDateColumn()
   created_at: Date;
 

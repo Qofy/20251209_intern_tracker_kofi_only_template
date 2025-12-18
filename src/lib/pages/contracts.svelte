@@ -9,10 +9,10 @@
   import ParagraphEditor from '$lib/components/contract/ParagraphEditor.svelte';
   import PlaceholderGuide from '$lib/components/contract/PlaceholderGuide.svelte';
   import { initialContractParagraphs } from '$lib/components/contract/initialContractData.js';
-  import { 
-    FileText, Plus, Eye, CheckCircle, X, Send, 
+  import {
+    FileText, Plus, Eye, CheckCircle, X, Send,
     Clock, AlertCircle, Edit, Trash2, UserCheck,
-    FilePlus, FileSignature, Download, HelpCircle
+    FilePlus, FileSignature, Download, HelpCircle, RefreshCw
   } from 'lucide-svelte';
   import { format } from 'date-fns';
 
@@ -59,9 +59,29 @@
   let editTaskId = null;
   let showPreviousContracts = false;
   let previousContracts = [];
+  let isReloading = false;
 
   // Computed array to display based on toggle
   $: displayedContracts = showPreviousContracts ? previousContracts : contracts;
+
+  async function reloadContracts() {
+    isReloading = true;
+    console.log('[Contracts] Reloading all contracts from backend...');
+    try {
+      // Clear cache to force fresh load
+      localStorage.removeItem('contracts_cache');
+      localStorage.removeItem('students_cache');
+      localStorage.removeItem('tasks_cache');
+      localStorage.removeItem('previous_contracts_cache');
+
+      await loadData();
+      console.log('[Contracts] Reload complete');
+    } catch (error) {
+      console.error('[Contracts] Error reloading:', error);
+      alert('Failed to reload contracts');
+    }
+    isReloading = false;
+  }
 
   // Auto-save to localStorage whenever contracts, students, or tasks change
   $: if (contracts.length > 0 || students.length > 0 || tasks.length > 0 || previousContracts.length > 0) {
@@ -571,13 +591,23 @@
       <h2 class="text-2xl font-bold text-white">
         {showPreviousContracts ? 'Previous Contracts' : 'Current Contracts'}
       </h2>
-      <Button
-        on:click={togglePreviousContracts}
-        class="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2 h-10 px-4 rounded-md"
-      >
-        <FileText class="w-4 h-4" />
-        {showPreviousContracts ? `View Current (${contracts.length})` : `View Previous (${previousContracts.length})`}
-      </Button>
+      <div class="flex gap-3">
+        <Button
+          on:click={reloadContracts}
+          disabled={isReloading}
+          class="bg-purple-500 hover:bg-purple-600 text-white flex items-center gap-2 h-10 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <RefreshCw class="w-4 h-4 {isReloading ? 'animate-spin' : ''}" />
+          Reload All
+        </Button>
+        <Button
+          on:click={togglePreviousContracts}
+          class="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2 h-10 px-4 rounded-md"
+        >
+          <FileText class="w-4 h-4" />
+          {showPreviousContracts ? `View Current (${contracts.length})` : `View Previous (${previousContracts.length})`}
+        </Button>
+      </div>
     </div>
 
     {#if isLoading}
