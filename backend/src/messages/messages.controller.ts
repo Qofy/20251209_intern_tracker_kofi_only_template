@@ -17,6 +17,8 @@ export class MessagesController {
       content: string;
       student_id?: number;
       mentor_email?: string;
+      message_type?: string;
+      report_data?: string;
     },
     @Request() req
   ): Promise<Message> {
@@ -31,6 +33,8 @@ export class MessagesController {
       content: messageData.content,
       student_id: messageData.student_id,
       mentor_email: messageData.mentor_email,
+      message_type: messageData.message_type || 'message',
+      report_data: messageData.report_data,
       company_id: user.company_id
     };
     
@@ -89,5 +93,34 @@ export class MessagesController {
   async deleteMessage(@Param('id') id: number): Promise<{ message: string }> {
     await this.messagesService.deleteMessage(id);
     return { message: 'Message deleted successfully' };
+  }
+
+  @Get('admin')
+  async getAdminMessages(@Request() req): Promise<Message[]> {
+    const { user } = req;
+    console.log('[Messages] getAdminMessages for user:', user.email, 'company:', user.company_id);
+    const messages = await this.messagesService.getAdminMessages(user.email, user.company_id);
+    console.log('[Messages] Found', messages.length, 'messages for admin');
+    return messages;
+  }
+
+  @Get('admin/reports')
+  async getAdminReports(@Request() req): Promise<Message[]> {
+    const { user } = req;
+    console.log('[Messages] getAdminReports for user:', user.email, 'company:', user.company_id);
+    const reports = await this.messagesService.getAdminReports(user.email, user.company_id);
+    console.log('[Messages] Found', reports.length, 'reports for admin');
+    return reports;
+  }
+
+  @Post('report/:id/reply')
+  async replyToReport(
+    @Param('id') id: number,
+    @Body() body: { content: string },
+    @Request() req
+  ): Promise<Message> {
+    const { user } = req;
+    console.log('[Messages] Admin replying to report:', id, 'from:', user.email);
+    return this.messagesService.replyToReport(id, body.content, user.email);
   }
 }

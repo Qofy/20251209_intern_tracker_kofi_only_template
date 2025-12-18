@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { User, Student, Task, TimeEntry, Project } from '../../entities/all';
+  import { User, Student, Task, TimeEntry, Project, Message } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
@@ -10,7 +10,7 @@
     FileText, TrendingUp, AlertTriangle, CheckCircle,
     Search, Edit2, Trash2, Mail, Clock, Calendar,
     BarChart3, PieChart, Activity, UserCheck,
-    FolderOpen, GitBranch
+    FolderOpen, GitBranch, MessageSquare, Send
   } from 'lucide-svelte';
 
   $: user = $userStore.user;
@@ -85,6 +85,13 @@
     systemHealth: 100
   };
 
+  // Admin messaging state
+  let adminMessages = [];
+  let adminReports = [];
+  let selectedReport = null;
+  let showReplyDialog = false;
+  let replyContent = '';
+
   onMount(async () => {
     await loadData();
   });
@@ -98,6 +105,9 @@
       allTasks = await Task.list();
       allTimeEntries = await TimeEntry.list();
       allProjects = await Project.list();
+
+      // Load admin messages and reports
+      await loadAdminMessages();
 
       // Sync student records for registered users who don't have student records
       await syncStudentRecords();
@@ -117,12 +127,59 @@
         stats,
         studentsCount: allStudents.length,
         mentorsCount: allMentors.length,
-        studentsData: allStudents
+        studentsData: allStudents,
+        reportsCount: adminReports.length
       });
     } catch (error) {
       console.error('[Admin Dashboard] Error loading data:', error);
     }
     isLoading = false;
+  }
+
+  async function loadAdminMessages() {
+    try {
+      adminMessages = await Message.getAdminMessages();
+      adminReports = await Message.getAdminReports();
+      console.log('[Admin Dashboard] Loaded admin messages:', adminMessages.length);
+      console.log('[Admin Dashboard] Loaded admin reports:', adminReports.length);
+      console.log('[Admin Dashboard] Current user email:', user?.email);
+      console.log('[Admin Dashboard] Admin messages:', adminMessages);
+      console.log('[Admin Dashboard] Admin reports:', adminReports);
+    } catch (error) {
+      console.error('[Admin Dashboard] Error loading admin messages:', error);
+    }
+  }
+
+  async function replyToReport(report) {
+    selectedReport = report;
+    showReplyDialog = true;
+  }
+
+  async function sendReportReply() {
+    try {
+      if (!replyContent.trim()) {
+        alert('Please enter a reply message');
+        return;
+      }
+
+      await Message.replyToReport(selectedReport.id, replyContent);
+      alert('Reply sent successfully!');
+      showReplyDialog = false;
+      replyContent = '';
+      selectedReport = null;
+      await loadAdminMessages();
+    } catch (error) {
+      console.error('[Admin Dashboard] Error sending reply:', error);
+      alert('Failed to send reply. Please try again.');
+    }
+  }
+
+  function formatReportData(reportDataJson) {
+    try {
+      return JSON.parse(reportDataJson || '{}');
+    } catch (error) {
+      return {};
+    }
   }
 
   async function syncStudentRecords() {
@@ -580,6 +637,52 @@
           <p class="text-white/70 text-sm mb-4">Average across all active interns</p>
           <p class="text-3xl font-bold text-white">68%</p>
         </div>
+      </div>
+
+      <!-- Mentor Reports Section -->
+      <div class="bg-white/5 rounded-xl border border-white/20 p-6 mb-6">
+        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+          <MessageSquare class="w-5 h-5" />
+          Mentor Reports ({adminReports.length})
+        </h3>
+        {#if adminReports.length > 0}
+          <div class="space-y-3 max-h-96 overflow-y-auto">
+            {#each adminReports as report}
+              {@const reportData = formatReportData(report.report_data)}
+              <div class="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
+                <div class="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 class="text-white font-semibold">{report.subject}</h4>
+                    <p class="text-white/60 text-sm">
+                      From: {report.from_email} • 
+                      Student: {reportData.student_name} • 
+                      {new Date(report.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div class="flex gap-2">
+                    {#if !report.is_read}
+                      <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded">New</span>
+                    {/if}
+                    <Button 
+                      on:click={() => replyToReport(report)}
+                      class="bg-green-600 hover:bg-green-700 text-white h-8 px-3 flex items-center gap-1"
+                    >
+                      <Send class="w-3 h-3" />
+                      Reply
+                    </Button>
+                  </div>
+                </div>
+                <div class="bg-white/5 rounded p-3 mb-3">
+                  <p class="text-white/80 text-sm font-medium">Report Type: {reportData.report_type?.toUpperCase()}</p>
+                  <p class="text-white/80 text-sm">Period: {reportData.period_start} to {reportData.period_end}</p>
+                </div>
+                <p class="text-white/70 text-sm line-clamp-3">{report.content}</p>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="text-white/60 text-center py-8">No mentor reports received yet.</p>
+        {/if}
       </div>
 
       <div class="bg-white/5 rounded-xl border border-white/20 p-6">
@@ -1142,6 +1245,54 @@
           </Button>
           <Button
             on:click={() => { showCreateProjectModal = false; newProject = { name: '', description: '', type: 'program', start_date: '', end_date: '', status: 'active', assigned_students: [] }; }}
+            variant="ghost"
+            class="text-white/70 hover:text-white"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
+    </div>
+  </Dialog>
+{/if}
+
+<!-- Report Reply Modal -->
+{#if showReplyDialog && selectedReport}
+  <Dialog bind:open={showReplyDialog}>
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 rounded-3xl">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <h2 class="text-2xl font-bold text-white mb-6">Reply to Report</h2>
+
+        <div class="mb-6 p-4 bg-white/5 rounded-lg border border-white/10">
+          <h3 class="text-white font-semibold mb-2">{selectedReport.subject}</h3>
+          <p class="text-white/70 text-sm mb-3">From: {selectedReport.from_email}</p>
+          <div class="text-white/60 text-sm max-h-32 overflow-y-auto">
+            {selectedReport.content}
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Your Reply</label>
+            <textarea
+              bind:value={replyContent}
+              placeholder="Type your response to the mentor..."
+              class="w-full bg-white/5 border border-white/20 rounded-lg p-3 text-white placeholder-white/50 min-h-[120px]"
+            />
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <Button
+            on:click={sendReportReply}
+            class="flex-1 bg-green-500 hover:bg-green-600 text-white h-10 flex items-center rounded-md justify-center"
+            disabled={!replyContent.trim()}
+          >
+            <Send class="w-4 h-4 mr-2" />
+            Send Reply
+          </Button>
+          <Button
+            on:click={() => { showReplyDialog = false; replyContent = ''; selectedReport = null; }}
             variant="ghost"
             class="text-white/70 hover:text-white"
           >

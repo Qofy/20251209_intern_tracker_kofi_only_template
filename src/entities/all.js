@@ -757,4 +757,56 @@ export class Message {
     }
     return apiClient.deleteMessage(messageId);
   }
+
+  static async getAdminMessages() {
+    if (isDemoMode()) {
+      const demoMessages = JSON.parse(localStorage.getItem('demo_messages') || '[]');
+      const currentUser = JSON.parse(localStorage.getItem('demo_user') || '{}');
+      return demoMessages.filter(m => m.to_email === currentUser.email && m.to_role === 'Admin')
+                         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+    return apiClient.getAdminMessages();
+  }
+
+  static async getAdminReports() {
+    if (isDemoMode()) {
+      const demoMessages = JSON.parse(localStorage.getItem('demo_messages') || '[]');
+      const currentUser = JSON.parse(localStorage.getItem('demo_user') || '{}');
+      return demoMessages.filter(m => 
+        m.to_email === currentUser.email && 
+        m.to_role === 'Admin' && 
+        m.message_type === 'report'
+      ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }
+    return apiClient.getAdminReports();
+  }
+
+  static async replyToReport(reportId, replyContent) {
+    if (isDemoMode()) {
+      const demoMessages = JSON.parse(localStorage.getItem('demo_messages') || '[]');
+      const report = demoMessages.find(m => m.id === reportId);
+      if (!report) throw new Error('Report not found');
+      
+      const reportData = JSON.parse(report.report_data || '{}');
+      const newMessage = {
+        id: Date.now(),
+        from_email: JSON.parse(localStorage.getItem('demo_user') || '{}').email,
+        to_email: reportData.mentor_email,
+        from_role: 'Admin',
+        to_role: 'Mentor',
+        subject: `Re: ${report.subject}`,
+        content: replyContent,
+        is_read: false,
+        student_id: reportData.student_id,
+        mentor_email: reportData.mentor_email,
+        message_type: 'message',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      demoMessages.push(newMessage);
+      localStorage.setItem('demo_messages', JSON.stringify(demoMessages));
+      return newMessage;
+    }
+    return apiClient.replyToReport(reportId, replyContent);
+  }
 }

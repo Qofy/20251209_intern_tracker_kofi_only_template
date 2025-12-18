@@ -9,7 +9,7 @@
     Users, ClipboardList, MessageSquare, TrendingUp, 
     Plus, Check, X, Edit, Trash2, Send, FileText,
     Clock, Calendar, AlertCircle, CheckCircle, Target,
-    User as UserIcon, Mail, Phone, Award, RefreshCw
+    User as UserIcon, Mail, Phone, Award, RefreshCw, Shield
   } from 'lucide-svelte';
   import { format, parseISO } from 'date-fns';
 
@@ -363,11 +363,63 @@
 
   // Progress Reports
   async function submitReport() {
-    console.log('[Mentor] Submitting report:', reportForm);
-    // TODO: Implement report submission to admin
-    alert('Report submitted to admin! (Report system to be implemented)');
-    showReportDialog = false;
-    resetReportForm();
+    try {
+      if (!reportForm.student_id || !reportForm.content || !reportForm.period_start || !reportForm.period_end) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      // Get student details for the report
+      const student = assignedStudents.find(s => s.id === parseInt(reportForm.student_id));
+      if (!student) {
+        alert('Please select a valid student');
+        return;
+      }
+
+      console.log('[Mentor] Submitting report for student:', student);
+      console.log('[Mentor] Report form:', reportForm);
+      
+      // Use actual student data with fallbacks - Student entity uses full_name
+      const fullName = student.full_name || 'Unknown Student';
+      const nameParts = fullName.split(' ');
+      const studentFirstName = nameParts[0] || 'Student';
+      const studentLastName = nameParts.slice(1).join(' ') || '';
+      const studentEmail = student.student_email || student.email || 'unknown@email.com';
+      
+      // Send report as a message to admin (use jesus@gmail.com as admin email)
+      await Message.send({
+        to_email: 'jesus@gmail.com',  // Fixed admin email
+        to_role: 'Admin',
+        subject: `${reportForm.report_type.toUpperCase()} Report - ${studentFirstName} ${studentLastName}`,
+        content: `**Report Type:** ${reportForm.report_type.toUpperCase()}
+**Period:** ${reportForm.period_start} to ${reportForm.period_end}
+**Student:** ${studentFirstName} ${studentLastName} (${studentEmail})
+**Mentor:** ${user?.email}
+
+**Report Content:**
+${reportForm.content}`,
+        student_id: parseInt(reportForm.student_id),  // Ensure it's a number
+        mentor_email: user?.email,
+        message_type: 'report',
+        report_data: JSON.stringify({
+          student_id: parseInt(reportForm.student_id),
+          student_name: `${studentFirstName} ${studentLastName}`,
+          student_email: studentEmail,
+          report_type: reportForm.report_type,
+          period_start: reportForm.period_start,
+          period_end: reportForm.period_end,
+          mentor_email: user?.email
+        })
+      });
+
+      console.log('[Mentor] Report submitted successfully:', reportForm);
+      alert('Report submitted to admin successfully!');
+      showReportDialog = false;
+      resetReportForm();
+    } catch (error) {
+      console.error('[Mentor] Error submitting report:', error);
+      alert('Failed to submit report. Please try again.');
+    }
   }
 
   async function createTimeEntry() {
@@ -903,11 +955,10 @@
         <!-- Messages Management -->
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h2 class="text-2xl font-bold text-white">Student Messages</h2>
+            <h2 class="text-2xl font-bold text-white">Messages</h2>
             <p class="text-white/70">
               {messages.filter(m => !m.is_read && m.to_email === user?.email).length} unread messages | 
-              Total: {messages.length} messages | 
-              To mentor: {messages.filter(m => m.to_email === user?.email).length}
+              Total: {messages.length} messages
             </p>
           </div>
           <Button
@@ -919,6 +970,35 @@
             {isLoading ? 'Refreshing...' : 'Refresh Messages'}
           </Button>
         </div>
+
+        <!-- Admin Messages Section -->
+        {@const adminMessages = messages.filter(m => m.from_role === 'Admin' && m.to_email === user?.email)}
+        {#if adminMessages.length > 0}
+          <div class="bg-white/5 rounded-xl border border-white/20 p-6 mb-6">
+            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+              <Shield class="w-5 h-5" />
+              Messages from Admin ({adminMessages.length})
+            </h3>
+            <div class="space-y-3 max-h-64 overflow-y-auto">
+              {#each adminMessages as msg}
+                <div class="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
+                  <div class="flex justify-between items-start mb-2">
+                    <div>
+                      <h4 class="text-white font-semibold">{msg.subject}</h4>
+                      <p class="text-white/60 text-sm">
+                        From: {msg.from_email} • {new Date(msg.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {#if !msg.is_read}
+                      <span class="bg-red-500 text-white text-xs px-2 py-1 rounded">New</span>
+                    {/if}
+                  </div>
+                  <p class="text-white/70 text-sm">{msg.content}</p>
+                </div>
+              {/each}
+            </div>
+          </div>
+        {/if}
 
         {#if selectedConversation}
           <!-- Conversation View -->

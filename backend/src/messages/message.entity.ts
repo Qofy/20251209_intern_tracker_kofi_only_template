@@ -15,7 +15,7 @@ export class Message {
   from_role: string; // 'Student' or 'Mentor'
 
   @Column()
-  to_role: string; // 'Student' or 'Mentor'
+  to_role: string; // 'Student', 'Mentor', or 'Admin'
 
   @Column()
   subject: string;
@@ -34,6 +34,12 @@ export class Message {
 
   @Column({ nullable: true })
   company_id: number;
+
+  @Column({ nullable: true })
+  message_type: string; // 'message' or 'report'
+
+  @Column({ type: 'text', nullable: true })
+  report_data: string; // JSON string for report metadata
 
   @CreateDateColumn()
   created_at: Date;

@@ -432,6 +432,22 @@ class ApiClient {
       method: 'DELETE',
     });
   }
+
+  // Admin messaging methods
+  async getAdminMessages() {
+    return this.request('/api/messages/admin');
+  }
+
+  async getAdminReports() {
+    return this.request('/api/messages/admin/reports');
+  }
+
+  async replyToReport(reportId, replyContent) {
+    return this.request(`/api/messages/report/${reportId}/reply`, {
+      method: 'POST',
+      body: JSON.stringify({ content: replyContent }),
+    });
+  }
 }
 
 // Create singleton instance
