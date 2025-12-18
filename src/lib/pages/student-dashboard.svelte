@@ -10,7 +10,7 @@
     Mail, User as UserIcon, BookOpen, Calendar,
     CheckCircle, Clock, AlertCircle, FileText,
     Award, Target, Send, Download, Star,
-    Briefcase, GraduationCap, Activity
+    Briefcase, GraduationCap, Activity, RefreshCw
   } from 'lucide-svelte';
   import { format, parseISO } from 'date-fns';
 
@@ -68,9 +68,20 @@
   async function loadStudentData() {
     isLoading = true;
     try {
-      // Load tasks assigned to this student
+      // First, find the student record for this user
+      const allStudents = await Student.list();
+      const studentRecord = allStudents.find(s => s.student_email === user?.email);
+      console.log('[Student Dashboard] Student record found:', studentRecord);
+
+      // Load tasks assigned to this student using student_id
       const allTasks = await Task.list();
-      myTasks = allTasks.filter(t => t.assigned_to === user?.email);
+      if (studentRecord) {
+        myTasks = allTasks.filter(t => t.student_id === studentRecord.id);
+        console.log('[Student Dashboard] Found tasks for student ID:', studentRecord.id, 'Tasks:', myTasks);
+      } else {
+        console.warn('[Student Dashboard] No student record found for email:', user?.email);
+        myTasks = [];
+      }
 
       // Load time entries (submissions)
       const allEntries = await TimeEntry.list();
@@ -112,8 +123,18 @@
 
   async function submitWork() {
     try {
+      // First, find the student record for this user
+      const allStudents = await Student.list();
+      const studentRecord = allStudents.find(s => s.student_email === user?.email);
+      
+      if (!studentRecord) {
+        alert('Student record not found. Please contact your administrator.');
+        return;
+      }
+
       // Create a new time entry or submission
       const submission = {
+        student_id: studentRecord.id,
         date: format(new Date(), 'yyyy-MM-dd'),
         description: submitWorkForm.description,
         status: 'draft',
@@ -214,8 +235,18 @@
     {#if activeTab === 'tasks'}
       <!-- My Tasks & Projects -->
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-white">My Tasks & Projects</h2>
-        <span class="text-white/70">{stats.completedTasks} of {stats.totalTasks} completed</span>
+        <div>
+          <h2 class="text-2xl font-bold text-white">My Tasks & Projects</h2>
+          <span class="text-white/70">{stats.completedTasks} of {stats.totalTasks} completed</span>
+        </div>
+        <Button
+          on:click={loadStudentData}
+          class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 rounded-md flex items-center"
+          disabled={isLoading}
+        >
+          <RefreshCw class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+          {isLoading ? 'Refreshing...' : 'Reload Tasks'}
+        </Button>
       </div>
 
       {#if isLoading}
@@ -286,13 +317,23 @@
       <!-- My Submissions -->
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">My Submissions</h2>
-        <Button
-          on:click={() => showSubmitWorkModal = true}
-          class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center"
-        >
-          <Upload class="w-4 h-4 mr-2" />
-          Submit New Work
-        </Button>
+        <div class="flex gap-2">
+          <Button
+            on:click={loadStudentData}
+            variant="outline"
+            class="text-white border-white/20 hover:bg-white/10"
+          >
+            <RefreshCw class="w-4 h-4 mr-2" />
+            Reload
+          </Button>
+          <Button
+            on:click={() => showSubmitWorkModal = true}
+            class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center"
+          >
+            <Upload class="w-4 h-4 mr-2" />
+            Submit New Work
+          </Button>
+        </div>
       </div>
 
       <div class="space-y-4">

@@ -33,6 +33,15 @@ export class TimeEntry {
   notes: string;
 
   @Column({ type: 'text', nullable: true })
+  description: string;
+
+  @Column({ nullable: true })
+  created_by: string;
+
+  @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+  manually_inputted_hours: number;
+
+  @Column({ type: 'text', nullable: true })
   mentor_comments: string;
 
   @CreateDateColumn()
