@@ -512,13 +512,23 @@
         <!-- Tasks & Projects -->
         <div class="flex items-center justify-between mb-6">
           <h2 class="text-2xl font-bold text-white">Tasks & Projects</h2>
-          <Button 
-            on:click={() => showTaskDialog = true}
-            class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center"
-          >
-            <Plus class="w-4 h-4 mr-2" />
-            Create Task
-          </Button>
+          <div class="flex gap-3">
+            <Button
+              on:click={loadMentorData}
+              class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 rounded-md flex items-center"
+              disabled={isLoading}
+            >
+              <RefreshCw class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+              {isLoading ? 'Refreshing...' : 'Reload Tasks'}
+            </Button>
+            <Button 
+              on:click={() => showTaskDialog = true}
+              class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-4 flex items-center"
+            >
+              <Plus class="w-4 h-4 mr-2" />
+              Create Task
+            </Button>
+          </div>
         </div>
 
         {#if tasks.length === 0}
