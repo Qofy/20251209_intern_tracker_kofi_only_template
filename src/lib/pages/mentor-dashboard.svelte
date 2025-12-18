@@ -216,16 +216,26 @@
 
   async function approveEntry(entryId) {
     try {
+      console.log('[Mentor] Approving entry with ID:', entryId);
+      
+      // Check if entry exists
+      if (!entryId) {
+        alert('Invalid entry ID');
+        return;
+      }
+
+      // Only update the status field to avoid database schema issues
       await TimeEntry.update(entryId, {
-        status: 'approved',
-        reviewed_by: user?.email,
-        reviewed_at: new Date().toISOString()
+        status: 'approved'
       });
+      
       timeEntries = timeEntries.map(e => e.id === entryId ? { ...e, status: 'approved' } : e);
       await loadMentorData();
+      alert('Time entry approved successfully!');
       console.log('[Mentor] Approved entry:', entryId);
     } catch (error) {
       console.error('[Mentor] Error approving entry:', error);
+      alert('Failed to approve entry: ' + (error.message || 'Unknown error'));
     }
   }
 
@@ -234,11 +244,10 @@
     if (!reason) return;
     
     try {
+      // Only update status and mentor_comments to avoid database schema issues
       await TimeEntry.update(entryId, {
         status: 'rejected',
-        mentor_comments: reason,
-        reviewed_by: user?.email,
-        reviewed_at: new Date().toISOString()
+        mentor_comments: reason
       });
       timeEntries = timeEntries.map(e => 
         e.id === entryId 
@@ -246,6 +255,7 @@
           : e
       );
       await loadMentorData();
+      alert('Time entry rejected successfully!');
       console.log('[Mentor] Rejected entry:', entryId);
     } catch (error) {
       console.error('[Mentor] Error rejecting entry:', error);

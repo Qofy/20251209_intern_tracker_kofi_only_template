@@ -25,7 +25,12 @@ export class TimeEntriesController {
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() timeEntryData: Partial<TimeEntry>) {
-    return this.timeEntriesService.update(+id, timeEntryData);
+    try {
+      return await this.timeEntriesService.update(+id, timeEntryData);
+    } catch (error) {
+      console.error('TimeEntriesController update error:', error);
+      throw error;
+    }
   }
 
   @Delete(':id')

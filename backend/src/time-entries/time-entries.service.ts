@@ -27,8 +27,19 @@ export class TimeEntriesService {
   }
 
   async update(id: number, timeEntryData: Partial<TimeEntry>): Promise<TimeEntry> {
-    await this.timeEntriesRepository.update(id, timeEntryData);
-    return this.findOne(id);
+    try {
+      // Check if the time entry exists
+      const existingEntry = await this.timeEntriesRepository.findOne({ where: { id } });
+      if (!existingEntry) {
+        throw new Error(`Time entry with id ${id} not found`);
+      }
+
+      await this.timeEntriesRepository.update(id, timeEntryData);
+      return this.findOne(id);
+    } catch (error) {
+      console.error('Error updating time entry:', error);
+      throw error;
+    }
   }
 
   async remove(id: number): Promise<void> {
