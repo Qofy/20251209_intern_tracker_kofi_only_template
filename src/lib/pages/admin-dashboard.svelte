@@ -441,6 +441,8 @@
   // Contract management functions
   async function approveContract(contractId, adminNotes = '') {
     try {
+      console.log('[Admin] Approving contract:', contractId);
+
       // Update contract status directly using Contract entity
       await Contract.update(contractId, {
         status: 'admin_approved',
@@ -451,16 +453,28 @@
       // Get the updated contract for messaging
       const contracts = await Contract.list();
       const contract = contracts.find(c => c.id === contractId);
-      
+
+      console.log('[Admin] Contract after update:', contract);
+
       if (contract) {
-        // Send notification to mentor only - mentor will notify student
-        await ContractWorkflowService.notifyMentorOfAdminDecision(contract, user.email, true, adminNotes);
+        // Verify mentor email exists
+        if (!contract.mentor_email) {
+          console.error('[Admin] Contract has no mentor email!', contract);
+          alert('Warning: Contract has no mentor assigned. Message cannot be sent.');
+        } else {
+          console.log('[Admin] Sending notification to mentor:', contract.mentor_email);
+          // Send notification to mentor only - mentor will notify student
+          await ContractWorkflowService.notifyMentorOfAdminDecision(contract, user.email, true, adminNotes);
+          console.log('[Admin] Notification sent successfully to:', contract.mentor_email);
+        }
+      } else {
+        console.error('[Admin] Contract not found after update!');
       }
-      
+
       alert('Contract approved successfully! Mentor has been notified and will inform the student.');
       await loadData();
     } catch (error) {
-      console.error('Error approving contract:', error);
+      console.error('[Admin] Error approving contract:', error);
       alert('Failed to approve contract: ' + error.message);
     }
   }
@@ -1316,7 +1330,13 @@ Status: ${contract.status}
             5 Pending Applications
           </span>
           <span class="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-400 font-semibold">
-            {allContracts.filter(c => c.status === 'pending_approval').length} Contracts to Approve
+            {allContracts.filter(c => c.status === 'pending_approval').length} To Review
+          </span>
+          <span class="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 font-semibold">
+            {allContracts.filter(c => c.status === 'admin_approved').length} Approved
+          </span>
+          <span class="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 font-semibold">
+            {allContracts.filter(c => c.status === 'admin_rejected').length} Rejected
           </span>
         </div>
       </div>
@@ -1413,6 +1433,66 @@ Status: ${contract.status}
                       View Full Contract
                     </Button>
                   </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Approved & Rejected Contracts Section -->
+      {#if allContracts.filter(c => c.status === 'admin_approved' || c.status === 'admin_rejected').length > 0}
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <CheckCircle class="w-5 h-5 text-green-400" />
+            Reviewed Contracts
+          </h3>
+          <div class="space-y-3">
+            {#each allContracts.filter(c => c.status === 'admin_approved' || c.status === 'admin_rejected') as contract}
+              <div class="bg-white/5 border border-white/20 rounded-xl p-4 {contract.status === 'admin_approved' ? 'border-green-500/30' : 'border-red-500/30'}">
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <h4 class="text-white font-bold">{contract.student_name || contract.title || 'Contract'}</h4>
+                      <span class="px-3 py-1 rounded-full text-xs font-semibold {contract.status === 'admin_approved' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}">
+                        {contract.status === 'admin_approved' ? '✓ Approved' : '✗ Rejected'}
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div>
+                        <p class="text-white/50 text-xs">Student</p>
+                        <p class="text-white">{contract.student_email || 'Not provided'}</p>
+                      </div>
+                      <div>
+                        <p class="text-white/50 text-xs">Mentor</p>
+                        <p class="text-white">{contract.mentor_email || 'Not assigned'}</p>
+                      </div>
+                      <div>
+                        <p class="text-white/50 text-xs">Reviewed On</p>
+                        <p class="text-white">{contract.admin_reviewed_at ? new Date(contract.admin_reviewed_at).toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p class="text-white/50 text-xs">Status</p>
+                        <p class="{contract.status === 'admin_approved' ? 'text-green-400' : 'text-red-400'} font-semibold">
+                          {contract.status === 'admin_approved' ? 'Active' : 'Rejected'}
+                        </p>
+                      </div>
+                    </div>
+                    {#if contract.admin_feedback}
+                      <div class="mt-3 p-2 bg-white/5 rounded border border-white/10">
+                        <p class="text-white/60 text-xs mb-1">Admin Notes:</p>
+                        <p class="text-white text-sm">{contract.admin_feedback}</p>
+                      </div>
+                    {/if}
+                  </div>
+                  <Button
+                    on:click={() => viewContractDetails(contract)}
+                    variant="ghost"
+                    class="text-white/70 hover:text-white h-8 px-3 flex items-center rounded-md ml-3"
+                  >
+                    <FileText class="w-4 h-4 mr-1" />
+                    View
+                  </Button>
                 </div>
               </div>
             {/each}

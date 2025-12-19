@@ -735,7 +735,9 @@
 
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-white text-sm font-medium block mb-2">Student Email *</label>
+              <label class="text-white text-sm font-medium block mb-2">
+                Student Email <span class="text-red-400">*</span>
+              </label>
               {#if userRole === 'admin'}
                 <Input
                   bind:value={newContract.student_email}
@@ -749,22 +751,35 @@
                   on:change={onStudentSelect}
                   class="w-full bg-white/10 border border-white/30 rounded-lg p-2 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
                 >
-                  <option value="">Select student...</option>
+                  <option value="">Choose a student assigned to you...</option>
                   {#each students as student}
                     <option value={student.student_email}>
                       {student.full_name} ({student.student_email})
                     </option>
                   {/each}
                 </select>
+                {#if students.length === 0}
+                  <p class="text-yellow-400 text-xs mt-1">⚠️ No students assigned to you yet</p>
+                {:else}
+                  <p class="text-white/50 text-xs mt-1">
+                    {students.length} student{students.length !== 1 ? 's' : ''} available
+                  </p>
+                {/if}
               {/if}
             </div>
             <div>
-              <label class="text-white text-sm font-medium block mb-2">Student Name *</label>
+              <label class="text-white text-sm font-medium block mb-2">
+                Student Name <span class="text-red-400">*</span>
+              </label>
               <Input
                 bind:value={newContract.student_name}
-                placeholder="Student full name"
-                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50"
+                placeholder={userRole === 'admin' ? 'Student full name' : 'Auto-filled when student selected'}
+                readonly={userRole !== 'admin' && newContract.student_email !== ''}
+                class="w-full bg-white/10 border-white/30 text-white placeholder-white/50 focus:bg-white/15 focus:border-white/50 {userRole !== 'admin' && newContract.student_email !== '' ? 'opacity-75 cursor-not-allowed' : ''}"
               />
+              {#if userRole !== 'admin' && newContract.student_email !== ''}
+                <p class="text-green-400 text-xs mt-1">✓ Auto-filled from selected student</p>
+              {/if}
             </div>
           </div>
 

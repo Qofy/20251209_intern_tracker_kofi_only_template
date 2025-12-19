@@ -1445,14 +1445,14 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                   <div class="flex gap-2 mt-4">
                     <Button 
                       on:click={() => updateTaskStatus(task.id, 'in_progress')}
-                      class="bg-blue-500 hover:bg-blue-600 text-white text-sm"
+                      class="bg-blue-500 hover:bg-blue-600 text-white text-sm h-10 flex items-center justify-center px-2 rounded-md"
                       disabled={task.status === 'in_progress'}
                     >
                       Mark In Progress
                     </Button>
                     <Button 
                       on:click={() => updateTaskStatus(task.id, 'completed')}
-                      class="bg-green-500 hover:bg-green-600 text-white text-sm"
+                      class="bg-green-500 hover:bg-green-600 text-white text-sm h-10 flex items-center justify-center px-2 rounded-md"
                     >
                       Mark Complete
                     </Button>
@@ -1819,7 +1819,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                         reportForm.report_type = 'weekly';
                         showReportDialog = true;
                       }}
-                      class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm"
+                      class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm h-10 flex items-center justify-center px-2 rounded-md"
                     >
                       <FileText class="w-3 h-3 mr-1" />
                       Weekly
@@ -1831,7 +1831,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                         reportForm.report_type = 'monthly';
                         showReportDialog = true;
                       }}
-                      class="flex-1 bg-purple-500 hover:bg-purple-600 text-white text-sm"
+                      class="flex-1 bg-purple-500 hover:bg-purple-600 text-white text-sm  h-10 flex items-center justify-center px-2 rounded-md"
                     >
                       <Calendar class="w-3 h-3 mr-1" />
                       Monthly

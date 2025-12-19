@@ -86,11 +86,18 @@ This contract has been reviewed and approved by the mentor and is now ready for 
    * Send notification when admin approves/rejects contract
    */
   static async notifyMentorOfAdminDecision(contract, adminEmail, approved, feedback) {
+    console.log('[ContractWorkflow] Notifying mentor of admin decision');
+    console.log('[ContractWorkflow] Contract:', contract);
+    console.log('[ContractWorkflow] Mentor email:', contract.mentor_email);
+    console.log('[ContractWorkflow] Approved:', approved);
+
     const status = approved ? 'APPROVED' : 'REJECTED';
-    
-    await Message.send({
+
+    const messageData = {
       to_email: contract.mentor_email,
       to_role: 'Mentor',
+      from_email: adminEmail,
+      from_role: 'Admin',
       subject: `Contract ${status} - Action Required: Notify ${contract.student_name || contract.student_email}`,
       content: `**Contract Final Decision - Please Notify Your Student**
 
@@ -119,7 +126,12 @@ ${approved ?
 Contract ID: ${contract.id}`,
       message_type: 'contract_decision',
       mentor_email: contract.mentor_email
-    });
+    };
+
+    console.log('[ContractWorkflow] Sending message:', messageData);
+    const result = await Message.send(messageData);
+    console.log('[ContractWorkflow] Message sent, result:', result);
+    return result;
   }
 
   /**
