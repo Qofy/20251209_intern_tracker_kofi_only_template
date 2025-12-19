@@ -396,8 +396,22 @@
   // Contract management functions
   async function approveContract(contractId, adminNotes = '') {
     try {
-      const contractWorkflow = new ContractWorkflowService();
-      await contractWorkflow.adminReview(contractId, 'admin_approved', adminNotes, user.email);
+      // Update contract status directly using Contract entity
+      await Contract.update(contractId, {
+        status: 'admin_approved',
+        admin_feedback: adminNotes,
+        admin_reviewed_at: new Date().toISOString()
+      });
+
+      // Get the updated contract for messaging
+      const contracts = await Contract.list();
+      const contract = contracts.find(c => c.id === contractId);
+      
+      if (contract) {
+        // Send notifications using ContractWorkflowService
+        await ContractWorkflowService.notifyMentorOfAdminDecision(contract, user.email, true, adminNotes);
+        await ContractWorkflowService.notifyStudentOfFinalDecision(contract, true, contract.mentor_email, adminNotes);
+      }
       
       alert('Contract approved successfully! Mentor and student will be notified.');
       await loadData();
@@ -412,8 +426,22 @@
     if (!reason) return;
 
     try {
-      const contractWorkflow = new ContractWorkflowService();
-      await contractWorkflow.adminReview(contractId, 'admin_rejected', reason, user.email);
+      // Update contract status directly using Contract entity
+      await Contract.update(contractId, {
+        status: 'admin_rejected',
+        admin_feedback: reason,
+        admin_reviewed_at: new Date().toISOString()
+      });
+
+      // Get the updated contract for messaging
+      const contracts = await Contract.list();
+      const contract = contracts.find(c => c.id === contractId);
+      
+      if (contract) {
+        // Send notifications using ContractWorkflowService
+        await ContractWorkflowService.notifyMentorOfAdminDecision(contract, user.email, false, reason);
+        await ContractWorkflowService.notifyStudentOfFinalDecision(contract, false, contract.mentor_email, reason);
+      }
       
       alert('Contract rejected. Mentor and student will be notified with feedback.');
       await loadData();
@@ -424,8 +452,18 @@
   }
 
   function viewContractDetails(contract) {
-    // You can implement a modal or navigation to full contract view
-    alert(`Viewing full contract details for ${contract.full_name}`);
+    // Display contract details with proper field names
+    const contractName = contract.student_name || contract.title || `Contract #${contract.id}`;
+    const details = `
+Contract Details:
+Name: ${contractName}
+Student: ${contract.student_email || 'Not provided'}
+Mentor: ${contract.mentor_email || 'Not assigned'}  
+Hours: ${contract.contract_hours || 0}
+Work Area: ${contract.work_area || contract.company_name || 'Not specified'}
+Status: ${contract.status}
+    `;
+    alert(details);
   }
 
   $: filteredUsers = allUsers.filter(u =>
@@ -954,7 +992,7 @@
                 <div class="flex items-start justify-between mb-4">
                   <div class="flex-1">
                     <div class="flex items-center gap-3 mb-2">
-                      <h4 class="text-white font-bold text-lg">{contract.full_name}</h4>
+                      <h4 class="text-white font-bold text-lg">{contract.student_name || contract.title || 'Contract'}</h4>
                       <span class="px-3 py-1 rounded-full text-xs font-semibold bg-purple-500/20 text-purple-400">
                         Contract - Pending Admin Approval
                       </span>
@@ -962,19 +1000,19 @@
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4">
                       <div>
                         <p class="text-white/60">Student Email</p>
-                        <p class="text-white font-medium">{contract.student_email}</p>
+                        <p class="text-white font-medium">{contract.student_email || 'Not provided'}</p>
                       </div>
                       <div>
                         <p class="text-white/60">Mentor</p>
-                        <p class="text-white font-medium">{contract.mentor_email}</p>
+                        <p class="text-white font-medium">{contract.mentor_email || 'Not assigned'}</p>
                       </div>
                       <div>
                         <p class="text-white/60">Contract Hours</p>
-                        <p class="text-white font-medium">{contract.contract_hours}h</p>
+                        <p class="text-white font-medium">{contract.contract_hours || 0}h</p>
                       </div>
                       <div>
-                        <p class="text-white/60">Department</p>
-                        <p class="text-white font-medium">{contract.department || 'Not specified'}</p>
+                        <p class="text-white/60">Work Area</p>
+                        <p class="text-white font-medium">{contract.work_area || contract.company_name || 'Not specified'}</p>
                       </div>
                     </div>
                     
@@ -983,13 +1021,13 @@
                       {#if contract.student_signature}
                         <div class="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                           <p class="text-green-400 text-sm font-medium">✓ Student Signed: {contract.student_signature}</p>
-                          <p class="text-white/60 text-xs">{contract.student_signature_date}</p>
+                          <p class="text-white/60 text-xs">{contract.student_signed_date || 'Date not recorded'}</p>
                         </div>
                       {/if}
                       {#if contract.mentor_signature}
                         <div class="p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                           <p class="text-blue-400 text-sm font-medium">✓ Mentor Approved: {contract.mentor_signature}</p>
-                          <p class="text-white/60 text-xs">{contract.mentor_signature_date}</p>
+                          <p class="text-white/60 text-xs">{contract.mentor_signed_date || 'Date not recorded'}</p>
                         </div>
                       {/if}
                     </div>
