@@ -9,7 +9,7 @@
     Users, ClipboardList, MessageSquare, TrendingUp, 
     Plus, Check, X, Edit, Trash2, Send, FileText,
     Clock, Calendar, AlertCircle, CheckCircle, Target,
-    User as UserIcon, Mail, Phone, Award, RefreshCw, Shield, Activity
+    User as UserIcon, Mail, Phone, Award, RefreshCw, Shield, Activity,BookCheck
   } from 'lucide-svelte';
   import { format, parseISO } from 'date-fns';
 
@@ -1380,7 +1380,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
             </Button>
             <Button 
               on:click={() => showTimeEntryDialog = true}
-              class="bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md px-4 flex items-center"
+              class="bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md px-4 flex items-center justify-center"
             >
               <Clock class="w-4 h-4 mr-2" />
               Add Time Entry
@@ -1901,7 +1901,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                         <!-- Already forwarded - show success status -->
                         <span class="bg-green-500/20 text-green-300 text-xs px-3 py-1.5 rounded border border-green-500/30 flex items-center gap-1">
                           <CheckCircle class="w-3 h-3" />
-                          ✅ Forwarded
+                          <BookCheck color="green"/> Forwarded
                         </span>
                       {:else if msg.from_role === 'Admin'}
                         <!-- Not yet forwarded - show action button -->
@@ -1911,7 +1911,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                           title="Forward this message to the student with personalized content"
                         >
                           <Send class="w-3 h-3" />
-                          📤 Forward to Student
+                           Forward to Student
                         </Button>
                       {/if}
                     </div>
@@ -1933,7 +1933,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                         </p>
                       {/if}
                       <p class="text-green-400/60 text-xs mt-1 ml-6">
-                        ✅ The student has received the {msg.subject.includes('APPROVED') ? 'congratulations' : 'revision guidance'} message from you.
+                        <BookCheck color="green"/> The student has received the {msg.subject.includes('APPROVED') ? 'congratulations' : 'revision guidance'} message from you.
                       </p>
                     </div>
                   {:else if msg.message_type === 'contract_decision' || msg.subject.toLowerCase().includes('contract') || msg.subject.includes('APPROVED') || msg.subject.includes('REJECTED')}
@@ -2041,7 +2041,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                           messageForm.subject = 'Re: ' + (message.subject || 'Message');
                           showMessageDialog = true;
                         }}
-                        class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 text-xs"
+                        class="bg-green-500 hover:bg-green-600 text-white px-3 py-1 text-xs h-10 flex rounded-md items-center"
                       >
                         <Send class="w-3 h-3 mr-1" />
                         Reply
@@ -2322,7 +2322,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
           </Button>
           <Button 
             on:click={createTimeEntry}
-            class="bg-blue-500 hover:bg-blue-600 text-white"
+            class="bg-blue-500 hover:bg-blue-600 text-white h-10 flex items-center justify-center px-2 rounded-md"
           >
             <Clock class="w-4 h-4 mr-2" />
             Add Time Entry
