@@ -27,7 +27,19 @@ export class TasksController {
 
   @Put(':id')
   async update(@Param('id') id: string, @Body() taskData: Partial<Task>) {
-    return this.tasksService.update(+id, taskData);
+    try {
+      const taskId = +id;
+      if (isNaN(taskId)) {
+        throw new Error('Invalid task ID');
+      }
+      
+      console.log(`Updating task ${taskId} with data:`, taskData);
+      
+      return await this.tasksService.update(taskId, taskData);
+    } catch (error) {
+      console.error(`Error updating task ${id}:`, error);
+      throw error;
+    }
   }
 
   @Delete(':id')

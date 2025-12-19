@@ -1,5 +1,5 @@
 <script>
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { Task, TimeEntry, Student, Schedule, Message, User } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
@@ -55,7 +55,7 @@
     message: ''
   };
 
-  // Time tracking state
+  // Enhanced Time tracking state with real-time functionality
   let timeTracker = {
     isWorking: false,
     startTime: null,
@@ -63,7 +63,14 @@
     breakStart: null,
     breakEnd: null,
     isOnBreak: false,
-    currentSession: null
+    currentSession: null,
+    // New real-time tracking fields
+    currentTaskId: null,
+    elapsedTime: 0, // in seconds
+    breakElapsedTime: 0, // total break time in seconds
+    timerInterval: null,
+    displayTime: '00:00:00',
+    totalBreakTime: 0 // accumulated break time
   };
 
   // Enhanced Stats with actual progress tracking
@@ -82,9 +89,41 @@
     taskCompletionRate: 0
   };
 
+  // Reactive statements to automatically update stats when data changes
+  $: if (myTasks) {
+    stats.totalTasks = myTasks.length;
+    stats.completedTasks = myTasks.filter(t => t.status === 'completed').length;
+    stats.totalEstimatedHours = myTasks.reduce((sum, t) => sum + (parseFloat(t.estimated_hours) || 0), 0);
+    stats.totalHoursWorked = myTasks.reduce((sum, t) => sum + (parseFloat(t.hours_worked) || 0), 0);
+    stats.averageTaskProgress = myTasks.length > 0 ? 
+      Math.round(myTasks.reduce((sum, t) => sum + (parseInt(t.progress_percentage) || 0), 0) / myTasks.length) : 0;
+    stats.taskCompletionRate = stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0;
+  }
+
+  $: if (mySubmissions) {
+    stats.pendingSubmissions = mySubmissions.filter(s => s.status === 'draft').length;
+    stats.approvedHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.approved_hours) || 0), 0);
+    stats.totalHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
+  }
+
+  $: if (selectedStudent) {
+    stats.contractHours = selectedStudent?.contract_hours || 600;
+    stats.completionPercentage = Math.min(100, Math.round((stats.approvedHours / stats.contractHours) * 100));
+  }
+
   onMount(async () => {
     await loadStudentData();
     await loadMessages();
+  });
+
+  onDestroy(() => {
+    // Clean up timer when component is destroyed
+    stopTimer();
+  });
+
+  onDestroy(() => {
+    // Clean up timer when component is destroyed
+    stopTimer();
   });
 
   async function loadMessages() {
@@ -176,24 +215,6 @@
         s.assigned_to === user?.email
       );
 
-      // Calculate enhanced stats with actual progress tracking
-      stats.totalTasks = myTasks.length;
-      stats.completedTasks = myTasks.filter(t => t.status === 'completed').length;
-      stats.pendingSubmissions = mySubmissions.filter(s => s.status === 'draft').length;
-      
-      // Contract progress - approved hours vs contract requirement
-      stats.approvedHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.approved_hours) || 0), 0);
-      stats.totalHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
-      stats.contractHours = selectedStudent?.contract_hours || 600;
-      stats.completionPercentage = Math.min(100, Math.round((stats.approvedHours / stats.contractHours) * 100));
-      
-      // Task progress - actual hours worked vs estimated hours
-      stats.totalEstimatedHours = myTasks.reduce((sum, t) => sum + (parseFloat(t.estimated_hours) || 0), 0);
-      stats.totalHoursWorked = myTasks.reduce((sum, t) => sum + (parseFloat(t.hours_worked) || 0), 0);
-      stats.averageTaskProgress = myTasks.length > 0 ? 
-        Math.round(myTasks.reduce((sum, t) => sum + (parseInt(t.progress_percentage) || 0), 0) / myTasks.length) : 0;
-      stats.taskCompletionRate = stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0;
-
       // Mock feedback data (since we don't have a feedback entity yet)
       myFeedback = mySubmissions
         .filter(e => e.mentor_comments && e.mentor_comments.trim() !== '')
@@ -210,6 +231,314 @@
       console.error('[Student Dashboard] Error loading data:', error);
     }
     isLoading = false;
+  }
+
+  // Function to update task progress dynamically
+  async function updateTaskProgress(taskId, newProgress, hoursWorked = 0) {
+    try {
+      const taskIndex = myTasks.findIndex(t => t.id === taskId);
+      if (taskIndex === -1) return;
+
+      const task = myTasks[taskIndex];
+      const updatedHours = (parseFloat(task.hours_worked) || 0) + hoursWorked;
+      
+      // Handle progress percentage - use existing progress if newProgress is null/undefined
+      let progressPercentage;
+      if (newProgress !== null && newProgress !== undefined) {
+        progressPercentage = Math.min(100, Math.max(0, parseInt(newProgress)));
+      } else {
+        // Keep existing progress, but recalculate based on hours if we're adding time
+        progressPercentage = parseInt(task.progress_percentage) || 0;
+        
+        // Optionally update progress based on hours worked vs estimated hours
+        if (hoursWorked > 0 && task.estimated_hours) {
+          const estimatedHours = parseFloat(task.estimated_hours);
+          const hoursBasedProgress = Math.min(100, Math.round((updatedHours / estimatedHours) * 100));
+          // Use the higher of current progress or hours-based progress
+          progressPercentage = Math.max(progressPercentage, hoursBasedProgress);
+        }
+      }
+      
+      // Automatically mark as completed if progress is 100%
+      const newStatus = progressPercentage >= 100 ? 'completed' : 
+                       progressPercentage > 0 ? 'in_progress' : 'assigned';
+
+      // Prepare update data - only include fields that should be updated
+      const updateData = {
+        hours_worked: updatedHours,
+        progress_percentage: progressPercentage,
+        status: newStatus
+      };
+
+      console.log(`Updating task ${taskId}:`, updateData);
+
+      // Update the task in the database
+      const updatedTask = await Task.update(taskId, updateData);
+
+      // Update local task array
+      myTasks[taskIndex] = {
+        ...myTasks[taskIndex],
+        hours_worked: updatedHours,
+        progress_percentage: progressPercentage,
+        status: newStatus
+      };
+      
+      // Trigger reactivity
+      myTasks = myTasks;
+
+      console.log(`Task ${taskId} updated: ${progressPercentage}% complete, ${updatedHours}h worked, status: ${newStatus}`);
+      
+      if (newStatus === 'completed') {
+        alert(`🎉 Task "${task.title}" has been completed!`);
+      }
+
+    } catch (error) {
+      console.error('Error updating task progress:', error);
+      
+      // Provide specific error messages based on the error type
+      let errorMessage = 'Failed to update task progress';
+      
+      if (error.message) {
+        if (error.message.includes('Internal server error')) {
+          errorMessage = 'Server error: Please check your internet connection and try again';
+        } else if (error.message.includes('not found')) {
+          errorMessage = 'Task not found: Please refresh the page and try again';
+        } else {
+          errorMessage = `Update failed: ${error.message}`;
+        }
+      }
+      
+      alert(`❌ ${errorMessage}\n\n🔧 If this problem persists, please contact your mentor or administrator.`);
+    }
+  }
+
+  // Function to mark task as completed manually
+  async function markTaskCompleted(taskId) {
+    await updateTaskProgress(taskId, 100);
+  }
+
+  // Enhanced Timer Functions with Visual Feedback
+  
+  // Format seconds to HH:MM:SS display
+  function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  
+  // Update timer display every second with enhanced notifications
+  function startTimer() {
+    if (timeTracker.timerInterval) return; // Already running
+    
+    timeTracker.timerInterval = setInterval(() => {
+      if (timeTracker.isWorking && !timeTracker.isOnBreak) {
+        timeTracker.elapsedTime++;
+        timeTracker.displayTime = formatTime(timeTracker.elapsedTime);
+        
+        // Visual feedback every 15 minutes
+        if (timeTracker.elapsedTime > 0 && timeTracker.elapsedTime % 900 === 0) {
+          const minutes = timeTracker.elapsedTime / 60;
+          console.log(`⏰ Time tracking: ${minutes} minutes worked!`);
+          alert(`⏰ Time Update: You've been working for ${Math.floor(minutes)} minutes! Great progress! 💪`);
+        }
+        
+        // Update page title with current time every 10 seconds
+        if (timeTracker.elapsedTime % 10 === 0) {
+          if (typeof document !== 'undefined') {
+            const taskName = timeTracker.currentTaskId ? 
+              (myTasks.find(t => t.id === timeTracker.currentTaskId)?.title || 'Task') : 'Work';
+            document.title = `⏱️ ${timeTracker.displayTime} - ${taskName} | Intern Tracker`;
+          }
+        }
+      }
+      // Force reactivity
+      timeTracker = { ...timeTracker };
+    }, 1000);
+  }
+  
+  // Stop the timer and reset page title
+  function stopTimer() {
+    if (timeTracker.timerInterval) {
+      clearInterval(timeTracker.timerInterval);
+      timeTracker.timerInterval = null;
+    }
+    
+    // Reset page title
+    if (typeof document !== 'undefined') {
+      document.title = 'Intern Tracker - Student Dashboard';
+    }
+  }
+
+  // Start work session with timer
+  async function startWork(taskId = null) {
+    try {
+      const now = new Date();
+      timeTracker.isWorking = true;
+      timeTracker.startTime = now.toISOString();
+      timeTracker.endTime = null;
+      timeTracker.currentTaskId = taskId;
+      timeTracker.elapsedTime = 0;
+      timeTracker.totalBreakTime = 0;
+      timeTracker.displayTime = '00:00:00';
+      
+      // Start the real-time timer
+      startTimer();
+      
+      // Find student record
+      const allStudents = await Student.list();
+      const studentRecord = allStudents.find(s => s.student_email === user?.email);
+      
+      if (studentRecord) {
+        // Create a new time entry session
+        const sessionData = {
+          student_id: studentRecord.id,
+          date: format(now, 'yyyy-MM-dd'),
+          start_time: format(now, 'HH:mm'),
+          status: 'draft',
+          created_by: user?.email,
+          created_at: now.toISOString(),
+          description: taskId ? `Working on task ${taskId}` : 'General work session'
+        };
+        
+        const session = await TimeEntry.create(sessionData);
+        timeTracker.currentSession = session;
+        
+        // Update task status to in_progress if specified
+        if (taskId) {
+          try {
+            await updateTaskProgress(taskId, null, 0); // Don't change progress, just update status
+            const task = myTasks.find(t => t.id === taskId);
+            if (task && task.status === 'assigned') {
+              await Task.update(taskId, { status: 'in_progress' });
+              // Update local state
+              const taskIndex = myTasks.findIndex(t => t.id === taskId);
+              if (taskIndex !== -1) {
+                myTasks[taskIndex].status = 'in_progress';
+                myTasks = myTasks; // Trigger reactivity
+              }
+            }
+          } catch (taskError) {
+            console.error('Error updating task status:', taskError);
+          }
+        }
+        
+        const taskInfo = taskId ? `\n📋 Task: ${myTasks.find(t => t.id === taskId)?.title || 'Unknown'}` : '\n📝 General work session';
+        alert(`🚀 Timer Started!${taskInfo}\n\n⏱️ Time tracking is now active and visible in the header.\n\n💡 Tip: Take breaks when needed and the timer will pause automatically!`);
+      }
+    } catch (error) {
+      console.error('Error starting work session:', error);
+      alert('Failed to start work session');
+      stopTimer();
+    }
+  }
+  
+  // Start break
+  function startBreak() {
+    if (!timeTracker.isWorking || timeTracker.isOnBreak) return;
+    
+    timeTracker.isOnBreak = true;
+    timeTracker.breakStart = new Date().toISOString();
+    timeTracker.breakElapsedTime = 0;
+    
+    // Timer continues running but doesn't increment work time during break
+    alert('☕ Break Time!\n\n⏸️ Timer is now paused. Your work time tracking has stopped.\n\n🔄 Click "Resume" when you\'re ready to continue working!');
+  }
+  
+  // End break
+  function endBreak() {
+    if (!timeTracker.isWorking || !timeTracker.isOnBreak) return;
+    
+    timeTracker.isOnBreak = false;
+    timeTracker.breakEnd = new Date().toISOString();
+    
+    // Calculate break duration and add to total break time
+    if (timeTracker.breakStart) {
+      const breakDuration = Math.floor((new Date() - new Date(timeTracker.breakStart)) / 1000);
+      timeTracker.totalBreakTime += breakDuration;
+    }
+    
+    // Resume timer (work time calculation resumes)
+    alert('🔄 Work Resumed!\n\n▶️ Timer is now active again. Your work time tracking has resumed.\n\n💪 Let\'s get back to being productive!');
+  }
+  
+  // End work session
+  async function endWork() {
+    try {
+      if (!timeTracker.currentSession) {
+        alert('No active session found');
+        return;
+      }
+
+      const now = new Date();
+      timeTracker.isWorking = false;
+      timeTracker.endTime = now.toISOString();
+      
+      // Stop the timer
+      stopTimer();
+      
+      // If currently on break, end it
+      if (timeTracker.isOnBreak) {
+        endBreak();
+      }
+      
+      // Calculate total work time (excluding breaks)
+      const totalSessionTime = timeTracker.elapsedTime; // seconds
+      const totalWorkTimeHours = Math.max(0, (totalSessionTime - timeTracker.totalBreakTime) / 3600);
+      
+      // Update the current session with end time and break info
+      const updatedData = {
+        end_time: format(now, 'HH:mm'),
+        break_start: timeTracker.breakStart ? format(new Date(timeTracker.breakStart), 'HH:mm') : null,
+        break_end: timeTracker.breakEnd ? format(new Date(timeTracker.breakEnd), 'HH:mm') : null,
+        status: 'submitted',
+        manually_inputted_hours: totalWorkTimeHours.toFixed(2),
+        notes: `Session: ${formatTime(totalSessionTime)}, Breaks: ${formatTime(timeTracker.totalBreakTime)}, Work: ${formatTime(totalSessionTime - timeTracker.totalBreakTime)}`
+      };
+      
+      await TimeEntry.update(timeTracker.currentSession.id, updatedData);
+      
+      // Update related task if specified
+      if (timeTracker.currentTaskId && totalWorkTimeHours > 0) {
+        try {
+          await updateTaskProgress(timeTracker.currentTaskId, null, totalWorkTimeHours);
+          
+          const task = myTasks.find(t => t.id === timeTracker.currentTaskId);
+          const taskTitle = task?.title || 'Unknown Task';
+          console.log(`Updated task "${taskTitle}": +${totalWorkTimeHours.toFixed(2)}h worked`);
+        } catch (taskError) {
+          console.error('Error updating task progress:', taskError);
+        }
+      }
+      
+      const workTimeDisplay = formatTime(totalSessionTime - timeTracker.totalBreakTime);
+      const taskInfo = timeTracker.currentTaskId ? 
+        `\n📋 Task: ${myTasks.find(t => t.id === timeTracker.currentTaskId)?.title || 'Unknown'}` : 
+        '\n📝 General work session';
+      
+      // Reset tracker
+      timeTracker = {
+        isWorking: false,
+        startTime: null,
+        endTime: null,
+        breakStart: null,
+        breakEnd: null,
+        isOnBreak: false,
+        currentSession: null,
+        currentTaskId: null,
+        elapsedTime: 0,
+        breakElapsedTime: 0,
+        timerInterval: null,
+        displayTime: '00:00:00',
+        totalBreakTime: 0
+      };
+      
+      alert(`✅ Work Session Completed!${taskInfo}\n\n⏱️ Total work time: ${workTimeDisplay}\n📊 Session logged and task updated.\n\n🎉 Great job! Your progress has been saved.`);
+      
+    } catch (error) {
+      console.error('Error ending work session:', error);
+      alert('Error ending work session: ' + error.message);
+    }
   }
 
   async function submitWork() {
@@ -238,24 +567,12 @@
       // If a task is selected, update its completion status
       if (submitWorkForm.taskId) {
         try {
-          // Calculate hours worked (default to 1 hour if not specified)
           const hoursWorked = submitWorkForm.hoursWorked || 1;
           
-          // Get current task to update its hours
-          const currentTask = myTasks.find(t => t.id === submitWorkForm.taskId);
-          if (currentTask) {
-            const newHoursWorked = (currentTask.hours_worked || 0) + hoursWorked;
-            const estimatedHours = currentTask.estimated_hours || 8; // Default 8 hours if not set
-            const progressPercentage = Math.min(100, Math.round((newHoursWorked / estimatedHours) * 100));
-            
-            await Task.update(submitWorkForm.taskId, {
-              status: 'completed',
-              hours_worked: newHoursWorked,
-              progress_percentage: progressPercentage
-            });
-            
-            console.log(`Task ${submitWorkForm.taskId} marked as completed with ${newHoursWorked}h worked`);
-          }
+          // Use the dynamic progress update function to mark as completed
+          await updateTaskProgress(submitWorkForm.taskId, 100, hoursWorked);
+          
+          console.log(`Task ${submitWorkForm.taskId} marked as completed with ${hoursWorked}h worked`);
         } catch (taskError) {
           console.error('Error updating task status:', taskError);
           // Don't fail the whole submission if task update fails
@@ -270,7 +587,6 @@
         hoursWorked: 1,
         submittedAt: new Date().toISOString()
       };
-      await loadStudentData();
     } catch (error) {
       console.error('Error submitting work:', error);
       alert('Failed to submit work');
@@ -309,132 +625,6 @@
     }
   }
 
-  // Time tracking functions
-  async function startWork() {
-    try {
-      const now = new Date();
-      timeTracker.isWorking = true;
-      timeTracker.startTime = now.toISOString();
-      timeTracker.endTime = null;
-      
-      // Find student record
-      const allStudents = await Student.list();
-      const studentRecord = allStudents.find(s => s.student_email === user?.email);
-      
-      if (studentRecord) {
-        // Create a new time entry session
-        const sessionData = {
-          student_id: studentRecord.id,
-          date: format(now, 'yyyy-MM-dd'),
-          start_time: format(now, 'HH:mm'),
-          status: 'draft',
-          created_by: user?.email,
-          created_at: now.toISOString()
-        };
-        
-        const session = await TimeEntry.create(sessionData);
-        timeTracker.currentSession = session;
-        
-        alert('Work session started!');
-      }
-    } catch (error) {
-      console.error('Error starting work session:', error);
-      alert('Failed to start work session');
-    }
-  }
-
-  async function endWork() {
-    try {
-      if (!timeTracker.currentSession) {
-        alert('No active session found');
-        return;
-      }
-
-      const now = new Date();
-      timeTracker.isWorking = false;
-      timeTracker.endTime = now.toISOString();
-      
-      // Update the current session with end time
-      const updatedData = {
-        end_time: format(now, 'HH:mm'),
-        break_start: timeTracker.breakStart ? format(new Date(timeTracker.breakStart), 'HH:mm') : null,
-        break_end: timeTracker.breakEnd ? format(new Date(timeTracker.breakEnd), 'HH:mm') : null,
-        status: 'submitted'
-      };
-      
-      await TimeEntry.update(timeTracker.currentSession.id, updatedData);
-      
-      // Calculate hours worked and update related task if any
-      if (timeTracker.startTime) {
-        const startTime = new Date(timeTracker.startTime);
-        const endTime = now;
-        const breakTime = timeTracker.breakStart && timeTracker.breakEnd ? 
-          (new Date(timeTracker.breakEnd) - new Date(timeTracker.breakStart)) / (1000 * 60 * 60) : 0;
-        const hoursWorked = Math.max(0, (endTime - startTime) / (1000 * 60 * 60) - breakTime);
-        
-        // Update any in-progress task for this student
-        try {
-          const studentTasks = myTasks.filter(t => t.status === 'in_progress');
-          if (studentTasks.length > 0) {
-            const task = studentTasks[0]; // Take the first in-progress task
-            const newHoursWorked = (task.hours_worked || 0) + hoursWorked;
-            const estimatedHours = task.estimated_hours || 8;
-            const progressPercentage = Math.min(100, Math.round((newHoursWorked / estimatedHours) * 100));
-            
-            await Task.update(task.id, {
-              hours_worked: newHoursWorked,
-              progress_percentage: progressPercentage,
-              status: progressPercentage >= 100 ? 'completed' : 'in_progress'
-            });
-            
-            console.log(`Updated task ${task.id}: ${hoursWorked.toFixed(2)}h added, ${progressPercentage}% complete`);
-          }
-        } catch (taskError) {
-          console.error('Error updating task progress:', taskError);
-        }
-      }
-      
-      // Reset tracker
-      timeTracker = {
-        isWorking: false,
-        startTime: null,
-        endTime: null,
-        breakStart: null,
-        breakEnd: null,
-        isOnBreak: false,
-        currentSession: null
-      };
-      
-      alert('Work session ended and submitted!');
-      await loadStudentData();
-    } catch (error) {
-      console.error('Error ending work session:', error);
-      alert('Failed to end work session');
-    }
-  }
-
-  async function startBreak() {
-    if (!timeTracker.isWorking) {
-      alert('Start work session first');
-      return;
-    }
-    
-    timeTracker.isOnBreak = true;
-    timeTracker.breakStart = new Date().toISOString();
-    alert('Break started');
-  }
-
-  async function endBreak() {
-    if (!timeTracker.isOnBreak) {
-      alert('No active break to end');
-      return;
-    }
-    
-    timeTracker.isOnBreak = false;
-    timeTracker.breakEnd = new Date().toISOString();
-    alert('Break ended');
-  }
-
   function getTaskPriorityColor(priority) {
     switch (priority) {
       case 'high': return 'bg-red-500/20 text-red-400';
@@ -460,8 +650,93 @@
 <div class="p-8">
   <!-- Header -->
   <div class="mb-8">
-    <h1 class="text-4xl font-bold text-white mb-2">My Dashboard</h1>
-    <p class="text-white/70">Track your internship progress, tasks, and communicate with your mentor</p>
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-4xl font-bold text-white mb-2">My Dashboard</h1>
+        <p class="text-white/70">Track your internship progress, tasks, and communicate with your mentor</p>
+      </div>
+      
+      <!-- Enhanced Global Time Tracker Display -->
+      {#if timeTracker.isWorking}
+        <div class="bg-gradient-to-r from-green-500/30 to-blue-500/30 border-2 border-green-400 rounded-2xl px-8 py-6 min-w-[280px] shadow-2xl backdrop-blur-md">
+          <div class="text-center">
+            <!-- Header with pulsing indicator -->
+            <div class="flex items-center justify-center gap-3 mb-3">
+              <div class="relative">
+                <div class="w-4 h-4 bg-green-400 rounded-full animate-pulse"></div>
+                <div class="absolute inset-0 w-4 h-4 bg-green-400 rounded-full animate-ping opacity-75"></div>
+              </div>
+              <span class="text-white font-bold text-lg">⏱️ TIME TRACKING</span>
+            </div>
+            
+            <!-- Large timer display -->
+            <div class="bg-black/30 rounded-xl px-4 py-3 mb-3 border border-green-500/50">
+              <div class="text-4xl font-mono font-black text-green-300 tracking-wider drop-shadow-lg">
+                {timeTracker.displayTime}
+              </div>
+              <div class="text-green-400/80 text-sm font-medium mt-1">
+                {#if timeTracker.isOnBreak}
+                  ☕ BREAK TIME - Timer Paused
+                {:else}
+                  🚀 ACTIVELY WORKING
+                {/if}
+              </div>
+            </div>
+            
+            <!-- Task info -->
+            {#if timeTracker.currentTaskId}
+              <div class="bg-blue-500/20 rounded-lg px-3 py-2 mb-3 border border-blue-500/30">
+                <div class="text-blue-300 text-sm font-semibold">Current Task:</div>
+                <div class="text-white font-medium truncate">
+                  📋 {myTasks.find(t => t.id === timeTracker.currentTaskId)?.title || 'Unknown Task'}
+                </div>
+              </div>
+            {:else}
+              <div class="bg-purple-500/20 rounded-lg px-3 py-2 mb-3 border border-purple-500/30">
+                <div class="text-purple-300 text-sm font-semibold">General Work Session</div>
+              </div>
+            {/if}
+            
+            <!-- Control buttons -->
+            <div class="flex gap-2 justify-center">
+              {#if !timeTracker.isOnBreak}
+                <Button 
+                  on:click={startBreak}
+                  class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-sm px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105"
+                >
+                  ☕ Take Break
+                </Button>
+              {:else}
+                <Button 
+                  on:click={endBreak}
+                  class="bg-blue-500 hover:bg-blue-600 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105 animate-pulse"
+                >
+                  🔄 Resume Work
+                </Button>
+              {/if}
+              <Button 
+                on:click={endWork}
+                class="bg-red-500 hover:bg-red-600 text-white font-bold text-sm px-4 py-2 rounded-lg transition-all duration-200 transform hover:scale-105"
+              >
+                ⏹️ End Session
+              </Button>
+            </div>
+          </div>
+        </div>
+      {:else}
+        <!-- Enhanced Quick Start Button -->
+        <div class="text-right">
+          <Button 
+            on:click={() => startWork()}
+            class="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-4 flex items-center gap-3 font-bold text-lg rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-200 animate-bounce"
+          >
+            <Clock class="w-6 h-6" />
+            🚀 Start Tracking Time
+          </Button>
+          <p class="text-white/70 text-sm mt-2 font-medium">⏰ Track your work across all tasks</p>
+        </div>
+      {/if}
+    </div>
   </div>
 
   <!-- Stats Overview -->
@@ -645,22 +920,148 @@
               </div>
 
               {#if task.status !== 'completed'}
-                <div class="flex gap-2">
-                  <Button class="bg-blue-500 hover:bg-blue-600 text-white">
-                    Start Working
-                  </Button>
-                  <Button
-                    on:click={() => { submitWorkForm.taskId = task.id; showSubmitWorkModal = true; }}
-                    class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center"
-                  >
-                    <Upload class="w-4 h-4 mr-2" />
-                    Submit Work
-                  </Button>
+                <div class="space-y-3">
+                  <!-- Progress Update Controls -->
+                  <div class="flex items-center gap-3 bg-white/5 rounded-lg p-3">
+                    <label class="text-white/70 text-sm font-medium min-w-[60px]">Progress:</label>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      value={parseInt(task.progress_percentage) || 0}
+                      class="flex-1 h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
+                      on:change={async (e) => {
+                        const newProgress = parseInt(e.target.value);
+                        await updateTaskProgress(task.id, newProgress);
+                      }}
+                    />
+                    <span class="text-white text-sm font-medium min-w-[45px] text-center">
+                      {parseInt(task.progress_percentage) || 0}%
+                    </span>
+                  </div>
+                  
+                  <!-- Action Buttons -->
+                  <div class="flex gap-2 flex-wrap">
+                    <!-- Enhanced Time Tracking Controls -->
+                    {#if !timeTracker.isWorking}
+                      <Button 
+                        on:click={() => startWork(task.id)}
+                        class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 flex items-center gap-3 text-sm font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 animate-pulse"
+                      >
+                        <Clock class="w-5 h-5" />
+                        ▶️ START TRACKING TIME
+                      </Button>
+                    {:else if timeTracker.currentTaskId === task.id}
+                      <!-- Enhanced Active timer controls for this task -->
+                      <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-400 rounded-xl p-4">
+                        <!-- Timer display header -->
+                        <div class="flex items-center justify-center gap-2 mb-3">
+                          <div class="relative">
+                            <div class="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                            <div class="absolute inset-0 w-3 h-3 bg-green-400 rounded-full animate-ping opacity-75"></div>
+                          </div>
+                          <span class="text-green-300 font-bold text-sm">⏱️ TIMER ACTIVE</span>
+                        </div>
+                        
+                        <!-- Large timer display -->
+                        <div class="bg-black/40 rounded-lg px-4 py-3 mb-3 text-center border border-green-500/50">
+                          <div class="text-3xl font-mono font-black text-green-300 tracking-wider">
+                            {timeTracker.displayTime}
+                          </div>
+                          <div class="text-green-400/80 text-xs font-medium mt-1">
+                            {#if timeTracker.isOnBreak}
+                              ☕ ON BREAK - Timer Paused
+                            {:else}
+                              🔥 WORKING ON THIS TASK
+                            {/if}
+                          </div>
+                        </div>
+                        
+                        <!-- Control buttons -->
+                        <div class="flex gap-2 justify-center flex-wrap">
+                          {#if !timeTracker.isOnBreak}
+                            <Button 
+                              on:click={startBreak}
+                              class="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-xs px-3 py-2 rounded-lg transform hover:scale-105 transition-all"
+                            >
+                              ☕ Break
+                            </Button>
+                          {:else}
+                            <Button 
+                              on:click={endBreak}
+                              class="bg-blue-500 hover:bg-blue-600 text-white font-bold text-xs px-3 py-2 rounded-lg transform hover:scale-105 transition-all animate-pulse"
+                            >
+                              🔄 Resume
+                            </Button>
+                          {/if}
+                          
+                          <Button 
+                            on:click={endWork}
+                            class="bg-red-500 hover:bg-red-600 text-white font-bold text-xs px-3 py-2 rounded-lg transform hover:scale-105 transition-all"
+                          >
+                            ⏹️ Stop
+                          </Button>
+                        </div>
+                      </div>
+                    {:else if timeTracker.currentTaskId && timeTracker.currentTaskId !== task.id}
+                      <!-- Working on different task -->
+                      <div class="bg-orange-500/10 border border-orange-500/30 rounded-lg px-3 py-2">
+                        <span class="text-orange-300 text-sm">Working on another task</span>
+                      </div>
+                    {/if}
+                    
+                    <!-- Quick Progress Buttons -->
+                    {#if parseInt(task.progress_percentage) < 100}
+                      <Button 
+                        on:click={() => updateTaskProgress(task.id, 25)}
+                        class="bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 text-xs px-3 py-2"
+                      >
+                        25%
+                      </Button>
+                      <Button 
+                        on:click={() => updateTaskProgress(task.id, 50)}
+                        class="bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 text-xs px-3 py-2"
+                      >
+                        50%
+                      </Button>
+                      <Button 
+                        on:click={() => updateTaskProgress(task.id, 75)}
+                        class="bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 text-xs px-3 py-2"
+                      >
+                        75%
+                      </Button>
+                      <Button 
+                        on:click={() => markTaskCompleted(task.id)}
+                        class="bg-green-500/20 hover:bg-green-500/40 text-green-300 text-xs px-3 py-2 font-medium"
+                      >
+                        ✅ Mark Complete
+                      </Button>
+                    {/if}
+                    
+                    <!-- Submit Work Button -->
+                    <Button
+                      on:click={() => { submitWorkForm.taskId = task.id; showSubmitWorkModal = true; }}
+                      class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 flex items-center text-sm font-medium"
+                    >
+                      <Upload class="w-4 h-4 mr-2" />
+                      Submit Work
+                    </Button>
+                  </div>
                 </div>
               {:else}
-                <div class="flex items-center gap-2 text-green-400">
-                  <CheckCircle class="w-5 h-5" />
-                  <span class="font-semibold">Completed</span>
+                <div class="bg-green-500/10 border border-green-500/30 rounded-lg p-3">
+                  <div class="flex items-center gap-3 text-green-400">
+                    <CheckCircle class="w-6 h-6" />
+                    <div>
+                      <span class="font-semibold text-lg">Task Completed! 🎉</span>
+                      <p class="text-green-300/80 text-sm mt-1">
+                        Total time: {(parseFloat(task.hours_worked) || 0).toFixed(1)} hours
+                        {#if parseFloat(task.estimated_hours)}
+                          / {parseFloat(task.estimated_hours).toFixed(1)} estimated
+                        {/if}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               {/if}
             </div>
@@ -1314,7 +1715,64 @@
     {:else if activeTab === 'schedule'}
       <!-- Schedule & Milestones -->
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-white">Schedule & Milestones</h2>
+        <h2 class="text-2xl font-bold text-white">Schedule & Progress Tracking</h2>
+        <div class="flex gap-2">
+          <Button variant="ghost" class="text-white/60 hover:text-white">
+            <RefreshCw class="w-4 h-4 mr-2" />
+            Sync Calendar
+          </Button>
+        </div>
+      </div>
+
+      <!-- Contract Progress Overview -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Contract Completion -->
+        <div class="bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl border border-white/20 p-6">
+          <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+            <Award class="w-5 h-5 text-purple-400" />
+            Contract Progress
+          </h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-white/70">Hours Completed</span>
+              <span class="text-white font-bold">{stats.approvedHours} / {stats.contractHours} hrs</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-3">
+              <div class="bg-gradient-to-r from-purple-500 to-blue-500 h-3 rounded-full transition-all duration-500 relative overflow-hidden" 
+                   style="width: {stats.completionPercentage}%">
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-pulse"></div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-white/60">{stats.completionPercentage}% Complete</span>
+              <span class="text-white/60">{stats.contractHours - stats.approvedHours} hrs remaining</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Task Completion Rate -->
+        <div class="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl border border-white/20 p-6">
+          <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+            <Target class="w-5 h-5 text-green-400" />
+            Task Completion
+          </h3>
+          <div class="space-y-4">
+            <div class="flex justify-between items-center">
+              <span class="text-white/70">Tasks Completed</span>
+              <span class="text-white font-bold">{stats.completedTasks} / {stats.totalTasks}</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-3">
+              <div class="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all duration-500 relative overflow-hidden" 
+                   style="width: {stats.taskCompletionRate}%">
+                <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-pulse"></div>
+              </div>
+            </div>
+            <div class="flex justify-between items-center text-sm">
+              <span class="text-white/60">{stats.taskCompletionRate}% Complete</span>
+              <span class="text-white/60">Avg Progress: {stats.averageTaskProgress}%</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Internship Timeline -->
@@ -1323,84 +1781,211 @@
           <Calendar class="w-5 h-5 text-blue-400" />
           Internship Timeline
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div>
             <p class="text-white/70 text-sm mb-1">Start Date</p>
-            <p class="text-white font-bold text-lg">{selectedStudent?.start_date || 'Not set'}</p>
+            <p class="text-white font-bold text-lg">{selectedStudent?.start_date ? format(parseISO(selectedStudent.start_date), 'MMM dd, yyyy') : 'Not set'}</p>
           </div>
           <div>
             <p class="text-white/70 text-sm mb-1">End Date</p>
-            <p class="text-white font-bold text-lg">{selectedStudent?.end_date || 'Not set'}</p>
+            <p class="text-white font-bold text-lg">{selectedStudent?.end_date ? format(parseISO(selectedStudent.end_date), 'MMM dd, yyyy') : 'Not set'}</p>
           </div>
           <div>
             <p class="text-white/70 text-sm mb-1">Duration</p>
-            <p class="text-white font-bold text-lg">12 weeks</p>
+            <p class="text-white font-bold text-lg">{Math.ceil(stats.contractHours / 40)} weeks</p>
+          </div>
+          <div>
+            <p class="text-white/70 text-sm mb-1">Weekly Target</p>
+            <p class="text-white font-bold text-lg">40 hours</p>
           </div>
         </div>
+        
+        <!-- Timeline Progress Bar -->
+        {#if selectedStudent?.start_date && selectedStudent?.end_date}
+          {@const startDate = parseISO(selectedStudent.start_date)}
+          {@const endDate = parseISO(selectedStudent.end_date)}
+          {@const now = new Date()}
+          {@const totalDuration = endDate - startDate}
+          {@const elapsed = now - startDate}
+          {@const timeProgress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100))}
+          <div class="mt-6">
+            <div class="flex justify-between text-sm text-white/60 mb-2">
+              <span>Timeline Progress</span>
+              <span>{Math.round(timeProgress)}% elapsed</span>
+            </div>
+            <div class="w-full bg-white/10 rounded-full h-2">
+              <div class="bg-gradient-to-r from-blue-400 to-purple-400 h-2 rounded-full transition-all duration-500" 
+                   style="width: {timeProgress}%"></div>
+            </div>
+          </div>
+        {/if}
       </div>
 
-      <!-- Milestones -->
+      <!-- Dynamic Milestones -->
       <div class="bg-white/5 rounded-xl border border-white/20 p-6 mb-6">
         <h3 class="text-white font-bold mb-4 flex items-center gap-2">
           <Target class="w-5 h-5 text-purple-400" />
-          Key Milestones
+          Progress Milestones
         </h3>
         <div class="space-y-4">
+          <!-- Onboarding Milestone -->
           <div class="flex items-start gap-4">
-            <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-              <CheckCircle class="w-5 h-5 text-green-400" />
+            <div class="w-10 h-10 rounded-full {stats.totalTasks > 0 ? 'bg-green-500/20' : 'bg-gray-500/20'} flex items-center justify-center flex-shrink-0">
+              {#if stats.totalTasks > 0}
+                <CheckCircle class="w-5 h-5 text-green-400" />
+              {:else}
+                <Clock class="w-5 h-5 text-gray-400" />
+              {/if}
             </div>
             <div class="flex-1">
-              <p class="text-white font-semibold">Onboarding Complete</p>
-              <p class="text-white/60 text-sm">Completed orientation and initial setup</p>
-              <p class="text-green-400 text-xs mt-1">✓ Completed</p>
+              <p class="text-white font-semibold">Onboarding & Initial Tasks</p>
+              <p class="text-white/60 text-sm">Get assigned tasks and begin internship work</p>
+              <p class="{stats.totalTasks > 0 ? 'text-green-400' : 'text-gray-400'} text-xs mt-1">
+                {stats.totalTasks > 0 ? '✓ Completed' : '○ Pending'}
+              </p>
+            </div>
+            <div class="text-right">
+              <p class="text-white/70 text-sm">{stats.totalTasks} tasks</p>
             </div>
           </div>
 
-          <div class="flex items-start gap-4">
-            <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-              <Clock class="w-5 h-5 text-blue-400" />
+          <!-- Quarter Progress -->
+          {#if stats.contractHours}
+            {@const quarterHours = stats.contractHours / 4}
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-full {stats.approvedHours >= quarterHours ? 'bg-green-500/20' : stats.approvedHours > 0 ? 'bg-blue-500/20' : 'bg-gray-500/20'} flex items-center justify-center flex-shrink-0">
+                {#if stats.approvedHours >= quarterHours}
+                  <CheckCircle class="w-5 h-5 text-green-400" />
+                {:else if stats.approvedHours > 0}
+                  <Clock class="w-5 h-5 text-blue-400" />
+                {:else}
+                  <Target class="w-5 h-5 text-gray-400" />
+                {/if}
+              </div>
+              <div class="flex-1">
+                <p class="text-white font-semibold">First Quarter Progress</p>
+                <p class="text-white/60 text-sm">Complete 25% of contract hours ({quarterHours} hours)</p>
+                <p class="{stats.approvedHours >= quarterHours ? 'text-green-400' : stats.approvedHours > 0 ? 'text-blue-400' : 'text-gray-400'} text-xs mt-1">
+                  {stats.approvedHours >= quarterHours ? '✓ Completed' : stats.approvedHours > 0 ? '⏳ In Progress' : '○ Upcoming'}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-white/70 text-sm">{stats.approvedHours} / {quarterHours} hrs</p>
+              </div>
             </div>
-            <div class="flex-1">
-              <p class="text-white font-semibold">Mid-Term Review</p>
-              <p class="text-white/60 text-sm">Performance evaluation and feedback session</p>
-              <p class="text-blue-400 text-xs mt-1">⏳ In Progress</p>
-            </div>
-          </div>
+          {/if}
 
-          <div class="flex items-start gap-4">
-            <div class="w-10 h-10 rounded-full bg-gray-500/20 flex items-center justify-center flex-shrink-0">
-              <Target class="w-5 h-5 text-gray-400" />
+          <!-- Mid-Term Review -->
+          {#if stats.contractHours}
+            {@const midtermHours = stats.contractHours / 2}
+            {@const quarterHours = stats.contractHours / 4}
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-full {stats.approvedHours >= midtermHours ? 'bg-green-500/20' : stats.approvedHours >= quarterHours ? 'bg-blue-500/20' : 'bg-gray-500/20'} flex items-center justify-center flex-shrink-0">
+                {#if stats.approvedHours >= midtermHours}
+                  <CheckCircle class="w-5 h-5 text-green-400" />
+                {:else if stats.approvedHours >= quarterHours}
+                  <Clock class="w-5 h-5 text-blue-400" />
+                {:else}
+                  <Target class="w-5 h-5 text-gray-400" />
+                {/if}
+              </div>
+              <div class="flex-1">
+                <p class="text-white font-semibold">Mid-Term Review</p>
+                <p class="text-white/60 text-sm">Performance evaluation at 50% completion</p>
+                <p class="{stats.approvedHours >= midtermHours ? 'text-green-400' : stats.approvedHours >= quarterHours ? 'text-blue-400' : 'text-gray-400'} text-xs mt-1">
+                  {stats.approvedHours >= midtermHours ? '✓ Completed' : stats.approvedHours >= quarterHours ? '⏳ Ready Soon' : '○ Upcoming'}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-white/70 text-sm">{Math.round(stats.completionPercentage)}%</p>
+              </div>
             </div>
-            <div class="flex-1">
-              <p class="text-white font-semibold">Final Project</p>
-              <p class="text-white/60 text-sm">Complete and present capstone project</p>
-              <p class="text-gray-400 text-xs mt-1">○ Upcoming</p>
+          {/if}
+
+          <!-- Final Project -->
+          {#if stats.contractHours}
+            {@const finalPhaseHours = stats.contractHours * 0.8}
+            <div class="flex items-start gap-4">
+              <div class="w-10 h-10 rounded-full {stats.approvedHours >= finalPhaseHours ? 'bg-blue-500/20' : 'bg-gray-500/20'} flex items-center justify-center flex-shrink-0">
+                {#if stats.approvedHours >= finalPhaseHours}
+                  <Clock class="w-5 h-5 text-blue-400" />
+                {:else}
+                  <Target class="w-5 h-5 text-gray-400" />
+                {/if}
+              </div>
+              <div class="flex-1">
+                <p class="text-white font-semibold">Final Project Phase</p>
+                <p class="text-white/60 text-sm">Capstone project and final deliverables</p>
+                <p class="{stats.approvedHours >= finalPhaseHours ? 'text-blue-400' : 'text-gray-400'} text-xs mt-1">
+                  {stats.approvedHours >= finalPhaseHours ? '⏳ In Progress' : '○ Upcoming'}
+                </p>
+              </div>
+              <div class="text-right">
+                <p class="text-white/70 text-sm">{stats.contractHours - stats.approvedHours} hrs left</p>
+              </div>
             </div>
-          </div>
+          {/if}
         </div>
       </div>
 
-      <!-- Schedule Events -->
+      <!-- Enhanced Schedule Events -->
       <div class="bg-white/5 rounded-xl border border-white/20 p-6">
-        <h3 class="text-white font-bold mb-4">Upcoming Events</h3>
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-white font-bold">Upcoming Events & Deadlines</h3>
+          <Button variant="ghost" size="sm" class="text-white/60 hover:text-white">
+            <Calendar class="w-4 h-4 mr-2" />
+            View Calendar
+          </Button>
+        </div>
+        
         {#if mySchedule.length > 0}
           <div class="space-y-3">
             {#each mySchedule as event}
-              <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+              <div class="flex items-center justify-between p-4 bg-white/5 rounded-lg hover:bg-white/10 transition-colors">
                 <div class="flex items-center gap-3">
-                  <Calendar class="w-5 h-5 text-blue-400" />
+                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center">
+                    <Calendar class="w-5 h-5 text-blue-400" />
+                  </div>
                   <div>
-                    <p class="text-white font-medium">{event.title || 'Event'}</p>
-                    <p class="text-white/60 text-sm">{event.start_time} - {event.end_time}</p>
+                    <p class="text-white font-medium">{event.title || 'Scheduled Event'}</p>
+                    <div class="flex items-center gap-2 text-white/60 text-sm">
+                      <Clock class="w-4 h-4" />
+                      <span>{event.start_time} - {event.end_time}</span>
+                    </div>
+                    {#if event.parsed_schedule && event.parsed_schedule.length > 0}
+                      <div class="mt-1">
+                        <span class="text-white/50 text-xs">Activities: </span>
+                        {#each event.parsed_schedule.slice(0, 2) as activity, i}
+                          <span class="text-white/50 text-xs">{activity.activity}{i < event.parsed_schedule.length - 1 && i < 1 ? ', ' : ''}</span>
+                        {/each}
+                        {#if event.parsed_schedule.length > 2}
+                          <span class="text-white/50 text-xs">+{event.parsed_schedule.length - 2} more</span>
+                        {/if}
+                      </div>
+                    {/if}
                   </div>
                 </div>
-                <span class="text-white/50 text-sm">{event.date}</span>
+                <div class="text-right">
+                  <span class="text-white/50 text-sm">{event.date}</span>
+                  <div class="mt-1">
+                    <span class="text-xs px-2 py-1 bg-blue-500/20 text-blue-300 rounded-full">
+                      {event.created_by_mentor ? 'Mentor Set' : 'System'}
+                    </span>
+                  </div>
+                </div>
               </div>
             {/each}
           </div>
         {:else}
-          <p class="text-white/50 text-center py-8">No upcoming events scheduled</p>
+          <div class="text-center py-12">
+            <Calendar class="w-16 h-16 text-white/20 mx-auto mb-4" />
+            <p class="text-white/50 text-lg mb-2">No upcoming events scheduled</p>
+            <p class="text-white/30 text-sm mb-6">Your mentor will schedule check-ins and milestones</p>
+            <Button variant="ghost" class="text-white/60 hover:text-white">
+              <MessageSquare class="w-4 h-4 mr-2" />
+              Request Meeting
+            </Button>
+          </div>
         {/if}
       </div>
     {/if}
