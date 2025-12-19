@@ -760,6 +760,236 @@ ${reportForm.content}`,
     selectedStudent = student;
     activeTab = 'students';
   }
+
+  // Enhanced student progress calculations
+  function getStudentProgress(student) {
+    const approvedEntries = getEntriesByStudent(student.student_email).filter(e => e.status === 'approved');
+    const approvedHours = approvedEntries.reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
+    const contractHours = student.contract_hours || 600;
+    const completionPercentage = Math.min(100, Math.round((approvedHours / contractHours) * 100));
+    
+    const studentTasks = getTasksByStudent(student.student_email);
+    const completedTasks = studentTasks.filter(t => t.status === 'completed').length;
+    const averageTaskProgress = studentTasks.length > 0 ? 
+      Math.round(studentTasks.reduce((sum, t) => sum + (parseInt(t.progress_percentage) || 0), 0) / studentTasks.length) : 0;
+    
+    return {
+      approvedHours,
+      contractHours,
+      completionPercentage,
+      totalTasks: studentTasks.length,
+      completedTasks,
+      averageTaskProgress,
+      pendingReviews: getEntriesByStudent(student.student_email).filter(e => e.status === 'draft').length,
+      weeklyHours: getWeeklyHours(student.student_email),
+      lastActivity: getLastActivity(student.student_email)
+    };
+  }
+
+  function getWeeklyHours(studentEmail) {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    
+    return getEntriesByStudent(studentEmail)
+      .filter(e => new Date(e.date || e.created_at) >= oneWeekAgo && e.status === 'approved')
+      .reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
+  }
+
+  function getLastActivity(studentEmail) {
+    const entries = getEntriesByStudent(studentEmail);
+    if (entries.length === 0) return null;
+    
+    const latest = entries.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    return latest;
+  }
+
+  function getProgressStatusColor(percentage) {
+    if (percentage >= 80) return 'text-green-400';
+    if (percentage >= 50) return 'text-blue-400';
+    if (percentage >= 25) return 'text-yellow-400';
+    return 'text-red-400';
+  }
+
+  function getProgressBarColor(percentage) {
+    if (percentage >= 80) return 'from-green-500 to-emerald-500';
+    if (percentage >= 50) return 'from-blue-500 to-purple-500';
+    if (percentage >= 25) return 'from-yellow-500 to-orange-500';
+    return 'from-red-500 to-pink-500';
+  }
+
+  // Enhanced reporting analytics functions
+  function getReportingStats() {
+    const currentDate = new Date();
+    const currentWeek = getDateRange('week');
+    const currentMonth = getDateRange('month');
+    
+    // Calculate weekly statistics
+    const weeklyHours = assignedStudents.reduce((sum, student) => {
+      const studentHours = getWeeklyHours(student.student_email);
+      return sum + studentHours;
+    }, 0);
+
+    const weeklySubmissions = timeEntries.filter(e => {
+      const entryDate = new Date(e.date || e.created_at);
+      return entryDate >= currentWeek.start && entryDate <= currentWeek.end;
+    }).length;
+
+    // Calculate monthly statistics  
+    const monthlyHours = assignedStudents.reduce((sum, student) => {
+      const monthlyStudentHours = getMonthlyHours(student.student_email);
+      return sum + monthlyStudentHours;
+    }, 0);
+
+    const monthlySubmissions = timeEntries.filter(e => {
+      const entryDate = new Date(e.date || e.created_at);
+      return entryDate >= currentMonth.start && entryDate <= currentMonth.end;
+    }).length;
+
+    // Get student performance data
+    const studentPerformance = assignedStudents.map(student => {
+      const progress = getStudentProgress(student);
+      return {
+        name: student.full_name,
+        email: student.student_email,
+        progress: progress.completionPercentage,
+        weeklyHours: progress.weeklyHours,
+        taskCompletion: progress.totalTasks > 0 ? Math.round((progress.completedTasks / progress.totalTasks) * 100) : 0,
+        pendingReviews: progress.pendingReviews,
+        averageProgress: progress.averageTaskProgress
+      };
+    });
+
+    // Calculate team averages
+    const averageProgress = studentPerformance.length > 0 ? 
+      Math.round(studentPerformance.reduce((sum, s) => sum + s.progress, 0) / studentPerformance.length) : 0;
+    
+    const averageTaskCompletion = studentPerformance.length > 0 ?
+      Math.round(studentPerformance.reduce((sum, s) => sum + s.taskCompletion, 0) / studentPerformance.length) : 0;
+
+    return {
+      weekly: {
+        hours: weeklyHours,
+        submissions: weeklySubmissions,
+        avgHoursPerStudent: assignedStudents.length > 0 ? (weeklyHours / assignedStudents.length) : 0
+      },
+      monthly: {
+        hours: monthlyHours,
+        submissions: monthlySubmissions,
+        avgHoursPerStudent: assignedStudents.length > 0 ? (monthlyHours / assignedStudents.length) : 0
+      },
+      team: {
+        averageProgress,
+        averageTaskCompletion,
+        totalPendingReviews: studentPerformance.reduce((sum, s) => sum + s.pendingReviews, 0),
+        studentsAtRisk: studentPerformance.filter(s => s.progress < 25).length,
+        highPerformers: studentPerformance.filter(s => s.progress >= 80).length
+      },
+      students: studentPerformance
+    };
+  }
+
+  function getMonthlyHours(studentEmail) {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+    
+    return getEntriesByStudent(studentEmail)
+      .filter(e => new Date(e.date || e.created_at) >= oneMonthAgo && e.status === 'approved')
+      .reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
+  }
+
+  function getDateRange(period) {
+    const now = new Date();
+    const start = new Date(now);
+    const end = new Date(now);
+
+    if (period === 'week') {
+      start.setDate(now.getDate() - now.getDay()); // Start of week (Sunday)
+      end.setDate(start.getDate() + 6); // End of week (Saturday)
+    } else if (period === 'month') {
+      start.setDate(1); // First day of month
+      end.setMonth(start.getMonth() + 1);
+      end.setDate(0); // Last day of month
+    }
+
+    return { start, end };
+  }
+
+  function generateReportContent(type, studentId = null) {
+    const stats = getReportingStats();
+    const dateRange = getDateRange(type === 'weekly' ? 'week' : 'month');
+    
+    if (studentId) {
+      // Individual student report
+      const student = assignedStudents.find(s => s.id === parseInt(studentId));
+      const studentStats = stats.students.find(s => s.email === student.student_email);
+      
+      return `# ${type.toUpperCase()} Student Progress Report
+
+## Student Information
+- **Name:** ${student.full_name}
+- **Email:** ${student.student_email}
+- **Contract Hours:** ${student.contract_hours}
+- **Report Period:** ${dateRange.start.toLocaleDateString()} - ${dateRange.end.toLocaleDateString()}
+
+## Progress Summary
+- **Overall Progress:** ${studentStats.progress}%
+- **Task Completion Rate:** ${studentStats.taskCompletion}%
+- **${type === 'weekly' ? 'Weekly' : 'Monthly'} Hours:** ${studentStats.weeklyHours.toFixed(1)} hours
+- **Pending Reviews:** ${studentStats.pendingReviews}
+- **Average Task Progress:** ${studentStats.averageProgress}%
+
+## Mentor Assessment
+${studentStats.progress >= 80 ? '✅ **Excellent Performance** - Student is exceeding expectations' : 
+  studentStats.progress >= 50 ? '👍 **Good Progress** - Student is meeting expectations' :
+  studentStats.progress >= 25 ? '⚠️ **Needs Attention** - Student requires additional support' :
+  '🚨 **At Risk** - Immediate intervention required'}
+
+## Recommendations
+${studentStats.progress < 25 ? '- Schedule immediate one-on-one meeting\n- Review workload and identify blockers\n- Provide additional resources or mentoring' :
+  studentStats.pendingReviews > 3 ? '- Prioritize reviewing pending submissions\n- Provide timely feedback to maintain momentum' :
+  '- Continue current mentoring approach\n- Regular check-ins to maintain progress'}
+
+## Additional Notes
+[Add any specific observations, achievements, or concerns here]`;
+    } else {
+      // Team report
+      return `# ${type.toUpperCase()} Team Progress Report
+
+## Overview
+- **Report Period:** ${dateRange.start.toLocaleDateString()} - ${dateRange.end.toLocaleDateString()}
+- **Total Students:** ${assignedStudents.length}
+- **Reporting Mentor:** ${user?.full_name || user?.email}
+
+## Team Statistics
+- **Average Progress:** ${stats.team.averageProgress}%
+- **Average Task Completion:** ${stats.team.averageTaskCompletion}%
+- **${type === 'weekly' ? 'Weekly' : 'Monthly'} Hours:** ${stats[type === 'weekly' ? 'weekly' : 'monthly'].hours.toFixed(1)} hours
+- **Total Submissions:** ${stats[type === 'weekly' ? 'weekly' : 'monthly'].submissions}
+- **Pending Reviews:** ${stats.team.totalPendingReviews}
+
+## Performance Distribution
+- **High Performers (80%+):** ${stats.team.highPerformers} students
+- **On Track (25-79%):** ${assignedStudents.length - stats.team.highPerformers - stats.team.studentsAtRisk} students  
+- **At Risk (<25%):** ${stats.team.studentsAtRisk} students
+
+## Individual Student Summary
+${stats.students.map(s => `### ${s.name}
+- Progress: ${s.progress}% | Task Completion: ${s.taskCompletion}% | ${type === 'weekly' ? 'Weekly' : 'Monthly'} Hours: ${s.weeklyHours.toFixed(1)}h`).join('\n\n')}
+
+## Key Insights & Actions
+${stats.team.studentsAtRisk > 0 ? `⚠️ **Attention Required:** ${stats.team.studentsAtRisk} student(s) below 25% progress` : ''}
+${stats.team.totalPendingReviews > 5 ? `📋 **Review Backlog:** ${stats.team.totalPendingReviews} submissions pending review` : ''}
+${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average progress above 75%' : ''}
+
+## Recommendations
+- Focus mentoring efforts on students below 50% progress
+- Maintain regular check-ins with high performers
+- Address any blockers identified in individual sessions
+
+## Mentor Notes
+[Add any additional observations or recommendations here]`;
+    }
+  }
 </script>
 
 <!-- Mentor Dashboard Content (embedded version) -->
@@ -813,16 +1043,26 @@ ${reportForm.content}`,
         <div class="flex items-center justify-between mb-6">
           <div>
             <h2 class="text-2xl font-bold text-white">My Students</h2>
-            <p class="text-white/70">{assignedStudents.length} total students</p>
+            <p class="text-white/70">{assignedStudents.length} total students under your guidance</p>
+            {#if assignedStudents.length > 0}
+              {@const avgProgress = Math.round(assignedStudents.reduce((sum, s) => sum + getStudentProgress(s).completionPercentage, 0) / assignedStudents.length)}
+              {@const totalHours = assignedStudents.reduce((sum, s) => sum + getStudentProgress(s).approvedHours, 0)}
+              <div class="mt-2 flex items-center gap-4 text-sm">
+                <span class="text-white/60">Avg Progress: <span class="{getProgressStatusColor(avgProgress)} font-semibold">{avgProgress}%</span></span>
+                <span class="text-white/60">Total Hours: <span class="text-white font-semibold">{totalHours.toFixed(1)}</span></span>
+              </div>
+            {/if}
           </div>
-          <Button
-            on:click={loadMentorData}
-            class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 rounded-md flex items-center"
-            disabled={isLoading}
-          >
-            <RefreshCw class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
-            {isLoading ? 'Refreshing...' : 'Reload Students'}
-          </Button>
+          <div class="flex gap-3">
+            <Button
+              on:click={loadMentorData}
+              class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-4 rounded-md flex items-center"
+              disabled={isLoading}
+            >
+              <RefreshCw class="w-4 h-4 mr-2 {isLoading ? 'animate-spin' : ''}" />
+              {isLoading ? 'Refreshing...' : 'Reload Data'}
+            </Button>
+          </div>
         </div>
 
         {#if isLoading}
@@ -837,51 +1077,130 @@ ${reportForm.content}`,
             <p class="text-white/50 text-sm mt-2">Contact your admin to get students assigned</p>
           </div>
         {:else}
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {#each assignedStudents as student}
-              <div class="bg-white/5 rounded-xl border border-white/20 p-6 hover:bg-white/10 transition-all">
+              {@const progress = getStudentProgress(student)}
+              <div class="bg-white/5 rounded-xl border border-white/20 p-6 hover:bg-white/10 transition-all duration-300 hover:scale-[1.02]">
+                <!-- Student Header -->
                 <div class="flex items-start justify-between mb-4">
                   <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                    <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center relative">
                       <UserIcon class="w-6 h-6 text-white" />
+                      {#if progress.completionPercentage >= 80}
+                        <div class="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <Award class="w-3 h-3 text-white" />
+                        </div>
+                      {/if}
                     </div>
                     <div>
                       <h3 class="text-lg font-bold text-white">{student.full_name}</h3>
                       <p class="text-white/50 text-sm">{student.student_email}</p>
                     </div>
                   </div>
-                </div>
-
-                <div class="space-y-2 mb-4">
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-white/70">Contract Hours:</span>
-                    <span class="text-white font-semibold">{student.contract_hours}h</span>
-                  </div>
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-white/70">Active Tasks:</span>
-                    <span class="text-white font-semibold">{getTasksByStudent(student.student_email).length}</span>
-                  </div>
-                  <div class="flex items-center justify-between text-sm">
-                    <span class="text-white/70">Pending Reviews:</span>
-                    <span class="text-yellow-400 font-semibold">
-                      {getEntriesByStudent(student.student_email).filter(e => e.status === 'draft').length}
-                    </span>
+                  <div class="text-right">
+                    <div class="{getProgressStatusColor(progress.completionPercentage)} text-lg font-bold">
+                      {progress.completionPercentage}%
+                    </div>
+                    <p class="text-white/50 text-xs">Complete</p>
                   </div>
                 </div>
 
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                  <div class="flex justify-between text-xs text-white/60 mb-1">
+                    <span>Contract Progress</span>
+                    <span>{progress.approvedHours} / {progress.contractHours} hrs</span>
+                  </div>
+                  <div class="w-full bg-white/10 rounded-full h-2">
+                    <div class="bg-gradient-to-r {getProgressBarColor(progress.completionPercentage)} h-2 rounded-full transition-all duration-500 relative overflow-hidden" 
+                         style="width: {progress.completionPercentage}%">
+                      <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Enhanced Stats Grid -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                  <div class="bg-white/5 rounded-lg p-3">
+                    <div class="flex items-center gap-2 mb-1">
+                      <ClipboardList class="w-4 h-4 text-blue-400" />
+                      <span class="text-white/70 text-xs">Tasks</span>
+                    </div>
+                    <p class="text-white font-semibold">{progress.completedTasks}/{progress.totalTasks}</p>
+                    {#if progress.totalTasks > 0}
+                      <p class="text-white/50 text-xs">{Math.round((progress.completedTasks/progress.totalTasks)*100)}% done</p>
+                    {:else}
+                      <p class="text-white/50 text-xs">No tasks yet</p>
+                    {/if}
+                  </div>
+                  
+                  <div class="bg-white/5 rounded-lg p-3">
+                    <div class="flex items-center gap-2 mb-1">
+                      <Clock class="w-4 h-4 text-green-400" />
+                      <span class="text-white/70 text-xs">This Week</span>
+                    </div>
+                    <p class="text-white font-semibold">{progress.weeklyHours.toFixed(1)}h</p>
+                    <p class="text-white/50 text-xs">Weekly hours</p>
+                  </div>
+                  
+                  <div class="bg-white/5 rounded-lg p-3">
+                    <div class="flex items-center gap-2 mb-1">
+                      <Target class="w-4 h-4 text-purple-400" />
+                      <span class="text-white/70 text-xs">Avg Progress</span>
+                    </div>
+                    <p class="text-white font-semibold">{progress.averageTaskProgress}%</p>
+                    <p class="text-white/50 text-xs">Task progress</p>
+                  </div>
+                  
+                  <div class="bg-white/5 rounded-lg p-3">
+                    <div class="flex items-center gap-2 mb-1">
+                      <AlertCircle class="w-4 h-4 text-yellow-400" />
+                      <span class="text-white/70 text-xs">Pending</span>
+                    </div>
+                    <p class="text-white font-semibold">{progress.pendingReviews}</p>
+                    <p class="text-white/50 text-xs">Reviews</p>
+                  </div>
+                </div>
+
+                <!-- Last Activity -->
+                {#if progress.lastActivity}
+                  <div class="mb-4 p-2 bg-white/5 rounded-lg">
+                    <p class="text-white/60 text-xs mb-1">Last Activity:</p>
+                    <p class="text-white text-sm">
+                      {new Date(progress.lastActivity.created_at).toLocaleDateString()} - 
+                      <span class="{progress.lastActivity.status === 'approved' ? 'text-green-400' : progress.lastActivity.status === 'rejected' ? 'text-red-400' : 'text-yellow-400'}">
+                        {progress.lastActivity.status}
+                      </span>
+                    </p>
+                  </div>
+                {/if}
+
+                <!-- Action Buttons -->
                 <div class="flex gap-2">
                   <Button 
                     on:click={() => selectStudent(student)}
-                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm"
+                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm transition-colors"
                   >
-                    View Details
+                    <UserIcon class="w-4 h-4 mr-2" />
+                    Details
                   </Button>
                   <Button 
                     on:click={() => openMessageDialog(student.student_email)}
-                    class="bg-purple-500 hover:bg-purple-600 text-white"
+                    class="bg-purple-500 hover:bg-purple-600 text-white transition-colors"
                   >
                     <MessageSquare class="w-4 h-4" />
                   </Button>
+                  {#if progress.pendingReviews > 0}
+                    <Button 
+                      on:click={() => { activeTab = 'submissions'; }}
+                      class="bg-yellow-500 hover:bg-yellow-600 text-white relative"
+                    >
+                      <Clock class="w-4 h-4" />
+                      <div class="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs text-white">
+                        {progress.pendingReviews}
+                      </div>
+                    </Button>
+                  {/if}
                 </div>
               </div>
             {/each}
@@ -889,6 +1208,7 @@ ${reportForm.content}`,
         {/if}
 
         {#if selectedStudent}
+          {@const detailedProgress = getStudentProgress(selectedStudent)}
           <div class="mt-8 bg-white/5 rounded-xl border border-white/20 p-6">
             <div class="flex items-center justify-between mb-6">
               <h3 class="text-xl font-bold text-white">Student Details: {selectedStudent.full_name}</h3>
@@ -901,40 +1221,133 @@ ${reportForm.content}`,
               </Button>
             </div>
 
+            <!-- Progress Overview -->
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+              <div class="bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <Award class="w-5 h-5 text-blue-400" />
+                  <span class="text-white font-semibold">Contract Progress</span>
+                </div>
+                <div class="text-2xl font-bold {getProgressStatusColor(detailedProgress.completionPercentage)}">
+                  {detailedProgress.completionPercentage}%
+                </div>
+                <p class="text-white/60 text-sm">{detailedProgress.approvedHours} / {detailedProgress.contractHours} hours</p>
+              </div>
+              
+              <div class="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <CheckCircle class="w-5 h-5 text-green-400" />
+                  <span class="text-white font-semibold">Task Completion</span>
+                </div>
+                <div class="text-2xl font-bold text-white">
+                  {detailedProgress.completedTasks}/{detailedProgress.totalTasks}
+                </div>
+                <p class="text-white/60 text-sm">{detailedProgress.totalTasks > 0 ? Math.round((detailedProgress.completedTasks/detailedProgress.totalTasks)*100) : 0}% completed</p>
+              </div>
+              
+              <div class="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <TrendingUp class="w-5 h-5 text-purple-400" />
+                  <span class="text-white font-semibold">Weekly Hours</span>
+                </div>
+                <div class="text-2xl font-bold text-white">
+                  {detailedProgress.weeklyHours.toFixed(1)}
+                </div>
+                <p class="text-white/60 text-sm">This week's progress</p>
+              </div>
+              
+              <div class="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl p-4">
+                <div class="flex items-center gap-2 mb-2">
+                  <AlertCircle class="w-5 h-5 text-yellow-400" />
+                  <span class="text-white font-semibold">Pending Reviews</span>
+                </div>
+                <div class="text-2xl font-bold text-white">
+                  {detailedProgress.pendingReviews}
+                </div>
+                <p class="text-white/60 text-sm">Awaiting approval</p>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 class="text-white font-semibold mb-3">Contact Information</h4>
-                <div class="space-y-2">
+              <!-- Contact & Contract Info -->
+              <div class="bg-white/5 rounded-xl p-4">
+                <h4 class="text-white font-semibold mb-3 flex items-center gap-2">
+                  <UserIcon class="w-4 h-4" />
+                  Student Information
+                </h4>
+                <div class="space-y-3">
                   <div class="flex items-center gap-2 text-white/70">
                     <Mail class="w-4 h-4" />
                     <span class="text-sm">{selectedStudent.student_email}</span>
                   </div>
                   <div class="flex items-center gap-2 text-white/70">
                     <Calendar class="w-4 h-4" />
-                    <span class="text-sm">Start: {selectedStudent.start_date || 'Not set'}</span>
+                    <span class="text-sm">Start: {selectedStudent.start_date ? new Date(selectedStudent.start_date).toLocaleDateString() : 'Not set'}</span>
                   </div>
                   <div class="flex items-center gap-2 text-white/70">
                     <Target class="w-4 h-4" />
                     <span class="text-sm">Contract: {selectedStudent.contract_hours} hours</span>
                   </div>
+                  {#if selectedStudent.end_date}
+                    <div class="flex items-center gap-2 text-white/70">
+                      <Calendar class="w-4 h-4" />
+                      <span class="text-sm">End: {new Date(selectedStudent.end_date).toLocaleDateString()}</span>
+                    </div>
+                  {/if}
                 </div>
               </div>
 
-              <div>
-                <h4 class="text-white font-semibold mb-3">Recent Activity</h4>
-                <div class="space-y-2">
-                  {#each getEntriesByStudent(selectedStudent.student_email).slice(0, 3) as entry}
-                    <div class="text-sm text-white/70 flex items-center justify-between">
-                      <span>{entry.date}</span>
+              <!-- Recent Activity & Tasks -->
+              <div class="bg-white/5 rounded-xl p-4">
+                <h4 class="text-white font-semibold mb-3 flex items-center gap-2">
+                  <Clock class="w-4 h-4" />
+                  Recent Activity
+                </h4>
+                <div class="space-y-2 max-h-40 overflow-y-auto">
+                  {#each getEntriesByStudent(selectedStudent.student_email).slice(0, 5) as entry}
+                    <div class="text-sm text-white/70 flex items-center justify-between p-2 bg-white/5 rounded">
+                      <div>
+                        <span class="text-white">{new Date(entry.date || entry.created_at).toLocaleDateString()}</span>
+                        {#if entry.manually_inputted_hours}
+                          <span class="text-white/50"> • {entry.manually_inputted_hours}h</span>
+                        {/if}
+                      </div>
                       <span class="px-2 py-1 rounded text-xs {entry.status === 'approved' ? 'bg-green-500/20 text-green-400' : entry.status === 'rejected' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}">
                         {entry.status}
                       </span>
                     </div>
                   {:else}
-                    <p class="text-white/50 text-sm">No recent activity</p>
+                    <p class="text-white/50 text-sm text-center py-4">No recent activity</p>
                   {/each}
                 </div>
               </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3 mt-6">
+              <Button 
+                on:click={() => openMessageDialog(selectedStudent.student_email)}
+                class="bg-purple-500 hover:bg-purple-600 text-white"
+              >
+                <MessageSquare class="w-4 h-4 mr-2" />
+                Send Message
+              </Button>
+              <Button 
+                on:click={() => { activeTab = 'tasks'; taskForm.assigned_to = selectedStudent.student_email; showTaskDialog = true; }}
+                class="bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                <Plus class="w-4 h-4 mr-2" />
+                Assign Task
+              </Button>
+              {#if detailedProgress.pendingReviews > 0}
+                <Button 
+                  on:click={() => { activeTab = 'submissions'; }}
+                  class="bg-yellow-500 hover:bg-yellow-600 text-white"
+                >
+                  <AlertCircle class="w-4 h-4 mr-2" />
+                  Review Submissions ({detailedProgress.pendingReviews})
+                </Button>
+              {/if}
             </div>
           </div>
         {/if}
