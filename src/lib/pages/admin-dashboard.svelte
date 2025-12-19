@@ -163,6 +163,37 @@
     }
   }
 
+  // Dynamic disputes/issues builder
+  $: allDisputes = (() => {
+    const fromReports = (adminReports || []).filter(r => r && (r.type === 'dispute' || r.category === 'dispute' || /disput/i.test(r.subject || r.title || ''))).map(r => ({
+      id: r.id,
+      title: r.title || r.subject || r.type || 'Report',
+      priority: r.priority || 'Medium',
+      student: r.student_email || r.from_email || r.reported_by || '',
+      mentor: r.mentor_email || r.to_email || '',
+      description: (r.body || r.content || r.message || '')
+    }));
+
+    const fromTime = (allTimeEntries || []).filter(e => e && (e.status === 'dispute' || e.status === 'rejected' || e.flagged === true)).map(e => ({
+      id: `time_${e.id}`,
+      title: 'Hour Approval Dispute',
+      priority: e.status === 'rejected' ? 'High' : 'Medium',
+      student: e.student_email || e.user_email || '',
+      mentor: e.mentor_email || '',
+      description: `${e.hours || 0}h on ${e.date || e.created_at || ''} - ${e.notes || e.reason || ''}`
+    }));
+
+    // Avoid duplicates by id
+    const combined = [...fromReports, ...fromTime];
+    const seen = new Set();
+    return combined.filter(d => {
+      if (!d || !d.id) return false;
+      if (seen.has(d.id)) return false;
+      seen.add(d.id);
+      return true;
+    });
+  })();
+
   async function replyToReport(report) {
     selectedReport = report;
     showReplyDialog = true;
@@ -389,6 +420,20 @@
     return allStudents.filter(s => s.mentor_email === mentorEmail);
   }
 
+  // Projects filter state and helpers (make programs/projects UI dynamic)
+  let projectFilter = 'all'; // 'all' | 'program' | 'project'
+  $: filteredProjects = allProjects.filter(p => projectFilter === 'all' ? true : p.type === projectFilter);
+  $: totalProgramsCount = allProjects.filter(p => p.type === 'program').length;
+  $: totalProjectsCount = allProjects.filter(p => p.type === 'project').length;
+
+  function getAssignedCount(project) {
+    // Projects may store assigned students in `assigned_students` array
+    if (!project) return 0;
+    if (Array.isArray(project.assigned_students)) return project.assigned_students.length;
+    // fallback: count students that reference this project id (if stored on student)
+    return allStudents.filter(s => s.project_id === project.id || (s.assigned_projects && s.assigned_projects.includes(project.id))).length;
+  }
+
   function getUnassignedStudents() {
     return allStudents.filter(s => !s.mentor_email || s.mentor_email === '');
   }
@@ -449,6 +494,16 @@
     }
   }
 
+  // Dispute actions
+  function reviewDispute(dispute) {
+    // Basic handler - open modal or mark as in-progress
+    alert(`Open dispute review for: ${dispute.title}`);
+  }
+
+  function viewDisputeDetails(dispute) {
+    alert(`Dispute details:\nTitle: ${dispute.title}\nStudent: ${dispute.student}\nDescription: ${dispute.description}`);
+  }
+
   function viewContractDetails(contract) {
     // Display contract details with proper field names
     const contractName = contract.student_name || contract.title || `Contract #${contract.id}`;
@@ -468,6 +523,108 @@ Status: ${contract.status}
     u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Dynamic Reports & Analytics calculations
+  $: totalApprovedHours = allTimeEntries
+    .filter(e => e.status === 'approved')
+    .reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+
+  $: averageCompletionRate = (() => {
+    if (!allStudents || allStudents.length === 0) return 0;
+    const activeStudents = allStudents.filter(s => s.contract_hours > 0);
+    if (activeStudents.length === 0) return 0;
+
+    const totalCompletion = activeStudents.reduce((sum, student) => {
+      const studentHours = allTimeEntries
+        .filter(e => e.student_email === student.student_email && e.status === 'approved')
+        .reduce((total, e) => total + (parseFloat(e.hours) || 0), 0);
+      const contractHours = parseFloat(student.contract_hours) || 0;
+      return sum + (contractHours > 0 ? (studentHours / contractHours) * 100 : 0);
+    }, 0);
+
+    return Math.round(totalCompletion / activeStudents.length);
+  })();
+
+  $: weeklyActivityData = (() => {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const recentEntries = allTimeEntries.filter(e => {
+      const entryDate = new Date(e.created_at || e.date);
+      return entryDate >= oneWeekAgo;
+    });
+
+    return {
+      totalHours: recentEntries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0),
+      totalEntries: recentEntries.length,
+      approvedEntries: recentEntries.filter(e => e.status === 'approved').length,
+      pendingEntries: recentEntries.filter(e => e.status === 'draft' || e.status === 'pending').length,
+      activeStudents: new Set(recentEntries.map(e => e.student_email)).size
+    };
+  })();
+
+  $: monthlyPerformanceData = (() => {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+    const recentEntries = allTimeEntries.filter(e => {
+      const entryDate = new Date(e.created_at || e.date);
+      return entryDate >= oneMonthAgo;
+    });
+
+    const studentPerformance = allStudents.map(student => {
+      const studentEntries = recentEntries.filter(e => e.student_email === student.student_email);
+      const totalHours = studentEntries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+      const approvedHours = studentEntries
+        .filter(e => e.status === 'approved')
+        .reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+
+      return {
+        name: student.full_name,
+        email: student.student_email,
+        totalHours,
+        approvedHours,
+        entriesCount: studentEntries.length
+      };
+    }).filter(s => s.totalHours > 0);
+
+    return {
+      topPerformers: studentPerformance.sort((a, b) => b.approvedHours - a.approvedHours).slice(0, 5),
+      totalHours: recentEntries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0),
+      averageHoursPerStudent: studentPerformance.length > 0
+        ? Math.round(recentEntries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0) / studentPerformance.length)
+        : 0
+    };
+  })();
+
+  $: mentorEvaluationData = (() => {
+    return allMentors.map(mentor => {
+      const assignedStudents = allStudents.filter(s => s.mentor_email === mentor.email);
+      const studentEmails = assignedStudents.map(s => s.student_email);
+      const mentorTimeEntries = allTimeEntries.filter(e => studentEmails.includes(e.student_email));
+
+      const totalHours = mentorTimeEntries.reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+      const approvedHours = mentorTimeEntries
+        .filter(e => e.status === 'approved')
+        .reduce((sum, e) => sum + (parseFloat(e.hours) || 0), 0);
+      const pendingCount = mentorTimeEntries.filter(e => e.status === 'draft' || e.status === 'pending').length;
+
+      return {
+        name: mentor.full_name || mentor.email,
+        email: mentor.email,
+        studentsCount: assignedStudents.length,
+        totalHours,
+        approvedHours,
+        pendingCount,
+        responseRate: mentorTimeEntries.length > 0
+          ? Math.round((approvedHours / totalHours) * 100)
+          : 0
+      };
+    }).filter(m => m.studentsCount > 0);
+  })();
+
+  // State for expanded report views
+  let expandedReport = null;
 </script>
 
 <!-- Admin Dashboard Content (embedded version) -->
@@ -690,11 +847,39 @@ Status: ${contract.status}
         </div>
       </div>
 
+      <!-- Program / Project Filters -->
+      <div class="flex items-center gap-3 mb-6">
+        <div class="flex gap-2">
+          <Button
+            on:click={() => projectFilter = 'all'}
+            variant={projectFilter === 'all' ? 'solid' : 'ghost'}
+            class="text-white/80"
+          >
+            All ({allProjects.length})
+          </Button>
+          <Button
+            on:click={() => projectFilter = 'program'}
+            variant={projectFilter === 'program' ? 'solid' : 'ghost'}
+            class="text-white/80"
+          >
+            Programs ({totalProgramsCount})
+          </Button>
+          <Button
+            on:click={() => projectFilter = 'project'}
+            variant={projectFilter === 'project' ? 'solid' : 'ghost'}
+            class="text-white/80"
+          >
+            Projects ({totalProjectsCount})
+          </Button>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
         <div class="bg-white/5 rounded-xl border border-white/20 p-6">
           <GitBranch class="w-8 h-8 text-blue-400 mb-3" />
-          <h3 class="text-white font-bold text-lg mb-2">Total Projects</h3>
-          <p class="text-3xl font-bold text-white">{stats.totalProjects}</p>
+          <h3 class="text-white font-bold text-lg mb-2">Total Items</h3>
+          <p class="text-3xl font-bold text-white">{allProjects.length}</p>
+          <p class="text-white/50 text-sm mt-2">Programs: {totalProgramsCount} · Projects: {totalProjectsCount}</p>
         </div>
 
         <div class="bg-white/5 rounded-xl border border-white/20 p-6">
@@ -725,7 +910,7 @@ Status: ${contract.status}
           </div>
         {:else}
           <div class="space-y-3">
-            {#each allProjects as project}
+            {#each filteredProjects as project}
               <div class="bg-white/5 rounded-xl border border-white/20 p-4 flex items-start justify-between">
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
@@ -736,6 +921,7 @@ Status: ${contract.status}
                     <span class="px-3 py-1 rounded-full text-xs capitalize bg-blue-500/20 text-blue-400">
                       {project.type}
                     </span>
+                    <span class="px-3 py-1 rounded-full text-xs bg-white/5 text-white/70">{getAssignedCount(project)} assigned</span>
                   </div>
                   {#if project.description}
                     <p class="text-white/70 text-sm mb-2">{project.description}</p>
@@ -779,14 +965,20 @@ Status: ${contract.status}
           <BarChart3 class="w-8 h-8 text-blue-400 mb-3" />
           <h3 class="text-white font-bold text-lg mb-2">Hours Analytics</h3>
           <p class="text-white/70 text-sm mb-4">Total approved hours across all students</p>
-          <p class="text-3xl font-bold text-white">2,450h</p>
+          <p class="text-3xl font-bold text-white">{totalApprovedHours.toLocaleString()}h</p>
+          <p class="text-white/50 text-xs mt-2">
+            {allTimeEntries.filter(e => e.status === 'approved').length} approved entries
+          </p>
         </div>
 
         <div class="bg-white/5 rounded-xl border border-white/20 p-6">
           <PieChart class="w-8 h-8 text-purple-400 mb-3" />
           <h3 class="text-white font-bold text-lg mb-2">Completion Rate</h3>
           <p class="text-white/70 text-sm mb-4">Average across all active interns</p>
-          <p class="text-3xl font-bold text-white">68%</p>
+          <p class="text-3xl font-bold text-white">{averageCompletionRate}%</p>
+          <p class="text-white/50 text-xs mt-2">
+            Based on {allStudents.filter(s => s.contract_hours > 0).length} active interns
+          </p>
         </div>
       </div>
 
@@ -839,18 +1031,176 @@ Status: ${contract.status}
       <div class="bg-white/5 rounded-xl border border-white/20 p-6">
         <h3 class="text-white font-bold mb-4">System Reports</h3>
         <div class="space-y-3">
-          <button class="w-full text-left p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
-            <h4 class="text-white font-semibold">Weekly Activity Report</h4>
-            <p class="text-white/60 text-sm">Overview of user activity for the past week</p>
-          </button>
-          <button class="w-full text-left p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
-            <h4 class="text-white font-semibold">Monthly Performance Report</h4>
-            <p class="text-white/60 text-sm">Detailed performance metrics for all interns</p>
-          </button>
-          <button class="w-full text-left p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
-            <h4 class="text-white font-semibold">Mentor Evaluation Report</h4>
-            <p class="text-white/60 text-sm">Mentor performance and student feedback</p>
-          </button>
+          <!-- Weekly Activity Report -->
+          <div class="rounded-lg border border-white/10 overflow-hidden">
+            <button
+              on:click={() => expandedReport = expandedReport === 'weekly' ? null : 'weekly'}
+              class="w-full text-left p-4 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-between"
+            >
+              <div>
+                <h4 class="text-white font-semibold flex items-center gap-2">
+                  <Activity class="w-4 h-4" />
+                  Weekly Activity Report
+                </h4>
+                <p class="text-white/60 text-sm">Overview of user activity for the past 7 days</p>
+              </div>
+              <span class="text-white/70">{expandedReport === 'weekly' ? '▼' : '▶'}</span>
+            </button>
+            {#if expandedReport === 'weekly'}
+              <div class="p-4 bg-white/5 border-t border-white/10">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <p class="text-white/60 text-xs">Total Hours Logged</p>
+                    <p class="text-white font-bold text-xl">{weeklyActivityData.totalHours.toFixed(1)}h</p>
+                  </div>
+                  <div>
+                    <p class="text-white/60 text-xs">Total Entries</p>
+                    <p class="text-white font-bold text-xl">{weeklyActivityData.totalEntries}</p>
+                  </div>
+                  <div>
+                    <p class="text-white/60 text-xs">Approved Entries</p>
+                    <p class="text-green-400 font-bold text-xl">{weeklyActivityData.approvedEntries}</p>
+                  </div>
+                  <div>
+                    <p class="text-white/60 text-xs">Pending Entries</p>
+                    <p class="text-yellow-400 font-bold text-xl">{weeklyActivityData.pendingEntries}</p>
+                  </div>
+                  <div>
+                    <p class="text-white/60 text-xs">Active Students</p>
+                    <p class="text-blue-400 font-bold text-xl">{weeklyActivityData.activeStudents}</p>
+                  </div>
+                  <div>
+                    <p class="text-white/60 text-xs">Avg Hours/Student</p>
+                    <p class="text-purple-400 font-bold text-xl">
+                      {weeklyActivityData.activeStudents > 0
+                        ? (weeklyActivityData.totalHours / weeklyActivityData.activeStudents).toFixed(1)
+                        : 0}h
+                    </p>
+                  </div>
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <!-- Monthly Performance Report -->
+          <div class="rounded-lg border border-white/10 overflow-hidden">
+            <button
+              on:click={() => expandedReport = expandedReport === 'monthly' ? null : 'monthly'}
+              class="w-full text-left p-4 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-between"
+            >
+              <div>
+                <h4 class="text-white font-semibold flex items-center gap-2">
+                  <TrendingUp class="w-4 h-4" />
+                  Monthly Performance Report
+                </h4>
+                <p class="text-white/60 text-sm">Detailed performance metrics for the past 30 days</p>
+              </div>
+              <span class="text-white/70">{expandedReport === 'monthly' ? '▼' : '▶'}</span>
+            </button>
+            {#if expandedReport === 'monthly'}
+              <div class="p-4 bg-white/5 border-t border-white/10">
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p class="text-white/60 text-xs">Total Hours (30 days)</p>
+                    <p class="text-white font-bold text-xl">{monthlyPerformanceData.totalHours.toFixed(1)}h</p>
+                  </div>
+                  <div>
+                    <p class="text-white/60 text-xs">Avg Hours/Student</p>
+                    <p class="text-white font-bold text-xl">{monthlyPerformanceData.averageHoursPerStudent}h</p>
+                  </div>
+                </div>
+
+                {#if monthlyPerformanceData.topPerformers.length > 0}
+                  <h5 class="text-white/80 font-semibold text-sm mb-2">Top 5 Performers</h5>
+                  <div class="space-y-2">
+                    {#each monthlyPerformanceData.topPerformers as performer, index}
+                      <div class="flex items-center justify-between p-2 bg-white/5 rounded border border-white/10">
+                        <div class="flex items-center gap-2">
+                          <span class="text-white/70 text-xs font-bold">#{index + 1}</span>
+                          <div>
+                            <p class="text-white text-sm font-medium">{performer.name}</p>
+                            <p class="text-white/50 text-xs">{performer.email}</p>
+                          </div>
+                        </div>
+                        <div class="text-right">
+                          <p class="text-green-400 font-bold">{performer.approvedHours.toFixed(1)}h</p>
+                          <p class="text-white/50 text-xs">{performer.entriesCount} entries</p>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="text-white/50 text-sm text-center py-4">No performance data available for the past month</p>
+                {/if}
+              </div>
+            {/if}
+          </div>
+
+          <!-- Mentor Evaluation Report -->
+          <div class="rounded-lg border border-white/10 overflow-hidden">
+            <button
+              on:click={() => expandedReport = expandedReport === 'mentor' ? null : 'mentor'}
+              class="w-full text-left p-4 bg-white/5 hover:bg-white/10 transition-all flex items-center justify-between"
+            >
+              <div>
+                <h4 class="text-white font-semibold flex items-center gap-2">
+                  <UserCheck class="w-4 h-4" />
+                  Mentor Evaluation Report
+                </h4>
+                <p class="text-white/60 text-sm">Mentor performance and oversight metrics</p>
+              </div>
+              <span class="text-white/70">{expandedReport === 'mentor' ? '▼' : '▶'}</span>
+            </button>
+            {#if expandedReport === 'mentor'}
+              <div class="p-4 bg-white/5 border-t border-white/10">
+                {#if mentorEvaluationData.length > 0}
+                  <div class="space-y-3">
+                    {#each mentorEvaluationData as mentor}
+                      <div class="p-3 bg-white/5 rounded border border-white/10">
+                        <div class="flex items-start justify-between mb-2">
+                          <div>
+                            <p class="text-white font-semibold">{mentor.name}</p>
+                            <p class="text-white/50 text-xs">{mentor.email}</p>
+                          </div>
+                          <span class="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400">
+                            {mentor.studentsCount} student{mentor.studentsCount !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div class="grid grid-cols-3 gap-3 mt-2">
+                          <div>
+                            <p class="text-white/60 text-xs">Total Hours</p>
+                            <p class="text-white font-bold">{mentor.totalHours.toFixed(1)}h</p>
+                          </div>
+                          <div>
+                            <p class="text-white/60 text-xs">Approved</p>
+                            <p class="text-green-400 font-bold">{mentor.approvedHours.toFixed(1)}h</p>
+                          </div>
+                          <div>
+                            <p class="text-white/60 text-xs">Pending</p>
+                            <p class="text-yellow-400 font-bold">{mentor.pendingCount}</p>
+                          </div>
+                        </div>
+                        <div class="mt-2 pt-2 border-t border-white/10">
+                          <div class="flex items-center justify-between">
+                            <span class="text-white/60 text-xs">Approval Rate</span>
+                            <span class="text-white font-semibold">{mentor.responseRate}%</span>
+                          </div>
+                          <div class="w-full bg-white/10 rounded-full h-2 mt-1">
+                            <div
+                              class="bg-green-400 h-2 rounded-full transition-all"
+                              style="width: {mentor.responseRate}%"
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <p class="text-white/50 text-sm text-center py-4">No mentor evaluation data available</p>
+                {/if}
+              </div>
+            {/if}
+          </div>
         </div>
       </div>
 
@@ -925,42 +1275,36 @@ Status: ${contract.status}
         <div class="flex items-center gap-3">
           <AlertTriangle class="w-6 h-6 text-yellow-400" />
           <div>
-            <h3 class="text-yellow-400 font-semibold">3 Open Disputes</h3>
+            <h3 class="text-yellow-400 font-semibold">{allDisputes.length} Open Disputes</h3>
             <p class="text-white/70 text-sm">Requiring immediate attention</p>
           </div>
         </div>
       </div>
 
       <div class="space-y-4">
-        <div class="bg-white/5 rounded-xl border border-white/20 p-6">
-          <div class="flex items-start justify-between mb-3">
-            <div>
-              <h3 class="text-white font-bold">Hour Approval Dispute</h3>
-              <p class="text-white/60 text-sm mt-1">Student: John Doe | Mentor: Jane Smith</p>
+        {#if allDisputes.length === 0}
+          <div class="text-center py-8">
+            <AlertTriangle class="w-16 h-16 text-white/30 mx-auto mb-4" />
+            <p class="text-white/70">No open disputes</p>
+          </div>
+        {:else}
+          {#each allDisputes as dispute}
+            <div class="bg-white/5 rounded-xl border border-white/20 p-6">
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <h3 class="text-white font-bold">{dispute.title}</h3>
+                  <p class="text-white/60 text-sm mt-1">Student: {dispute.student || 'Unknown'}{dispute.mentor ? ` | Mentor: ${dispute.mentor}` : ''}</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-xs {dispute.priority === 'High' ? 'bg-red-500/20 text-red-400' : dispute.priority === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}">{dispute.priority}</span>
+              </div>
+              <p class="text-white/70 text-sm mb-4">{dispute.description}</p>
+              <div class="flex gap-2">
+                <Button class="bg-green-500 hover:bg-green-600 text-white px-2 rounded-md" on:click={() => reviewDispute(dispute)}>Review & Resolve</Button>
+                <Button variant="ghost" class="text-white/70 hover:text-white" on:click={() => viewDisputeDetails(dispute)}>View Details</Button>
+              </div>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs bg-red-500/20 text-red-400">High Priority</span>
-          </div>
-          <p class="text-white/70 text-sm mb-4">Student disputes rejected time entry for 8 hours on 2025-12-15</p>
-          <div class="flex gap-2">
-            <Button class="bg-green-500 hover:bg-green-600 text-white px-2 rounded-md">Review & Resolve</Button>
-            <Button variant="ghost" class="text-white/70 hover:text-white">View Details</Button>
-          </div>
-        </div>
-
-        <div class="bg-white/5 rounded-xl border border-white/20 p-6">
-          <div class="flex items-start justify-between mb-3">
-            <div>
-              <h3 class="text-white font-bold">Mentor Assignment Issue</h3>
-              <p class="text-white/60 text-sm mt-1">Student: Alice Brown</p>
-            </div>
-            <span class="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">Medium Priority</span>
-          </div>
-          <p class="text-white/70 text-sm mb-4">Student requests mentor change due to scheduling conflicts</p>
-          <div class="flex gap-2">
-            <Button class="bg-blue-500 hover:bg-blue-600 text-white px-2 rounded-md">Reassign Mentor</Button>
-            <Button variant="ghost" class="text-white/70 hover:text-white">Contact Student</Button>
-          </div>
-        </div>
+          {/each}
+        {/if}
       </div>
 
     {:else if activeTab === 'applications'}

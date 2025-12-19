@@ -596,15 +596,21 @@ Contract ID: TEST_CONTRACT_123`,
   // Progress Reports
   async function submitReport() {
     try {
-      if (!reportForm.student_id || !reportForm.content || !reportForm.period_start || !reportForm.period_end) {
-        alert('Please fill in all required fields');
+      // Validate student selection first
+      if (!reportForm.student_id) {
+        alert('Please select a student for this report');
+        return;
+      }
+
+      if (!reportForm.content || !reportForm.period_start || !reportForm.period_end) {
+        alert('Please fill in all required fields (report content, period start, and period end)');
         return;
       }
 
       // Get student details for the report
       const student = assignedStudents.find(s => s.id === parseInt(reportForm.student_id));
       if (!student) {
-        alert('Please select a valid student');
+        alert('Invalid student selected. Please choose a valid student from the list.');
         return;
       }
 
@@ -2429,16 +2435,21 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
           </div>
 
           <div>
-            <label class="text-white/70 text-sm block mb-2">Select Student (Optional)</label>
-            <select 
+            <label class="text-white/70 text-sm block mb-2">
+              Select Student <span class="text-red-400">*</span>
+            </label>
+            <select
               bind:value={reportForm.student_id}
               class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
             >
-              <option value="">All Students</option>
+              <option value="">Choose a student...</option>
               {#each assignedStudents as student}
                 <option value={student.id}>{student.full_name}</option>
               {/each}
             </select>
+            {#if assignedStudents.length === 0}
+              <p class="text-yellow-400 text-xs mt-1">No students assigned yet</p>
+            {/if}
           </div>
 
           <div>
@@ -2451,16 +2462,30 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
           </div>
         </div>
 
+        {#if !reportForm.student_id || !reportForm.content}
+          <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3 mt-4">
+            <p class="text-yellow-400 text-sm">
+              <span class="font-semibold">Required fields:</span>
+              {#if !reportForm.student_id}
+                <span class="block">• Please select a student</span>
+              {/if}
+              {#if !reportForm.content}
+                <span class="block">• Please enter report content</span>
+              {/if}
+            </p>
+          </div>
+        {/if}
+
         <div class="flex gap-3 mt-6">
-          <Button 
+          <Button
             on:click={submitReport}
-            class="flex-1 bg-purple-500 hover:bg-purple-600 text-white flex h-10 items-center justify-center rounded-md"
-            disabled={!reportForm.content}
+            class="flex-1 bg-purple-500 hover:bg-purple-600 text-white flex h-10 items-center justify-center rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!reportForm.content || !reportForm.student_id}
           >
             <Send class="w-4 h-4 mr-2" />
             Submit to Admin
           </Button>
-          <Button 
+          <Button
             on:click={() => { showReportDialog = false; resetReportForm(); }}
             variant="ghost"
             class="text-white/70 hover:text-white"
