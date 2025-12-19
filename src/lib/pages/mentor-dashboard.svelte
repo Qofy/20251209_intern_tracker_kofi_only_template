@@ -9,7 +9,7 @@
     Users, ClipboardList, MessageSquare, TrendingUp, 
     Plus, Check, X, Edit, Trash2, Send, FileText,
     Clock, Calendar, AlertCircle, CheckCircle, Target,
-    User as UserIcon, Mail, Phone, Award, RefreshCw, Shield
+    User as UserIcon, Mail, Phone, Award, RefreshCw, Shield, Activity
   } from 'lucide-svelte';
   import { format, parseISO } from 'date-fns';
 
@@ -1553,47 +1553,288 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
         {/if}
 
       {:else if activeTab === 'reports'}
-        <!-- Progress Reports -->
+        <!-- Enhanced Progress Reports -->
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-white">Progress Reports</h2>
-          <Button 
-            on:click={() => showReportDialog = true}
-            class="bg-purple-500 hover:bg-purple-600 text-white h-10 rounded-md px-2 flex items-center"
-          >
-            <Plus class="w-4 h-4 mr-2" />
-            Submit Report
-          </Button>
+          <div>
+            <h2 class="text-2xl font-bold text-white">Progress Reports & Analytics</h2>
+            <p class="text-white/70">Comprehensive reporting dashboard for student progress tracking</p>
+          </div>
+          <div class="flex gap-3">
+            <Button 
+              on:click={() => { 
+                reportForm.content = generateReportContent('weekly'); 
+                reportForm.report_type = 'weekly';
+                showReportDialog = true; 
+              }}
+              class="bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md px-4 flex items-center"
+            >
+              <FileText class="w-4 h-4 mr-2" />
+              Quick Weekly Report
+            </Button>
+            <Button 
+              on:click={() => showReportDialog = true}
+              class="bg-purple-500 hover:bg-purple-600 text-white h-10 rounded-md px-4 flex items-center"
+            >
+              <Plus class="w-4 h-4 mr-2" />
+              Custom Report
+            </Button>
+          </div>
         </div>
 
-        <div class="bg-white/5 rounded-xl border border-white/20 p-6">
-          <h3 class="text-lg font-bold text-white mb-4">Submit Reports to Admin</h3>
-          <p class="text-white/70 mb-4">Create weekly or monthly progress reports about your students' performance and submit them to the administration.</p>
-          
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-white/5 rounded-lg p-4">
-              <h4 class="text-white font-semibold mb-2">Weekly Summary</h4>
-              <p class="text-white/70 text-sm">Total hours: {stats.totalHoursThisWeek.toFixed(1)}h</p>
-              <p class="text-white/70 text-sm">Active students: {assignedStudents.length}</p>
+        {@const reportStats = getReportingStats()}
+
+        <!-- Analytics Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div class="bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl border border-white/20 p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-lg bg-blue-500/30 flex items-center justify-center">
+                <TrendingUp class="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <p class="text-white font-semibold">Team Average</p>
+                <p class="text-white/60 text-sm">Progress</p>
+              </div>
             </div>
-            <div class="bg-white/5 rounded-lg p-4">
-              <h4 class="text-white font-semibold mb-2">Task Completion</h4>
-              <p class="text-white/70 text-sm">Completed: {stats.completedTasks}</p>
-              <p class="text-white/70 text-sm">In Progress: {tasks.filter(t => t.status === 'in_progress').length}</p>
+            <div class="text-2xl font-bold {getProgressStatusColor(reportStats.team.averageProgress)}">
+              {reportStats.team.averageProgress}%
             </div>
-            <div class="bg-white/5 rounded-lg p-4">
-              <h4 class="text-white font-semibold mb-2">Pending Items</h4>
-              <p class="text-white/70 text-sm">Reviews needed: {stats.pendingSubmissions}</p>
-              <p class="text-white/70 text-sm">Open tasks: {tasks.filter(t => t.status === 'assigned').length}</p>
+            <p class="text-white/50 text-sm mt-1">Across {assignedStudents.length} students</p>
+          </div>
+
+          <div class="bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl border border-white/20 p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-lg bg-green-500/30 flex items-center justify-center">
+                <CheckCircle class="w-5 h-5 text-green-400" />
+              </div>
+              <div>
+                <p class="text-white font-semibold">Task Completion</p>
+                <p class="text-white/60 text-sm">Team Average</p>
+              </div>
+            </div>
+            <div class="text-2xl font-bold text-white">
+              {reportStats.team.averageTaskCompletion}%
+            </div>
+            <p class="text-white/50 text-sm mt-1">Average completion rate</p>
+          </div>
+
+          <div class="bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl border border-white/20 p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-lg bg-purple-500/30 flex items-center justify-center">
+                <Clock class="w-5 h-5 text-purple-400" />
+              </div>
+              <div>
+                <p class="text-white font-semibold">Weekly Hours</p>
+                <p class="text-white/60 text-sm">This Week</p>
+              </div>
+            </div>
+            <div class="text-2xl font-bold text-white">
+              {reportStats.weekly.hours.toFixed(1)}
+            </div>
+            <p class="text-white/50 text-sm mt-1">{reportStats.weekly.avgHoursPerStudent.toFixed(1)}h per student</p>
+          </div>
+
+          <div class="bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl border border-white/20 p-6">
+            <div class="flex items-center gap-3 mb-3">
+              <div class="w-10 h-10 rounded-lg bg-yellow-500/30 flex items-center justify-center">
+                <AlertCircle class="w-5 h-5 text-yellow-400" />
+              </div>
+              <div>
+                <p class="text-white font-semibold">Pending Reviews</p>
+                <p class="text-white/60 text-sm">Need Attention</p>
+              </div>
+            </div>
+            <div class="text-2xl font-bold text-white">
+              {reportStats.team.totalPendingReviews}
+            </div>
+            <p class="text-white/50 text-sm mt-1">Awaiting approval</p>
+          </div>
+        </div>
+
+        <!-- Performance Distribution -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <!-- Team Performance Chart -->
+          <div class="bg-white/5 rounded-xl border border-white/20 p-6">
+            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+              <Award class="w-5 h-5 text-purple-400" />
+              Performance Distribution
+            </h3>
+            <div class="space-y-4">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-4 h-4 bg-green-500 rounded"></div>
+                  <span class="text-white/70">High Performers (80%+)</span>
+                </div>
+                <span class="text-green-400 font-semibold">{reportStats.team.highPerformers} students</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-4 h-4 bg-blue-500 rounded"></div>
+                  <span class="text-white/70">On Track (25-79%)</span>
+                </div>
+                <span class="text-blue-400 font-semibold">{assignedStudents.length - reportStats.team.highPerformers - reportStats.team.studentsAtRisk} students</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-4 h-4 bg-red-500 rounded"></div>
+                  <span class="text-white/70">At Risk (&lt;25%)</span>
+                </div>
+                <span class="text-red-400 font-semibold">{reportStats.team.studentsAtRisk} students</span>
+              </div>
+            </div>
+
+            <!-- Performance Bar Chart -->
+            <div class="mt-6">
+              <div class="w-full bg-white/10 rounded-full h-4 overflow-hidden">
+                {#if assignedStudents.length > 0}
+                  {@const total = assignedStudents.length}
+                  {@const highPercentage = (reportStats.team.highPerformers / total) * 100}
+                  {@const onTrackPercentage = ((total - reportStats.team.highPerformers - reportStats.team.studentsAtRisk) / total) * 100}
+                  {@const atRiskPercentage = (reportStats.team.studentsAtRisk / total) * 100}
+                  <div class="h-full flex">
+                    <div class="bg-green-500 transition-all duration-500" style="width: {highPercentage}%"></div>
+                    <div class="bg-blue-500 transition-all duration-500" style="width: {onTrackPercentage}%"></div>
+                    <div class="bg-red-500 transition-all duration-500" style="width: {atRiskPercentage}%"></div>
+                  </div>
+                {/if}
+              </div>
             </div>
           </div>
 
-          <Button 
-            on:click={() => showReportDialog = true}
-            class="bg-purple-500 hover:bg-purple-600 text-white w-full h-10 rounded-md px-2 flex items-center justify-center"
-          >
-            <FileText class="w-4 h-4 mr-2" />
-            Create Detailed Report
-          </Button>
+          <!-- Recent Activity Summary -->
+          <div class="bg-white/5 rounded-xl border border-white/20 p-6">
+            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+              <Activity class="w-5 h-5 text-blue-400" />
+              Recent Activity Summary
+            </h3>
+            <div class="space-y-4">
+              <div class="bg-white/5 rounded-lg p-3">
+                <p class="text-white/70 text-sm mb-1">This Week</p>
+                <div class="flex justify-between items-center">
+                  <span class="text-white">Total Hours</span>
+                  <span class="text-blue-400 font-semibold">{reportStats.weekly.hours.toFixed(1)}h</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-white">Submissions</span>
+                  <span class="text-purple-400 font-semibold">{reportStats.weekly.submissions}</span>
+                </div>
+              </div>
+              
+              <div class="bg-white/5 rounded-lg p-3">
+                <p class="text-white/70 text-sm mb-1">This Month</p>
+                <div class="flex justify-between items-center">
+                  <span class="text-white">Total Hours</span>
+                  <span class="text-green-400 font-semibold">{reportStats.monthly.hours.toFixed(1)}h</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-white">Submissions</span>
+                  <span class="text-yellow-400 font-semibold">{reportStats.monthly.submissions}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="mt-4 pt-4 border-t border-white/10">
+              <p class="text-white/70 text-sm mb-3">Quick Report Actions</p>
+              <div class="flex flex-col gap-2">
+                <Button 
+                  on:click={() => {
+                    reportForm.content = generateReportContent('monthly');
+                    reportForm.report_type = 'monthly';
+                    showReportDialog = true;
+                  }}
+                  variant="ghost" 
+                  class="text-white/70 hover:text-white justify-start"
+                >
+                  <Calendar class="w-4 h-4 mr-2" />
+                  Monthly Summary
+                </Button>
+                <Button 
+                  on:click={() => { activeTab = 'submissions'; }}
+                  variant="ghost" 
+                  class="text-white/70 hover:text-white justify-start"
+                  disabled={reportStats.team.totalPendingReviews === 0}
+                >
+                  <AlertCircle class="w-4 h-4 mr-2" />
+                  Review Pending ({reportStats.team.totalPendingReviews})
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Individual Student Reports -->
+        <div class="bg-white/5 rounded-xl border border-white/20 p-6">
+          <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+            <Users class="w-5 h-5 text-green-400" />
+            Individual Student Reports
+          </h3>
+          <p class="text-white/70 mb-6">Generate detailed progress reports for individual students</p>
+          
+          {#if assignedStudents.length === 0}
+            <div class="text-center py-12">
+              <Users class="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <p class="text-white/70">No students assigned for reporting</p>
+            </div>
+          {:else}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {#each assignedStudents as student}
+                {@const studentProgress = getStudentProgress(student)}
+                <div class="bg-white/5 border border-white/20 rounded-lg p-4 hover:bg-white/10 transition-all">
+                  <div class="flex items-center gap-3 mb-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                      <UserIcon class="w-5 h-5 text-white" />
+                    </div>
+                    <div class="flex-1">
+                      <p class="text-white font-semibold truncate">{student.full_name}</p>
+                      <p class="text-white/50 text-sm">{studentProgress.completionPercentage}% complete</p>
+                    </div>
+                  </div>
+                  
+                  <div class="space-y-2 mb-4 text-sm">
+                    <div class="flex justify-between">
+                      <span class="text-white/70">Weekly Hours:</span>
+                      <span class="text-white">{studentProgress.weeklyHours.toFixed(1)}h</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-white/70">Tasks Done:</span>
+                      <span class="text-white">{studentProgress.completedTasks}/{studentProgress.totalTasks}</span>
+                    </div>
+                    <div class="flex justify-between">
+                      <span class="text-white/70">Pending:</span>
+                      <span class="{studentProgress.pendingReviews > 0 ? 'text-yellow-400' : 'text-green-400'}">{studentProgress.pendingReviews}</span>
+                    </div>
+                  </div>
+
+                  <div class="flex gap-2">
+                    <Button 
+                      on:click={() => {
+                        reportForm.content = generateReportContent('weekly', student.id);
+                        reportForm.student_id = student.id.toString();
+                        reportForm.report_type = 'weekly';
+                        showReportDialog = true;
+                      }}
+                      class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm"
+                    >
+                      <FileText class="w-3 h-3 mr-1" />
+                      Weekly
+                    </Button>
+                    <Button 
+                      on:click={() => {
+                        reportForm.content = generateReportContent('monthly', student.id);
+                        reportForm.student_id = student.id.toString();
+                        reportForm.report_type = 'monthly';
+                        showReportDialog = true;
+                      }}
+                      class="flex-1 bg-purple-500 hover:bg-purple-600 text-white text-sm"
+                    >
+                      <Calendar class="w-3 h-3 mr-1" />
+                      Monthly
+                    </Button>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
 
       {:else if activeTab === 'messages'}
