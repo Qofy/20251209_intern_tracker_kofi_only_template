@@ -10,7 +10,7 @@
     Mail, User as UserIcon, BookOpen, Calendar,
     CheckCircle, Clock, AlertCircle, FileText,
     Award, Target, Send, Download, Star,
-    Briefcase, GraduationCap, Activity, RefreshCw
+    Briefcase, GraduationCap, Activity, RefreshCw, Rocket, AlarmClock
   } from 'lucide-svelte';
   import { format, parseISO } from 'date-fns';
 
@@ -728,12 +728,12 @@
         <div class="text-right">
           <Button 
             on:click={() => startWork()}
-            class="bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600 text-white px-8 py-4 flex items-center gap-3 font-bold text-lg rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-200 animate-bounce"
+            class="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 hover:from-pink-800 hover:to-blue-600 text-white px-8 py-4 flex items-center gap-3 font-bold text-lg rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-200 animate-bounce"
           >
             <Clock class="w-6 h-6" />
-            🚀 Start Tracking Time
+            <Rocket color="red"/> Start Tracking Time
           </Button>
-          <p class="text-white/70 text-sm mt-2 font-medium">⏰ Track your work across all tasks</p>
+          <p class="text-white/70 text-sm mt-2 font-medium flex gap-2 items-center"><AlarmClock/> Track your work across all tasks</p>
         </div>
       {/if}
     </div>
@@ -1077,14 +1077,14 @@
           <Button
             on:click={loadStudentData}
             variant="outline"
-            class="text-white border-white/20 hover:bg-white/10"
+            class="text-white border-white/20 hover:bg-white/10 h-10 flex items-center px-2"
           >
             <RefreshCw class="w-4 h-4 mr-2" />
             Reload
           </Button>
           <Button
             on:click={() => showSubmitWorkModal = true}
-            class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center"
+            class="bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center hover:rounded-md"
           >
             <Upload class="w-4 h-4 mr-2" />
             Submit New Work
@@ -1522,7 +1522,7 @@
               <div class="bg-white/5 rounded-lg border border-white/10 p-4">
                 <div class="flex items-start justify-between mb-2">
                   <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-blue-500 flex items-center justify-center">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-green-300 flex items-center justify-center">
                       <UserIcon class="w-4 h-4 text-white" />
                     </div>
                     <div>
