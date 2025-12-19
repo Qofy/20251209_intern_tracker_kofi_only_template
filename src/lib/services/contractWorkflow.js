@@ -91,23 +91,32 @@ This contract has been reviewed and approved by the mentor and is now ready for 
     await Message.send({
       to_email: contract.mentor_email,
       to_role: 'Mentor',
-      subject: `Contract ${status} - ${contract.student_name || contract.student_email}`,
-      content: `**Contract Final Decision**
+      subject: `Contract ${status} - Action Required: Notify ${contract.student_name || contract.student_email}`,
+      content: `**Contract Final Decision - Please Notify Your Student**
 
 Student: ${contract.student_name || contract.student_email}
+Email: ${contract.student_email}
 Contract Status: ${status}
-Reviewed by: ${adminEmail}
+Reviewed by Admin: ${adminEmail}
 
 ${approved ? 
-        `The contract has been approved! Please notify your student that they can begin their internship.` :
-        `The contract has been rejected. Admin feedback:\n${feedback}\n\nPlease work with the student to address these issues and resubmit.`
+        `✅ **GOOD NEWS!** The contract has been APPROVED by administration!\n\n**Admin Notes:**\n${feedback || 'No additional notes provided.'}` :
+        `❌ **CONTRACT REJECTED** - Revisions needed.\n\n**Admin Feedback:**\n${feedback}\n\nThe student will need to make these changes before resubmission.`
       }
 
-**Next Steps:**
+**🎯 IMPORTANT - Your Action Required:**
 ${approved ? 
-        '- Notify student of approval\n- Begin internship coordination' :
-        '- Review admin feedback\n- Work with student on revisions\n- Resubmit when ready'
-      }`,
+        `Please contact your student immediately to inform them that:\n• Their contract is approved\n• They can officially begin their internship\n• You will coordinate next steps and task assignments` :
+        `Please contact your student to explain:\n• Why the contract was rejected\n• What changes need to be made\n• How to address the admin's feedback\n• Timeline for resubmission`
+      }
+
+**Next Steps for You:**
+${approved ? 
+        '1. 📞 Contact student with approval news\n2. 📋 Begin internship coordination\n3. 🎯 Assign initial tasks and orientation\n4. 📅 Schedule first check-in meeting' :
+        '1. 📞 Call/message student about rejection\n2. 📝 Explain required changes clearly\n3. 🤝 Offer guidance and support\n4. 📅 Set timeline for revision and resubmission'
+      }
+
+Contract ID: ${contract.id}`,
       message_type: 'contract_decision',
       mentor_email: contract.mentor_email
     });

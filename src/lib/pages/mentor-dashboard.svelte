@@ -361,6 +361,238 @@
     await replyToMessage();
   }
 
+  // Contract forwarding function
+  async function forwardContractDecisionToStudent(adminMessage) {
+    try {
+      console.log('Forwarding contract decision:', adminMessage);
+      
+      // Extract student email and name from the admin message content
+      let studentEmail = '';
+      let studentName = '';
+      const messageContent = adminMessage.content;
+      
+      // Try to extract student email and name from message content
+      const emailMatch = messageContent.match(/Email:\s*([^\n\s]+)/);
+      const nameMatch = messageContent.match(/Student:\s*([^\n]+)/);
+      
+      if (emailMatch) {
+        studentEmail = emailMatch[1].trim();
+        console.log('Extracted email from message:', studentEmail);
+      }
+      if (nameMatch) {
+        studentName = nameMatch[1].trim();
+        console.log('Extracted name from message:', studentName);
+      }
+      
+      // If no email found in message, try other methods
+      if (!studentEmail) {
+        console.log('No email in message, trying assigned students...');
+        if (assignedStudents && assignedStudents.length > 0) {
+          // Use first assigned student or show selector
+          const selectedStudent = assignedStudents[0];
+          studentEmail = selectedStudent.student_email || selectedStudent.email;
+          studentName = selectedStudent.full_name || selectedStudent.student_name || 'Student';
+          console.log('Using assigned student:', studentEmail, studentName);
+        } else {
+          // If no assigned students, prompt for email
+          studentEmail = prompt('Enter student email address to forward the contract decision to:');
+          if (!studentEmail) {
+            alert('Email is required to forward the contract decision');
+            return;
+          }
+          // Validate email format
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(studentEmail)) {
+            alert('Please enter a valid email address');
+            return;
+          }
+          studentName = prompt('Enter student name (optional):') || 'Student';
+        }
+      }
+
+      console.log('Final student details:', { email: studentEmail, name: studentName });
+
+      // Determine if it's approval or rejection
+      const isApproval = adminMessage.subject.includes('APPROVED');
+      const isRejection = adminMessage.subject.includes('REJECTED');
+      
+      console.log('Message type:', { isApproval, isRejection, subject: adminMessage.subject });
+      
+      let forwardSubject, forwardContent;
+      
+      if (isApproval) {
+        forwardSubject = `🎉 Great News! Your Contract Has Been Approved`;
+        forwardContent = `**Congratulations ${studentName}! Your internship contract has been approved by administration.**
+
+**Student Information:**
+- Name: ${studentName}
+- Email: ${studentEmail}
+- Mentor: ${user?.full_name || user?.email}
+
+**What this means for you:**
+✅ Your internship is officially approved
+✅ You can begin your internship activities
+✅ All paperwork is complete
+
+**Next Steps:**
+1. 📅 I will contact you to schedule an orientation meeting
+2. 🎯 We'll discuss your initial tasks and goals
+3. 📋 I'll assign your first set of learning objectives
+4. 📞 We'll establish our regular check-in schedule
+
+**Getting Started:**
+- Check your dashboard for any new tasks I've assigned
+- Prepare any questions you have about the internship
+- Review the internship guidelines I'll send separately
+
+I'm excited to work with you and support your learning journey. Welcome to the team!
+
+**Admin's Notes:** ${messageContent.includes('Admin Notes:') ? messageContent.split('Admin Notes:')[1].split('\n')[0].trim() : 'No additional notes'}
+
+Feel free to reach out if you have any questions!
+
+Best regards,
+${user?.full_name || user?.email}
+Your Mentor`;
+      } else if (isRejection) {
+        forwardSubject = `📋 Contract Revision Required - Let's Work Together`;
+        forwardContent = `**${studentName}, your contract needs some revisions before we can move forward.**
+
+**Student Information:**
+- Name: ${studentName}
+- Email: ${studentEmail}
+- Mentor: ${user?.full_name || user?.email}
+
+**Don't worry - this is normal and we'll work together to address the feedback.**
+
+**Admin Feedback:**
+${messageContent.includes('Admin Feedback:') ? messageContent.split('Admin Feedback:')[1].split('**')[0].trim() : 'Please see the full feedback below.'}
+
+**What we need to do:**
+1. 📞 Let's schedule a call to discuss the required changes
+2. 📝 I'll help you understand what needs to be updated
+3. 🔄 We'll revise the contract together
+4. ✅ Once updated, we'll resubmit for approval
+
+**My Support:**
+- I'm here to help you through this process
+- We can review each requirement together
+- I'll make sure you understand all the changes needed
+- This won't delay your start date significantly
+
+**Next Steps:**
+- Reply to this message with your availability for a quick call
+- Don't stress - these revisions are usually straightforward
+- We'll have this sorted out quickly
+
+Looking forward to working with you soon!
+
+Best regards,
+${user?.full_name || user?.email}
+Your Mentor`;
+      } else {
+        // Generic contract message forwarding
+        forwardSubject = `Contract Update - ${adminMessage.subject}`;
+        forwardContent = `**${studentName}, I received the following update about your contract from administration:**
+
+**Student Information:**
+- Name: ${studentName}
+- Email: ${studentEmail}
+- Mentor: ${user?.full_name || user?.email}
+
+**Message from Administration:**
+${messageContent}
+
+Please let me know if you have any questions. I'm here to help!
+
+Best regards,
+${user?.full_name || user?.email}`;
+      }
+
+      console.log('Sending message with subject:', forwardSubject);
+
+      // Send the forwarded message to student
+      const sentMessage = await Message.send({
+        to_email: studentEmail,
+        to_role: 'Student',
+        from_email: user?.email,
+        from_role: 'Mentor',
+        subject: forwardSubject,
+        content: forwardContent,
+        message_type: 'contract_forwarded',
+        mentor_email: user?.email
+      });
+
+      console.log('Message sent successfully:', sentMessage);
+
+      // Try to mark the admin message as forwarded
+      try {
+        const updatedMessage = await Message.update(adminMessage.id, {
+          forwarded_to_student: true,
+          forwarded_at: new Date().toISOString()
+        });
+        console.log('Message marked as forwarded:', updatedMessage);
+      } catch (updateError) {
+        console.warn('Could not update message status (this is OK):', updateError);
+        // Continue anyway - the message was sent successfully
+      }
+
+      // Show success message with more details
+      alert(`✅ SUCCESS!\n\nContract decision forwarded to:\n📧 ${studentEmail}\n👤 ${studentName}\n\n🎯 The student will receive a personalized ${isApproval ? 'congratulations' : 'revision guidance'} message from you.`);
+      
+      await loadMessages(); // Reload messages to show updated status
+      
+    } catch (error) {
+      console.error('Error forwarding contract decision:', error);
+      alert('Failed to forward contract decision: ' + error.message);
+    }
+  }
+
+  // Test function to create sample contract message
+  async function createTestContractMessage() {
+    try {
+      await Message.send({
+        to_email: user?.email,
+        to_role: 'Mentor',
+        from_email: 'jesus@gmail.com',
+        from_role: 'Admin',
+        subject: 'Contract APPROVED - Action Required: Notify John Doe',
+        content: `**Contract Final Decision - Please Notify Your Student**
+
+Student: John Doe
+Email: john.doe@example.com
+Contract Status: APPROVED
+Reviewed by Admin: jesus@gmail.com
+
+✅ **GOOD NEWS!** The contract has been APPROVED by administration!
+
+**Admin Notes:**
+All requirements met. Student can begin internship.
+
+**🎯 IMPORTANT - Your Action Required:**
+Please contact your student immediately to inform them that:
+• Their contract is approved
+• They can officially begin their internship
+• You will coordinate next steps and task assignments
+
+**Next Steps for You:**
+1. 📞 Contact student with approval news
+2. 📋 Begin internship coordination
+3. 🎯 Assign initial tasks and orientation
+4. 📅 Schedule first check-in meeting
+
+Contract ID: TEST_CONTRACT_123`,
+        message_type: 'contract_decision'
+      });
+      
+      alert('Test contract message created! Check your admin messages section.');
+      await loadMessages();
+    } catch (error) {
+      console.error('Error creating test message:', error);
+      alert('Failed to create test message');
+    }
+  }
+
   // Progress Reports
   async function submitReport() {
     try {
@@ -975,25 +1207,88 @@ ${reportForm.content}`,
         {@const adminMessages = messages.filter(m => m.from_role === 'Admin' && m.to_email === user?.email)}
         {#if adminMessages.length > 0}
           <div class="bg-white/5 rounded-xl border border-white/20 p-6 mb-6">
-            <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-              <Shield class="w-5 h-5" />
-              Messages from Admin ({adminMessages.length})
-            </h3>
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-white font-bold flex items-center gap-2">
+                <Shield class="w-5 h-5" />
+                Messages from Admin ({adminMessages.length})
+              </h3>
+              <!-- Test button to create sample contract message -->
+              <Button
+                on:click={createTestContractMessage}
+                class="bg-orange-500 hover:bg-orange-600 text-white text-xs px-3 py-1 rounded"
+                title="Create test contract decision message"
+              >
+                Test Contract Message
+              </Button>
+            </div>
             <div class="space-y-3 max-h-64 overflow-y-auto">
               {#each adminMessages as msg}
                 <div class="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
                   <div class="flex justify-between items-start mb-2">
-                    <div>
+                    <div class="flex-1">
                       <h4 class="text-white font-semibold">{msg.subject}</h4>
                       <p class="text-white/60 text-sm">
                         From: {msg.from_email} • {new Date(msg.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    {#if !msg.is_read}
-                      <span class="bg-red-500 text-white text-xs px-2 py-1 rounded">New</span>
-                    {/if}
+                    <div class="flex items-center gap-2">
+                      {#if !msg.is_read}
+                        <span class="bg-red-500 text-white text-xs px-2 py-1 rounded">New</span>
+                      {/if}
+                      
+                      <!-- Enhanced forwarding buttons with better conditional logic -->
+                      {#if msg.forwarded_to_student || msg.forwarded_at}
+                        <!-- Already forwarded - show success status -->
+                        <span class="bg-green-500/20 text-green-300 text-xs px-3 py-1.5 rounded border border-green-500/30 flex items-center gap-1">
+                          <CheckCircle class="w-3 h-3" />
+                          ✅ Forwarded
+                        </span>
+                      {:else if msg.from_role === 'Admin'}
+                        <!-- Not yet forwarded - show action button -->
+                        <Button
+                          on:click={() => forwardContractDecisionToStudent(msg)}
+                          class="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-xs px-4 py-1.5 rounded-md font-medium transition-all duration-200 shadow-lg hover:shadow-xl flex items-center gap-1"
+                          title="Forward this message to the student with personalized content"
+                        >
+                          <Send class="w-3 h-3" />
+                          📤 Forward to Student
+                        </Button>
+                      {/if}
+                    </div>
                   </div>
-                  <p class="text-white/70 text-sm">{msg.content}</p>
+                  <p class="text-white/70 text-sm whitespace-pre-line">{msg.content}</p>
+                  
+                  <!-- Enhanced Contract forwarding status with better visual feedback -->
+                  {#if msg.forwarded_to_student || msg.forwarded_at}
+                    <div class="mt-3 p-3 bg-green-500/20 border border-green-500/50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <CheckCircle class="w-4 h-4 text-green-400" />
+                        <p class="text-green-300 text-sm font-medium">
+                          🎉 Successfully forwarded to student!
+                        </p>
+                      </div>
+                      {#if msg.forwarded_at}
+                        <p class="text-green-400/80 text-xs mt-1 ml-6">
+                          Forwarded on: {new Date(msg.forwarded_at).toLocaleDateString()} at {new Date(msg.forwarded_at).toLocaleTimeString()}
+                        </p>
+                      {/if}
+                      <p class="text-green-400/60 text-xs mt-1 ml-6">
+                        ✅ The student has received the {msg.subject.includes('APPROVED') ? 'congratulations' : 'revision guidance'} message from you.
+                      </p>
+                    </div>
+                  {:else if msg.message_type === 'contract_decision' || msg.subject.toLowerCase().includes('contract') || msg.subject.includes('APPROVED') || msg.subject.includes('REJECTED')}
+                    <div class="mt-3 p-3 bg-orange-500/20 border border-orange-500/50 rounded-lg">
+                      <div class="flex items-center gap-2">
+                        <Clock class="w-4 h-4 text-orange-400" />
+                        <p class="text-orange-300 text-sm font-medium">
+                          📤 Contract decision awaiting forwarding to student
+                        </p>
+                      </div>
+                      <p class="text-orange-400/80 text-xs mt-1 ml-6">
+                        Click the "Forward" button above to send this {msg.subject.includes('APPROVED') ? 'approval' : 'decision'} to the student.
+                      </p>
+                    </div>
+                  {/if}
                 </div>
               {/each}
             </div>

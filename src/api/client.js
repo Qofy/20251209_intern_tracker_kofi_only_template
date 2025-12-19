@@ -423,6 +423,16 @@ class ApiClient {
     });
   }
 
+  async updateMessage(messageId, updateData) {
+    return this.request(`/api/messages/${messageId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }
+
   async getUnreadMessageCount() {
     return this.request('/api/messages/unread-count');
   }

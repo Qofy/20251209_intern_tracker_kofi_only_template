@@ -798,6 +798,20 @@ export class Message {
     return apiClient.markAllMessagesAsRead();
   }
 
+  static async update(messageId, updateData) {
+    if (isDemoMode()) {
+      const demoMessages = JSON.parse(localStorage.getItem('demo_messages') || '[]');
+      const index = demoMessages.findIndex(m => m.id === messageId);
+      if (index !== -1) {
+        demoMessages[index] = { ...demoMessages[index], ...updateData, updated_at: new Date().toISOString() };
+        localStorage.setItem('demo_messages', JSON.stringify(demoMessages));
+        return demoMessages[index];
+      }
+      throw new Error('Message not found');
+    }
+    return apiClient.updateMessage(messageId, updateData);
+  }
+
   static async getUnreadCount() {
     if (isDemoMode()) {
       const demoMessages = JSON.parse(localStorage.getItem('demo_messages') || '[]');

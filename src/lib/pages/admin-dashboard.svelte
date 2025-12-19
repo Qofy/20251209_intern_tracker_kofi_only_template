@@ -408,12 +408,11 @@
       const contract = contracts.find(c => c.id === contractId);
       
       if (contract) {
-        // Send notifications using ContractWorkflowService
+        // Send notification to mentor only - mentor will notify student
         await ContractWorkflowService.notifyMentorOfAdminDecision(contract, user.email, true, adminNotes);
-        await ContractWorkflowService.notifyStudentOfFinalDecision(contract, true, contract.mentor_email, adminNotes);
       }
       
-      alert('Contract approved successfully! Mentor and student will be notified.');
+      alert('Contract approved successfully! Mentor has been notified and will inform the student.');
       await loadData();
     } catch (error) {
       console.error('Error approving contract:', error);
@@ -438,12 +437,11 @@
       const contract = contracts.find(c => c.id === contractId);
       
       if (contract) {
-        // Send notifications using ContractWorkflowService
+        // Send notification to mentor only - mentor will notify student
         await ContractWorkflowService.notifyMentorOfAdminDecision(contract, user.email, false, reason);
-        await ContractWorkflowService.notifyStudentOfFinalDecision(contract, false, contract.mentor_email, reason);
       }
       
-      alert('Contract rejected. Mentor and student will be notified with feedback.');
+      alert('Contract rejected. Mentor has been notified and will inform the student with feedback.');
       await loadData();
     } catch (error) {
       console.error('Error rejecting contract:', error);
