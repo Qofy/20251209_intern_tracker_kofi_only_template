@@ -1185,14 +1185,14 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                 <div class="flex gap-2">
                   <Button 
                     on:click={() => selectStudent(student)}
-                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm transition-colors"
+                    class="flex-1 bg-blue-500 hover:bg-blue-600 text-white text-sm transition-colors flex h-10 items-center px-2 rounded-md justify-center"
                   >
                     <UserIcon class="w-4 h-4 mr-2" />
                     Details
                   </Button>
                   <Button 
                     on:click={() => openMessageDialog(student.student_email)}
-                    class="bg-purple-500 hover:bg-purple-600 text-white transition-colors"
+                    class="bg-purple-500 hover:bg-purple-600 text-white transition-colors h-10 flex items-center justify-center rounded-md w-10"
                   >
                     <MessageSquare class="w-4 h-4" />
                   </Button>
@@ -1221,7 +1221,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
               <Button 
                 on:click={() => selectedStudent = null}
                 variant="ghost"
-                class="text-white/70 hover:text-white"
+                class="text-white/70 hover:text-white h-10 rounded-md flex items-center px-2 justify-center"
               >
                 <X class="w-4 h-4" />
               </Button>
@@ -1333,14 +1333,14 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
             <div class="flex gap-3 mt-6">
               <Button 
                 on:click={() => openMessageDialog(selectedStudent.student_email)}
-                class="bg-purple-500 hover:bg-purple-600 text-white"
+                class="bg-purple-500 hover:bg-purple-600 text-white justify-center flex items-center px-2 rounded-md"
               >
                 <MessageSquare class="w-4 h-4 mr-2" />
                 Send Message
               </Button>
               <Button 
                 on:click={() => { activeTab = 'tasks'; taskForm.assigned_to = selectedStudent.student_email; showTaskDialog = true; }}
-                class="bg-blue-500 hover:bg-blue-600 text-white"
+                class="bg-blue-500 hover:bg-blue-600 text-white rounded-md h-10 flex items-center justify-center px-2"
               >
                 <Plus class="w-4 h-4 mr-2" />
                 Assign Task
@@ -2537,7 +2537,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
         <div class="flex gap-3 mt-6">
           <Button 
             on:click={sendMessage}
-            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+            class="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-10 rounded-md flex items-center px-2 justify-center"
             disabled={!messageForm.subject || !messageForm.message}
           >
             <Send class="w-4 h-4 mr-2" />
