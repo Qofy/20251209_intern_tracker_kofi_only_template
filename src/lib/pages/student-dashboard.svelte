@@ -66,7 +66,7 @@
     currentSession: null
   };
 
-  // Stats
+  // Enhanced Stats with actual progress tracking
   let stats = {
     totalTasks: 0,
     completedTasks: 0,
@@ -74,7 +74,12 @@
     totalHours: 0,
     approvedHours: 0,
     completionPercentage: 0,
-    contractHours: 600
+    contractHours: 600,
+    // New task progress fields
+    totalEstimatedHours: 0,
+    totalHoursWorked: 0,
+    averageTaskProgress: 0,
+    taskCompletionRate: 0
   };
 
   onMount(async () => {
@@ -171,14 +176,23 @@
         s.assigned_to === user?.email
       );
 
-      // Calculate stats
+      // Calculate enhanced stats with actual progress tracking
       stats.totalTasks = myTasks.length;
       stats.completedTasks = myTasks.filter(t => t.status === 'completed').length;
       stats.pendingSubmissions = mySubmissions.filter(s => s.status === 'draft').length;
+      
+      // Contract progress - approved hours vs contract requirement
       stats.approvedHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.approved_hours) || 0), 0);
       stats.totalHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
       stats.contractHours = selectedStudent?.contract_hours || 600;
-      stats.completionPercentage = Math.round((stats.approvedHours / stats.contractHours) * 100);
+      stats.completionPercentage = Math.min(100, Math.round((stats.approvedHours / stats.contractHours) * 100));
+      
+      // Task progress - actual hours worked vs estimated hours
+      stats.totalEstimatedHours = myTasks.reduce((sum, t) => sum + (parseFloat(t.estimated_hours) || 0), 0);
+      stats.totalHoursWorked = myTasks.reduce((sum, t) => sum + (parseFloat(t.hours_worked) || 0), 0);
+      stats.averageTaskProgress = myTasks.length > 0 ? 
+        Math.round(myTasks.reduce((sum, t) => sum + (parseInt(t.progress_percentage) || 0), 0) / myTasks.length) : 0;
+      stats.taskCompletionRate = stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0;
 
       // Mock feedback data (since we don't have a feedback entity yet)
       myFeedback = mySubmissions
@@ -577,19 +591,55 @@
                       <UserIcon class="w-4 h-4" />
                       Assigned by: {task.created_by || 'Mentor'}
                     </span>
-                    <span class="flex items-center gap-1">
-                      <Clock class="w-4 h-4" />
-                      {task.hours_worked || 0}h / {task.estimated_hours || 8}h
-                    </span>
-                    <span>{task.progress_percentage || 0}% complete</span>
                   </div>
                   
-                  <!-- Progress Bar -->
-                  <div class="w-full bg-white/10 rounded-full h-2 mb-3">
-                    <div 
-                      class="bg-gradient-to-r from-blue-500 to-green-500 h-2 rounded-full transition-all duration-300"
-                      style="width: {task.progress_percentage || 0}%"
-                    ></div>
+                  <!-- Enhanced Progress Information -->
+                  <div class="bg-white/5 rounded-lg p-3 mb-3">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-white/70 text-sm">Hours Progress</span>
+                      <span class="text-white font-semibold text-sm">
+                        {(parseFloat(task.hours_worked) || 0).toFixed(1)}h / {(parseFloat(task.estimated_hours) || 8).toFixed(1)}h
+                      </span>
+                    </div>
+                    
+                    <!-- Hours Progress Bar -->
+                    <div class="w-full bg-white/10 rounded-full h-2 mb-2">
+                      <div 
+                        class="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
+                        style="width: {Math.min(100, ((parseFloat(task.hours_worked) || 0) / (parseFloat(task.estimated_hours) || 8)) * 100)}%"
+                      ></div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between">
+                      <span class="text-white/70 text-sm">Task Completion</span>
+                      <span class="text-white font-semibold text-sm">{parseInt(task.progress_percentage) || 0}% complete</span>
+                    </div>
+                    
+                    <!-- Task Progress Bar -->
+                    <div class="w-full bg-white/10 rounded-full h-2">
+                      <div 
+                        class="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
+                        style="width: {parseInt(task.progress_percentage) || 0}%"
+                      ></div>
+                    </div>
+                    
+                    <!-- Progress Status Indicator -->
+                    {#if (parseFloat(task.hours_worked) || 0) > (parseFloat(task.estimated_hours) || 8)}
+                      <p class="text-orange-400 text-xs mt-2 flex items-center gap-1">
+                        <AlertCircle class="w-3 h-3" />
+                        Over estimated time by {((parseFloat(task.hours_worked) || 0) - (parseFloat(task.estimated_hours) || 8)).toFixed(1)}h
+                      </p>
+                    {:else if (parseInt(task.progress_percentage) || 0) >= 100}
+                      <p class="text-green-400 text-xs mt-2 flex items-center gap-1">
+                        <CheckCircle class="w-3 h-3" />
+                        Task completed! Awaiting submission or review
+                      </p>
+                    {:else if (parseFloat(task.hours_worked) || 0) >= (parseFloat(task.estimated_hours) || 8) * 0.8}
+                      <p class="text-yellow-400 text-xs mt-2 flex items-center gap-1">
+                        <Clock class="w-3 h-3" />
+                        Approaching time limit - {((parseFloat(task.estimated_hours) || 8) - (parseFloat(task.hours_worked) || 0)).toFixed(1)}h remaining
+                      </p>
+                    {/if}
                   </div>
                 </div>
               </div>
@@ -705,6 +755,95 @@
       </div>
 
       <!-- Progress Overview -->
+      <!-- Comprehensive Progress Summary -->
+      <div class="bg-white/5 rounded-xl border border-white/20 p-6 mb-6">
+        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+          <TrendingUp class="w-5 h-5 text-blue-400" />
+          Progress Overview
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <!-- Contract Hours Progress -->
+          <div class="text-center">
+            <div class="relative w-16 h-16 mx-auto mb-2">
+              <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="rgb(255 255 255 / 0.1)" stroke-width="4"></circle>
+                <circle 
+                  cx="32" cy="32" r="28" fill="none" stroke="rgb(147 51 234)" stroke-width="4"
+                  stroke-dasharray="{2 * Math.PI * 28}"
+                  stroke-dashoffset="{2 * Math.PI * 28 * (1 - stats.completionPercentage / 100)}"
+                  stroke-linecap="round"
+                ></circle>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">{stats.completionPercentage}%</span>
+              </div>
+            </div>
+            <p class="text-white/70 text-sm">Contract</p>
+            <p class="text-white text-xs">{stats.approvedHours.toFixed(1)}h approved</p>
+          </div>
+
+          <!-- Task Completion Progress -->
+          <div class="text-center">
+            <div class="relative w-16 h-16 mx-auto mb-2">
+              <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="rgb(255 255 255 / 0.1)" stroke-width="4"></circle>
+                <circle 
+                  cx="32" cy="32" r="28" fill="none" stroke="rgb(34 197 94)" stroke-width="4"
+                  stroke-dasharray="{2 * Math.PI * 28}"
+                  stroke-dashoffset="{2 * Math.PI * 28 * (1 - stats.taskCompletionRate / 100)}"
+                  stroke-linecap="round"
+                ></circle>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">{stats.taskCompletionRate}%</span>
+              </div>
+            </div>
+            <p class="text-white/70 text-sm">Tasks Done</p>
+            <p class="text-white text-xs">{stats.completedTasks} of {stats.totalTasks}</p>
+          </div>
+
+          <!-- Average Task Progress -->
+          <div class="text-center">
+            <div class="relative w-16 h-16 mx-auto mb-2">
+              <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="rgb(255 255 255 / 0.1)" stroke-width="4"></circle>
+                <circle 
+                  cx="32" cy="32" r="28" fill="none" stroke="rgb(59 130 246)" stroke-width="4"
+                  stroke-dasharray="{2 * Math.PI * 28}"
+                  stroke-dashoffset="{2 * Math.PI * 28 * (1 - stats.averageTaskProgress / 100)}"
+                  stroke-linecap="round"
+                ></circle>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">{stats.averageTaskProgress}%</span>
+              </div>
+            </div>
+            <p class="text-white/70 text-sm">Avg Progress</p>
+            <p class="text-white text-xs">Task completion</p>
+          </div>
+
+          <!-- Hours Efficiency -->
+          <div class="text-center">
+            <div class="relative w-16 h-16 mx-auto mb-2">
+              <svg class="w-16 h-16 transform -rotate-90" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="rgb(255 255 255 / 0.1)" stroke-width="4"></circle>
+                <circle 
+                  cx="32" cy="32" r="28" fill="none" stroke="rgb(236 72 153)" stroke-width="4"
+                  stroke-dasharray="{2 * Math.PI * 28}"
+                  stroke-dashoffset="{2 * Math.PI * 28 * (1 - Math.min(100, (stats.approvedHours / Math.max(stats.totalHours, 1)) * 100) / 100)}"
+                  stroke-linecap="round"
+                ></circle>
+              </svg>
+              <div class="absolute inset-0 flex items-center justify-center">
+                <span class="text-white font-bold text-sm">{Math.round(Math.min(100, (stats.approvedHours / Math.max(stats.totalHours, 1)) * 100))}%</span>
+              </div>
+            </div>
+            <p class="text-white/70 text-sm">Efficiency</p>
+            <p class="text-white text-xs">Approved rate</p>
+          </div>
+        </div>
+      </div>
+
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <div class="bg-white/5 rounded-xl border border-white/20 p-6">
           <h3 class="text-white font-bold mb-4 flex items-center gap-2">
@@ -712,10 +851,11 @@
             Contract Progress
           </h3>
           <div class="space-y-4">
+            <!-- Main progress bar -->
             <div>
               <div class="flex items-center justify-between mb-2">
-                <span class="text-white/70 text-sm">Hours Completed</span>
-                <span class="text-white font-semibold">{stats.approvedHours} / {stats.contractHours}h</span>
+                <span class="text-white/70 text-sm">Approved Hours</span>
+                <span class="text-white font-semibold">{stats.approvedHours.toFixed(1)} / {stats.contractHours}h</span>
               </div>
               <div class="w-full bg-white/10 rounded-full h-3">
                 <div
@@ -726,9 +866,18 @@
               <p class="text-white/50 text-xs mt-1">{stats.completionPercentage}% Complete</p>
             </div>
 
-            <div class="pt-4 border-t border-white/10">
-              <p class="text-white/70 text-sm">Hours Remaining</p>
-              <p class="text-3xl font-bold text-white">{stats.contractHours - stats.approvedHours}h</p>
+            <!-- Additional progress details -->
+            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
+              <div>
+                <p class="text-white/70 text-sm">Total Logged</p>
+                <p class="text-xl font-bold text-blue-400">{stats.totalHours.toFixed(1)}h</p>
+                <p class="text-white/50 text-xs">All entries</p>
+              </div>
+              <div>
+                <p class="text-white/70 text-sm">Remaining</p>
+                <p class="text-xl font-bold text-white">{Math.max(0, stats.contractHours - stats.approvedHours).toFixed(1)}h</p>
+                <p class="text-white/50 text-xs">To complete</p>
+              </div>
             </div>
           </div>
         </div>
@@ -739,6 +888,7 @@
             Task Progress
           </h3>
           <div class="space-y-4">
+            <!-- Task completion progress -->
             <div>
               <div class="flex items-center justify-between mb-2">
                 <span class="text-white/70 text-sm">Tasks Completed</span>
@@ -747,19 +897,42 @@
               <div class="w-full bg-white/10 rounded-full h-3">
                 <div
                   class="bg-gradient-to-r from-green-500 to-emerald-500 h-3 rounded-full transition-all"
-                  style="width: {stats.totalTasks > 0 ? (stats.completedTasks / stats.totalTasks) * 100 : 0}%"
+                  style="width: {stats.taskCompletionRate}%"
                 ></div>
               </div>
+              <p class="text-white/50 text-xs mt-1">{stats.taskCompletionRate}% Complete</p>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
-              <div>
-                <p class="text-white/70 text-sm">In Progress</p>
-                <p class="text-2xl font-bold text-blue-400">{myTasks.filter(t => t.status === 'in_progress').length}</p>
+            <!-- Hours progress -->
+            {#if stats.totalEstimatedHours > 0}
+            <div class="pt-2">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-white/70 text-sm">Hours Worked</span>
+                <span class="text-white font-semibold">{stats.totalHoursWorked.toFixed(1)} / {stats.totalEstimatedHours.toFixed(1)}h</span>
               </div>
-              <div>
+              <div class="w-full bg-white/10 rounded-full h-2">
+                <div
+                  class="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all"
+                  style="width: {Math.min(100, (stats.totalHoursWorked / stats.totalEstimatedHours) * 100)}%"
+                ></div>
+              </div>
+              <p class="text-white/50 text-xs mt-1">Average Task Progress: {stats.averageTaskProgress}%</p>
+            </div>
+            {/if}
+
+            <!-- Status breakdown -->
+            <div class="grid grid-cols-3 gap-3 pt-4 border-t border-white/10">
+              <div class="text-center">
+                <p class="text-white/70 text-sm">In Progress</p>
+                <p class="text-lg font-bold text-blue-400">{myTasks.filter(t => t.status === 'in_progress').length}</p>
+              </div>
+              <div class="text-center">
                 <p class="text-white/70 text-sm">Pending</p>
-                <p class="text-2xl font-bold text-yellow-400">{myTasks.filter(t => t.status === 'assigned').length}</p>
+                <p class="text-lg font-bold text-yellow-400">{myTasks.filter(t => t.status === 'assigned').length}</p>
+              </div>
+              <div class="text-center">
+                <p class="text-white/70 text-sm">Done</p>
+                <p class="text-lg font-bold text-green-400">{stats.completedTasks}</p>
               </div>
             </div>
           </div>
