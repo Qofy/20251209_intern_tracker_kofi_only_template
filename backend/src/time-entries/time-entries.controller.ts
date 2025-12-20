@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Query, Request } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TimeEntriesService } from './time-entries.service';
 import { TimeEntry } from './time-entry.entity';
@@ -9,8 +9,9 @@ export class TimeEntriesController {
   constructor(private timeEntriesService: TimeEntriesService) {}
 
   @Get()
-  async findAll(@Query('student_id') studentId?: string, @Query('status') status?: string) {
-    return this.timeEntriesService.findAll(studentId ? +studentId : undefined, status);
+  async findAll(@Request() req, @Query('student_id') studentId?: string, @Query('status') status?: string) {
+    const companyId = req.user.company_id;
+    return this.timeEntriesService.findAll(companyId, studentId ? +studentId : undefined, status);
   }
 
   @Get(':id')
@@ -19,8 +20,9 @@ export class TimeEntriesController {
   }
 
   @Post()
-  async create(@Body() timeEntryData: Partial<TimeEntry>) {
-    return this.timeEntriesService.create(timeEntryData);
+  async create(@Request() req, @Body() timeEntryData: Partial<TimeEntry>) {
+    const company_id = req.user.company_id;
+    return this.timeEntriesService.create({ ...timeEntryData, company_id });
   }
 
   @Put(':id')

@@ -89,15 +89,27 @@
     taskCompletionRate: 0
   };
 
+  // Track tasks with ended sessions (submitted time entries)
+  let tasksWithEndedSessions = new Set();
+
   // Reactive statements to automatically update stats when data changes
   $: if (myTasks) {
     stats.totalTasks = myTasks.length;
     stats.completedTasks = myTasks.filter(t => t.status === 'completed').length;
     stats.totalEstimatedHours = myTasks.reduce((sum, t) => sum + (parseFloat(t.estimated_hours) || 0), 0);
     stats.totalHoursWorked = myTasks.reduce((sum, t) => sum + (parseFloat(t.hours_worked) || 0), 0);
-    stats.averageTaskProgress = myTasks.length > 0 ? 
+    stats.averageTaskProgress = myTasks.length > 0 ?
       Math.round(myTasks.reduce((sum, t) => sum + (parseInt(t.progress_percentage) || 0), 0) / myTasks.length) : 0;
     stats.taskCompletionRate = stats.totalTasks > 0 ? Math.round((stats.completedTasks / stats.totalTasks) * 100) : 0;
+  }
+
+  // Track which tasks have ended sessions (submitted time entries)
+  $: if (mySubmissions) {
+    tasksWithEndedSessions = new Set(
+      mySubmissions
+        .filter(s => s.task_id && s.status === 'submitted' && s.end_time)
+        .map(s => s.task_id)
+    );
   }
 
   $: if (mySubmissions) {
@@ -326,7 +338,12 @@
     const secs = seconds % 60;
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
-  
+
+  // Check if a task has an ended session
+  function hasEndedSession(taskId) {
+    return tasksWithEndedSessions.has(taskId);
+  }
+
   // Update timer display every second with enhanced notifications
   function startTimer() {
     if (timeTracker.timerInterval) return; // Already running
@@ -336,12 +353,12 @@
         timeTracker.elapsedTime++;
         timeTracker.displayTime = formatTime(timeTracker.elapsedTime);
         
-        // Visual feedback every 15 minutes
-        if (timeTracker.elapsedTime > 0 && timeTracker.elapsedTime % 900 === 0) {
-          const minutes = timeTracker.elapsedTime / 60;
-          console.log(`⏰ Time tracking: ${minutes} minutes worked!`);
-          alert(`⏰ Time Update: You've been working for ${Math.floor(minutes)} minutes! Great progress! 💪`);
-        }
+        // // Visual feedback every 15 minutes
+        // if (timeTracker.elapsedTime > 0 && timeTracker.elapsedTime % 900 === 0) {
+        //   const minutes = timeTracker.elapsedTime / 60;
+        //   console.log(`⏰ Time tracking: ${minutes} minutes worked!`);
+        //   alert(`⏰ Time Update: You've been working for ${Math.floor(minutes)} minutes! Great progress! 💪`);
+        // }
         
         // Update page title with current time every 10 seconds
         if (timeTracker.elapsedTime % 10 === 0) {
@@ -373,6 +390,12 @@
   // Start work session with timer
   async function startWork(taskId = null) {
     try {
+      // Check if this task already has an ended session
+      if (taskId && hasEndedSession(taskId)) {
+        alert('⚠️ This task session has already been ended and cannot be restarted.\n\nPlease submit your work or contact your mentor to continue.');
+        return;
+      }
+
       const now = new Date();
       timeTracker.isWorking = true;
       timeTracker.startTime = now.toISOString();
@@ -943,14 +966,27 @@
                   <!-- Action Buttons -->
                   <div class="flex gap-2 flex-wrap">
                     <!-- Enhanced Time Tracking Controls -->
-                    {#if !timeTracker.isWorking}
-                      <Button 
+                    {#if !timeTracker.isWorking && !hasEndedSession(task.id)}
+                      <Button
                         on:click={() => startWork(task.id)}
                         class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 flex items-center gap-3 text-sm font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 animate-pulse"
                       >
                         <Clock class="w-5 h-5" />
                         ▶️ START TRACKING TIME
                       </Button>
+                    {:else if !timeTracker.isWorking && hasEndedSession(task.id)}
+                      <!-- Session ended - cannot restart -->
+                      <div class="bg-red-500/10 border-2 border-red-500/30 rounded-xl px-4 py-3 flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                          <div class="w-2 h-2 bg-red-400 rounded-full"></div>
+                          <span class="text-red-300 font-bold text-sm">⏱️ TIME UP - Session Ended</span>
+                        </div>
+                      </div>
+                      <div class="w-full bg-yellow-500/10 border border-yellow-500/30 rounded-lg px-3 py-2 mt-2">
+                        <p class="text-yellow-300 text-xs">
+                          ⚠️ This task session has been ended and cannot be restarted. To continue working, please submit this session first or contact your mentor.
+                        </p>
+                      </div>
                     {:else if timeTracker.currentTaskId === task.id}
                       <!-- Enhanced Active timer controls for this task -->
                       <div class="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-400 rounded-xl p-4">

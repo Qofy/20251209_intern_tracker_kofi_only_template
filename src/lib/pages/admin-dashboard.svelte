@@ -12,7 +12,7 @@
     Search, Edit2, Trash2, Mail, Clock, Calendar,
     BarChart3, PieChart, Activity, UserCheck,
     FolderOpen, GitBranch, MessageSquare, Send,
-    GraduationCap
+    GraduationCap, Download, Eye, XCircle, Filter, Check, X
   } from 'lucide-svelte';
 
   $: user = $userStore.user;
@@ -533,9 +533,28 @@ Status: ${contract.status}
     alert(details);
   }
 
-  $: filteredUsers = allUsers.filter(u =>
-    u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+  // Only show users that belong to the same company as the current admin (when logged-in user is admin)
+  $: visibleAllUsers = (() => {
+    if (!user) return allUsers;
+    // if current user is admin, restrict to same companyKey; otherwise show all
+    if (user.role === 'admin' && user.companyKey) {
+      return allUsers.filter(u => {
+        // support multiple possible field names from backend
+        const companyKey = u.companyKey || u.company_key || u.company_id || u.companyId;
+        const adminKey = user.companyKey || user.company_key || user.company_id || user.companyId;
+        return companyKey && adminKey && String(companyKey) === String(adminKey);
+      });
+    }
+    return allUsers;
+  })();
+
+  // Derive mentors from visible users so assignments/dispatch only show same-company mentors
+  $: allMentors = visibleAllUsers.filter(u => u.role === 'mentor');
+
+  // Filtered users respect company visibility and search query
+  $: filteredUsers = visibleAllUsers.filter(u =>
+    (u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    u.full_name?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Dynamic Reports & Analytics calculations
@@ -639,6 +658,97 @@ Status: ${contract.status}
 
   // State for expanded report views
   let expandedReport = null;
+
+  // Submissions state
+  let viewingSubmission = null;
+  let showSubmissionDetailsModal = false;
+  let submissionStatusFilter = 'all'; // 'all', 'submitted', 'approved', 'rejected'
+
+  $: filteredSubmissions = allTimeEntries.filter(entry => {
+    if (submissionStatusFilter === 'all') return true;
+    return entry.status === submissionStatusFilter;
+  });
+
+  function viewSubmissionDetails(submission) {
+    viewingSubmission = submission;
+    showSubmissionDetailsModal = true;
+  }
+
+  function closeSubmissionDetailsModal() {
+    showSubmissionDetailsModal = false;
+    viewingSubmission = null;
+  }
+
+  async function downloadFile(url, filename) {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = filename || 'proof-file.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download file');
+    }
+  }
+
+  async function downloadAllSubmissionFiles(submission) {
+    if (!submission.proof_files || submission.proof_files.length === 0) {
+      alert('No files to download');
+      return;
+    }
+
+    for (let i = 0; i < submission.proof_files.length; i++) {
+      const file = submission.proof_files[i];
+      const filename = `${submission.created_by}-proof-${i + 1}-${submission.date}.pdf`;
+      await downloadFile(file, filename);
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  async function approveSubmission(submission) {
+    try {
+      await TimeEntry.update(submission.id, { status: 'approved' });
+      alert('Submission approved successfully!');
+      await loadData();
+      closeSubmissionDetailsModal();
+    } catch (error) {
+      console.error('Error approving submission:', error);
+      alert('Failed to approve submission');
+    }
+  }
+
+  async function rejectSubmission(submission) {
+    try {
+      await TimeEntry.update(submission.id, { status: 'rejected', approved_hours: 0 });
+      alert('Submission rejected');
+      await loadData();
+      closeSubmissionDetailsModal();
+    } catch (error) {
+      console.error('Error rejecting submission:', error);
+      alert('Failed to reject submission');
+    }
+  }
+
+  function getSubmissionStatusBadge(status) {
+    const configs = {
+      draft: 'bg-gray-500/20 text-gray-300 border border-gray-400/30',
+      submitted: 'bg-amber-500/20 text-amber-300 border border-amber-400/30',
+      approved: 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30',
+      rejected: 'bg-red-500/20 text-red-300 border border-red-400/30'
+    };
+    const labels = {
+      draft: 'Draft',
+      submitted: 'Pending',
+      approved: 'Approved',
+      rejected: 'Rejected'
+    };
+    return { class: configs[status] || configs.draft, label: labels[status] || status };
+  }
 </script>
 
 <!-- Admin Dashboard Content (embedded version) -->
@@ -1217,6 +1327,116 @@ Status: ${contract.status}
           </div>
         </div>
       </div>
+
+    {:else if activeTab === 'submissions'}
+      <!-- Work Submissions & Approvals -->
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-2xl font-bold text-white">Work Submissions & Approvals</h2>
+          <p class="text-white/70">Review and approve submitted work hours from interns</p>
+        </div>
+        <div class="flex gap-2">
+          <select
+            bind:value={submissionStatusFilter}
+            class="bg-white/10 border border-white/20 rounded-lg px-4 py-2 text-white"
+          >
+            <option value="all">All Submissions ({allTimeEntries.length})</option>
+            <option value="submitted">Pending ({allTimeEntries.filter(e => e.status === 'submitted').length})</option>
+            <option value="approved">Approved ({allTimeEntries.filter(e => e.status === 'approved').length})</option>
+            <option value="rejected">Rejected ({allTimeEntries.filter(e => e.status === 'rejected').length})</option>
+          </select>
+        </div>
+      </div>
+
+      {#if filteredSubmissions.length === 0}
+        <div class="text-center py-12 bg-white/5 rounded-xl border border-white/20">
+          <FileText class="w-16 h-16 text-white/30 mx-auto mb-4" />
+          <h3 class="text-xl font-semibold text-white mb-2">No Submissions Found</h3>
+          <p class="text-white/60">No submissions match the current filter</p>
+        </div>
+      {:else}
+        <div class="space-y-4">
+          {#each filteredSubmissions as submission}
+            {@const statusBadge = getSubmissionStatusBadge(submission.status)}
+            <div class="bg-white/5 rounded-xl border border-white/20 p-6 hover:bg-white/10 transition-all">
+              <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2">
+                    <h3 class="text-xl font-bold text-white">{submission.created_by || 'Unknown User'}</h3>
+                    <span class="px-3 py-1 rounded-full text-xs font-semibold {statusBadge.class}">
+                      {statusBadge.label}
+                    </span>
+                  </div>
+                  <p class="text-white/70 text-sm">Date: {submission.date || 'N/A'}</p>
+                </div>
+                <div class="flex gap-2">
+                  <Button
+                    on:click={() => viewSubmissionDetails(submission)}
+                    class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-400/30 h-9 px-4 flex items-center rounded-md"
+                  >
+                    <Eye class="w-4 h-4 mr-2" />
+                    View Details
+                  </Button>
+                  {#if submission.proof_files && submission.proof_files.length > 0}
+                    <Button
+                      on:click={() => downloadAllSubmissionFiles(submission)}
+                      class="bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-400/30 h-9 px-4 flex items-center rounded-md"
+                    >
+                      <Download class="w-4 h-4 mr-2" />
+                      Download ({submission.proof_files.length})
+                    </Button>
+                  {/if}
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <p class="text-white/60 mb-1">Start Time</p>
+                  <p class="text-white font-semibold">{submission.start_time || 'N/A'}</p>
+                </div>
+                <div class="p-3 bg-white/5 rounded-lg border border-white/10">
+                  <p class="text-white/60 mb-1">End Time</p>
+                  <p class="text-white font-semibold">{submission.end_time || 'N/A'}</p>
+                </div>
+                <div class="p-3 bg-blue-500/10 rounded-lg border border-blue-400/30">
+                  <p class="text-blue-300 mb-1">Claimed Hours</p>
+                  <p class="text-white font-bold">{submission.manually_inputted_hours?.toFixed(2) || '0.00'}h</p>
+                </div>
+                <div class="p-3 bg-green-500/10 rounded-lg border border-green-400/30">
+                  <p class="text-green-300 mb-1">Approved Hours</p>
+                  <p class="text-white font-bold">{submission.approved_hours?.toFixed(2) || '0.00'}h</p>
+                </div>
+              </div>
+
+              {#if submission.description}
+                <div class="mt-4 p-3 bg-white/5 rounded-lg border border-white/10">
+                  <p class="text-white/60 text-xs mb-1">Description:</p>
+                  <p class="text-white text-sm">{submission.description}</p>
+                </div>
+              {/if}
+
+              {#if submission.status === 'submitted'}
+                <div class="flex gap-2 mt-4">
+                  <Button
+                    on:click={() => rejectSubmission(submission)}
+                    class="bg-red-500 hover:bg-red-600 text-white h-9 px-4 flex items-center rounded-md"
+                  >
+                    <X class="w-4 h-4 mr-2" />
+                    Reject
+                  </Button>
+                  <Button
+                    on:click={() => approveSubmission(submission)}
+                    class="bg-green-500 hover:bg-green-600 text-white h-9 px-4 flex items-center rounded-md"
+                  >
+                    <Check class="w-4 h-4 mr-2" />
+                    Approve
+                  </Button>
+                </div>
+              {/if}
+            </div>
+          {/each}
+        </div>
+      {/if}
 
     {:else if activeTab === 'settings'}
       <!-- System Settings -->
@@ -1988,4 +2208,201 @@ Status: ${contract.status}
       </div>
     </div>
   </Dialog>
+{/if}
+
+<!-- Submission Details Modal -->
+{#if showSubmissionDetailsModal && viewingSubmission}
+  {@const badge = getSubmissionStatusBadge(viewingSubmission.status)}
+  <div
+    class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+    on:click={closeSubmissionDetailsModal}
+    on:keydown={(e) => e.key === 'Escape' && closeSubmissionDetailsModal()}
+    role="button"
+    tabindex="0"
+    aria-label="Close modal"
+  >
+    <div
+      class="bg-gray-900 rounded-2xl border border-white/20 p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+      on:click|stopPropagation
+      role="dialog"
+      aria-modal="true"
+    >
+      <!-- Modal Header -->
+      <div class="flex items-start justify-between mb-6 border-b border-white/10 pb-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white mb-2">Submission Details</h2>
+          <p class="text-white/70">{viewingSubmission.created_by} • {viewingSubmission.date}</p>
+        </div>
+        <button
+          on:click={closeSubmissionDetailsModal}
+          class="text-white/70 hover:text-white transition-colors"
+        >
+          <XCircle class="w-6 h-6" />
+        </button>
+      </div>
+
+      <!-- Modal Content -->
+      <div class="space-y-6">
+        <!-- Status Badge -->
+        <div>
+          <span class="px-3 py-1 rounded-full text-xs font-semibold {badge.class}">
+            {badge.label}
+          </span>
+        </div>
+
+        <!-- Time Details -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="p-4 bg-white/5 rounded-lg border border-white/10">
+            <p class="text-white/60 text-sm mb-1">Date</p>
+            <p class="text-white font-semibold">{viewingSubmission.date || 'N/A'}</p>
+          </div>
+          <div class="p-4 bg-white/5 rounded-lg border border-white/10">
+            <p class="text-white/60 text-sm mb-1">Start Time</p>
+            <p class="text-white font-semibold">{viewingSubmission.start_time || 'N/A'}</p>
+          </div>
+          <div class="p-4 bg-white/5 rounded-lg border border-white/10">
+            <p class="text-white/60 text-sm mb-1">End Time</p>
+            <p class="text-white font-semibold">{viewingSubmission.end_time || 'N/A'}</p>
+          </div>
+        </div>
+
+        <!-- Hours Details -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 bg-blue-500/10 rounded-lg border border-blue-400/30">
+            <p class="text-blue-300 text-sm mb-1">Claimed Hours</p>
+            <p class="text-white font-bold text-2xl">{viewingSubmission.manually_inputted_hours?.toFixed(2) || '0.00'}h</p>
+          </div>
+          <div class="p-4 bg-green-500/10 rounded-lg border border-green-400/30">
+            <p class="text-green-300 text-sm mb-1">Approved Hours</p>
+            <p class="text-white font-bold text-2xl">{viewingSubmission.approved_hours?.toFixed(2) || '0.00'}h</p>
+          </div>
+        </div>
+
+        <!-- Description -->
+        {#if viewingSubmission.description}
+          <div class="p-4 bg-white/5 rounded-lg border border-white/10">
+            <p class="text-white/60 text-sm mb-2">Description</p>
+            <p class="text-white">{viewingSubmission.description}</p>
+          </div>
+        {/if}
+
+        <!-- Proof Type -->
+        <div class="p-4 bg-white/5 rounded-lg border border-white/10">
+          <p class="text-white/60 text-sm mb-2">Proof Type</p>
+          <p class="text-white font-medium capitalize">{viewingSubmission.proof_type?.replace('_', ' ') || 'N/A'}</p>
+        </div>
+
+        <!-- Proof Files -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-white font-semibold">Proof Files</h3>
+            {#if viewingSubmission.proof_files && viewingSubmission.proof_files.length > 0}
+              <Button
+                on:click={() => downloadAllSubmissionFiles(viewingSubmission)}
+                class="bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-400/30 h-8 px-3 text-sm flex items-center rounded-md"
+              >
+                <Download class="w-3 h-3 mr-2" />
+                Download All
+              </Button>
+            {/if}
+          </div>
+          {#if viewingSubmission.proof_files && viewingSubmission.proof_files.length > 0}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {#each viewingSubmission.proof_files as file, index}
+                <div class="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10">
+                  <FileText class="w-5 h-5 text-blue-400" />
+                  <div class="flex-1 min-w-0">
+                    <p class="text-white text-sm font-medium">Proof File {index + 1}</p>
+                  </div>
+                  <div class="flex gap-1">
+                    <button
+                      on:click={() => downloadFile(file, `${viewingSubmission.created_by}-proof-${index + 1}.pdf`)}
+                      class="p-2 bg-blue-500/20 rounded border border-blue-400/30 text-blue-300 hover:bg-blue-500/30 transition-colors"
+                      title="Download"
+                    >
+                      <Download class="w-4 h-4" />
+                    </button>
+                    <a
+                      href={file}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="p-2 bg-purple-500/20 rounded border border-purple-400/30 text-purple-300 hover:bg-purple-500/30 transition-colors"
+                      title="View"
+                    >
+                      <Eye class="w-4 h-4" />
+                    </a>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <p class="text-white/60 text-sm">No proof files uploaded</p>
+          {/if}
+        </div>
+
+        <!-- Mentor Comments -->
+        {#if viewingSubmission.mentor_comments}
+          <div class="p-4 bg-yellow-500/10 rounded-lg border border-yellow-400/30">
+            <p class="text-yellow-300 text-sm mb-2">Mentor Comments</p>
+            <p class="text-white">{viewingSubmission.mentor_comments}</p>
+          </div>
+        {/if}
+
+        <!-- Break Times -->
+        {#if viewingSubmission.break_start || viewingSubmission.break_end}
+          <div class="p-4 bg-white/5 rounded-lg border border-white/10">
+            <p class="text-white/60 text-sm mb-2">Break Times</p>
+            <div class="flex gap-4">
+              <div>
+                <span class="text-white/70 text-xs">Break Start:</span>
+                <span class="text-white ml-2">{viewingSubmission.break_start || 'N/A'}</span>
+              </div>
+              <div>
+                <span class="text-white/70 text-xs">Break End:</span>
+                <span class="text-white ml-2">{viewingSubmission.break_end || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+        {/if}
+
+        <!-- Metadata -->
+        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
+          <div>
+            <p class="text-white/60 text-xs mb-1">Created At</p>
+            <p class="text-white text-sm">{viewingSubmission.created_at || 'N/A'}</p>
+          </div>
+          <div>
+            <p class="text-white/60 text-xs mb-1">Updated At</p>
+            <p class="text-white text-sm">{viewingSubmission.updated_at || 'N/A'}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal Footer -->
+      <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-white/10">
+        <Button
+          on:click={closeSubmissionDetailsModal}
+          class="bg-gray-600 hover:bg-gray-700 text-white h-10 px-6 rounded-md"
+        >
+          Close
+        </Button>
+        {#if viewingSubmission.status === 'submitted'}
+          <Button
+            on:click={() => rejectSubmission(viewingSubmission)}
+            class="bg-red-500 hover:bg-red-600 text-white h-10 px-6 rounded-md flex items-center"
+          >
+            <X class="w-4 h-4 mr-2" />
+            Reject
+          </Button>
+          <Button
+            on:click={() => approveSubmission(viewingSubmission)}
+            class="bg-green-500 hover:bg-green-600 text-white h-10 px-6 rounded-md flex items-center"
+          >
+            <Check class="w-4 h-4 mr-2" />
+            Approve
+          </Button>
+        {/if}
+      </div>
+    </div>
+  </div>
 {/if}

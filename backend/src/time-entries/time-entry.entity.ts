@@ -44,6 +44,9 @@ export class TimeEntry {
   @Column({ type: 'text', nullable: true })
   mentor_comments: string;
 
+  @Column({ nullable: true })
+  company_id: number;
+
   @CreateDateColumn()
   created_at: Date;
 

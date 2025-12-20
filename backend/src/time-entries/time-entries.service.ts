@@ -15,8 +15,9 @@ export class TimeEntriesService {
     return this.timeEntriesRepository.save(timeEntry);
   }
 
-  async findAll(studentId?: number, status?: string): Promise<TimeEntry[]> {
+  async findAll(companyId?: number, studentId?: number, status?: string): Promise<TimeEntry[]> {
     const query: any = {};
+    if (companyId) query.company_id = companyId;
     if (studentId) query.student_id = studentId;
     if (status) query.status = status;
     return this.timeEntriesRepository.find({ where: query, order: { date: 'DESC' } });
