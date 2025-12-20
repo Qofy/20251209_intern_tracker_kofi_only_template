@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { User, Student, Task, TimeEntry, Project, Message, Contract } from '../../entities/all';
+  import { User, Student, Task, TimeEntry, Project, Message, Contract, Vacancy } from '../../entities/all';
   import { ContractWorkflowService } from '../services/contractWorkflow.js';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
@@ -96,6 +96,95 @@
   let showReplyDialog = false;
   let replyContent = '';
 
+  // Vacancies (backend-backed). Keep UI state here.
+  let vacancies = [];
+  let showVacancyForm = false;
+  let newVacancy = {
+    id: null,
+    title: '',
+    description: '',
+    location: '',
+    type: 'Full-Time',
+    remote: false,
+    posted_by: user?.email || '',
+    status: 'open',
+    created_at: null
+  };
+
+  async function loadVacancies() {
+    try {
+      // Try to load from backend (scoped to company via server)
+      const list = await Vacancy.list();
+      vacancies = Array.isArray(list) ? list : [];
+    } catch (e) {
+      console.warn('[Admin Dashboard] Failed to load vacancies from API, falling back to localStorage:', e);
+      try {
+        const raw = localStorage.getItem('admin_vacancies');
+        vacancies = raw ? JSON.parse(raw) : [];
+      } catch (err) {
+        console.warn('[Admin Dashboard] Failed to parse local vacancies:', err);
+        vacancies = [];
+      }
+    }
+  }
+
+  async function createVacancy() {
+    if (!newVacancy.title.trim()) {
+      alert('Please enter a job title');
+      return;
+    }
+
+    const payload = {
+      title: newVacancy.title,
+      description: newVacancy.description,
+      location: newVacancy.location,
+      type: newVacancy.type,
+      remote: newVacancy.remote
+    };
+
+    try {
+      const created = await Vacancy.create(payload);
+      // API returns created object with id and timestamps
+      vacancies = [created, ...vacancies];
+      newVacancy = { id: null, title: '', description: '', location: '', type: 'Full-Time', remote: false, posted_by: user?.email || '', status: 'open', created_at: null };
+      showVacancyForm = false;
+      alert('Vacancy posted successfully');
+    } catch (e) {
+      console.error('[Admin Dashboard] Failed to create vacancy via API, saving locally as fallback:', e);
+      // Fallback to localStorage persistence
+      try {
+        const vacancy = { ...payload, id: `vac_${Date.now()}`, posted_by: user?.email || '', created_at: new Date().toISOString() };
+        vacancies = [vacancy, ...vacancies];
+        localStorage.setItem('admin_vacancies', JSON.stringify(vacancies));
+        newVacancy = { id: null, title: '', description: '', location: '', type: 'Full-Time', remote: false, posted_by: user?.email || '', status: 'open', created_at: null };
+        showVacancyForm = false;
+        alert('Vacancy saved locally (offline mode)');
+      } catch (err) {
+        console.error('[Admin Dashboard] Fallback local save failed:', err);
+        alert('Failed to post vacancy');
+      }
+    }
+  }
+
+  async function deleteVacancy(id) {
+    if (!confirm('Delete this vacancy?')) return;
+    try {
+      // If id looks numeric, attempt API delete
+      if (typeof id === 'number' || String(id).match(/^\d+$/)) {
+        await Vacancy.delete(id);
+        vacancies = vacancies.filter(v => String(v.id) !== String(id));
+      } else {
+        // Local fallback entry (non-numeric id)
+        vacancies = vacancies.filter(v => v.id !== id);
+        localStorage.setItem('admin_vacancies', JSON.stringify(vacancies));
+      }
+    } catch (e) {
+      console.error('[Admin Dashboard] Failed to delete vacancy via API, removing locally:', e);
+      vacancies = vacancies.filter(v => String(v.id) !== String(id));
+      try { localStorage.setItem('admin_vacancies', JSON.stringify(vacancies)); } catch (err) {}
+    }
+  }
+
   // Contract workflow state
   let allContracts = [];
   let selectedContract = null;
@@ -185,6 +274,8 @@
       console.error('[Admin Dashboard] Error loading data:', error);
     }
     isLoading = false;
+    // Load persisted vacancies after data load
+    try { loadVacancies(); } catch (e) {}
   }
 
   async function loadAdminMessages() {
@@ -845,7 +936,8 @@ Status: ${contract.status}
   </div>
 
   <!-- Content Area -->
-  <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6 mt-8">
+  <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6 mt-8 relative">
+    <!-- (Vacancies aside removed) -->
 
     {#if activeTab === 'users'}
       <!-- User Management -->
@@ -1794,6 +1886,65 @@ Status: ${contract.status}
               </Button>
               <Button variant="ghost" class="text-white/70 hover:text-white h-10 px-2 items-center flex rounded-md">View Application</Button>
             </div>
+          </div>
+        </div>
+      </div>
+
+    {:else if activeTab === 'vacancies'}
+      <!-- Job Vacancies Main Section -->
+      <div class="mb-6">
+        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <FolderOpen class="w-5 h-5 text-blue-400" />
+          Job Vacancies
+        </h3>
+
+        <div class="mb-4">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-white/70 text-sm">Manage public job postings for internships and roles.</p>
+            <div class="flex gap-2">
+              <Button on:click={() => { showVacancyForm = !showVacancyForm; }} class="bg-green-500 hover:bg-green-600 text-white h-9 px-3">
+                {showVacancyForm ? 'Close' : 'Post Vacancy'}
+              </Button>
+            </div>
+          </div>
+
+          {#if showVacancyForm}
+            <div class="bg-white/5 rounded-xl border border-white/20 p-4 mb-4">
+              <div class="grid grid-cols-1 gap-2">
+                <Input bind:value={newVacancy.title} placeholder="Job title" class="bg-white/5 text-white h-9" />
+                <Input bind:value={newVacancy.location} placeholder="Location" class="bg-white/5 text-white h-9" />
+                <Input bind:value={newVacancy.type} placeholder="Type (e.g. Full-Time)" class="bg-white/5 text-white h-9" />
+                <textarea bind:value={newVacancy.description} placeholder="Short description" class="w-full bg-white/5 text-white p-2 rounded h-24"></textarea>
+                <div class="flex gap-2 justify-end">
+                  <Button variant="ghost" on:click={() => { showVacancyForm = false; }} class="text-white/70">Cancel</Button>
+                  <Button on:click={createVacancy} class="bg-blue-500 text-white">Post Vacancy</Button>
+                </div>
+              </div>
+            </div>
+          {/if}
+
+          <div class="space-y-3">
+            {#if vacancies.length === 0}
+              <div class="bg-white/5 rounded-xl border border-white/20 p-6">
+                <p class="text-white/60">No vacancies posted yet.</p>
+              </div>
+            {:else}
+              {#each vacancies as v}
+                <div class="bg-white/5 rounded-xl border border-white/20 p-4 flex items-start justify-between">
+                  <div>
+                    <h4 class="text-white font-semibold">{v.title}</h4>
+                    <p class="text-white/60 text-sm">{v.location} · {v.type} {v.remote ? '· Remote' : ''}</p>
+                    <p class="text-white/70 text-sm mt-2 line-clamp-3">{v.description}</p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2">
+                    <div class="text-white/60 text-xs">{new Date(v.created_at).toLocaleDateString()}</div>
+                    <Button variant="ghost" on:click={() => deleteVacancy(v.id)} class="text-red-400 h-8 px-2">
+                      <Trash2 class="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              {/each}
+            {/if}
           </div>
         </div>
       </div>

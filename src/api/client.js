@@ -391,6 +391,36 @@ class ApiClient {
     });
   }
 
+  // Vacancy methods
+  async getVacancies(filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/api/vacancies${query ? `?${query}` : ''}`);
+  }
+
+  async getVacancy(id) {
+    return this.request(`/api/vacancies/${id}`);
+  }
+
+  async createVacancy(vacancyData) {
+    return this.request('/api/vacancies', {
+      method: 'POST',
+      body: JSON.stringify(vacancyData),
+    });
+  }
+
+  async updateVacancy(id, vacancyData) {
+    return this.request(`/api/vacancies/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(vacancyData),
+    });
+  }
+
+  async deleteVacancy(id) {
+    return this.request(`/api/vacancies/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Message methods
   async sendMessage(messageData) {
     return this.request('/api/messages', {

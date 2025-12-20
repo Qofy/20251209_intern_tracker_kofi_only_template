@@ -75,6 +75,9 @@
     totalBreakTime: 0 // accumulated break time
   };
 
+  // Flag to briefly show that a session was restored after refresh
+  let sessionRestored = false;
+
   // Enhanced Stats with actual progress tracking
   let stats = {
     totalTasks: 0,
@@ -129,6 +132,12 @@
     // Only load when we have a user email available
     if (user?.email) await loadStudentData();
     await loadMessages();
+    // Try to restore any active time-tracking session from localStorage
+    try {
+      await restoreSession();
+    } catch (e) {
+      console.warn('[Student Dashboard] Failed to restore session:', e);
+    }
   });
 
   // Reactive: if user.email becomes available or changes, load student data once for that email
@@ -394,6 +403,12 @@
       }
       // Force reactivity
       timeTracker = { ...timeTracker };
+      // Persist session state so it can be restored after page refresh
+      try {
+        persistSession();
+      } catch (e) {
+        // ignore persistence errors
+      }
     }, 1000);
   }
   
@@ -449,6 +464,19 @@
         
         const session = await TimeEntry.create(sessionData);
         timeTracker.currentSession = session;
+        // Persist the created session so a page refresh can resume it
+        try {
+          localStorage.setItem('active_time_session', JSON.stringify({
+            session: session,
+            startTime: timeTracker.startTime,
+            elapsedTime: timeTracker.elapsedTime,
+            totalBreakTime: timeTracker.totalBreakTime,
+            isOnBreak: timeTracker.isOnBreak,
+            breakStart: timeTracker.breakStart
+          }));
+        } catch (e) {
+          console.warn('[Student Dashboard] Failed to persist session:', e);
+        }
         
         // Update task status to in_progress if specified
         if (taskId) {
@@ -461,6 +489,85 @@
               const taskIndex = myTasks.findIndex(t => t.id === taskId);
               if (taskIndex !== -1) {
                 myTasks[taskIndex].status = 'in_progress';
+
+  // Persist current session info to localStorage
+  function persistSession() {
+    if (!timeTracker.currentSession) return;
+    try {
+      const payload = {
+        session: timeTracker.currentSession,
+        startTime: timeTracker.startTime,
+        elapsedTime: timeTracker.elapsedTime,
+        totalBreakTime: timeTracker.totalBreakTime,
+        isOnBreak: timeTracker.isOnBreak,
+        breakStart: timeTracker.breakStart
+      };
+      localStorage.setItem('active_time_session', JSON.stringify(payload));
+    } catch (e) {
+      console.warn('[Student Dashboard] persistSession failed:', e);
+    }
+  }
+
+  function clearPersistedSession() {
+    try {
+      localStorage.removeItem('active_time_session');
+    } catch (e) {
+      console.warn('[Student Dashboard] clearPersistedSession failed:', e);
+    }
+  }
+
+  // Try to restore an active session from localStorage and attempt to re-fetch
+  // the canonical session from the backend when possible.
+  async function restoreSession() {
+    try {
+      const raw = localStorage.getItem('active_time_session');
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data || !data.session) return;
+
+      // If the session was already submitted, ignore and clear persisted state
+      if (data.session.status && data.session.status === 'submitted') {
+        clearPersistedSession();
+        return;
+      }
+
+      // Use the persisted session locally first
+      timeTracker.currentSession = data.session;
+
+      // If we have an id for the session, try to re-fetch the latest version
+      // from the backend to avoid restoring stale local state.
+      try {
+        if (timeTracker.currentSession && timeTracker.currentSession.id) {
+          const fresh = await TimeEntry.list({ id: timeTracker.currentSession.id });
+          if (fresh && Array.isArray(fresh) && fresh.length > 0) {
+            timeTracker.currentSession = fresh[0];
+            console.log('[Student Dashboard] Re-fetched session from API:', timeTracker.currentSession.id);
+          }
+        }
+      } catch (fetchErr) {
+        console.warn('[Student Dashboard] Failed to re-fetch session from API, using local copy:', fetchErr);
+      }
+
+      timeTracker.startTime = data.startTime || new Date().toISOString();
+      timeTracker.elapsedTime = parseInt(data.elapsedTime || 0, 10);
+      timeTracker.totalBreakTime = parseInt(data.totalBreakTime || 0, 10);
+      timeTracker.isWorking = true;
+      timeTracker.isOnBreak = !!data.isOnBreak;
+      timeTracker.breakStart = data.breakStart || null;
+      timeTracker.displayTime = formatTime(timeTracker.elapsedTime);
+
+      // Restart ticking
+      startTimer();
+
+      // Show a brief UI indicator that a session was restored
+      sessionRestored = true;
+      setTimeout(() => { sessionRestored = false; }, 4500);
+
+      console.log('[Student Dashboard] Restored active time session:', timeTracker.currentSession.id || '(no id)');
+    } catch (e) {
+      console.warn('[Student Dashboard] restoreSession error:', e);
+    }
+  }
                 myTasks = myTasks; // Trigger reactivity
               }
             }
@@ -486,6 +593,8 @@
     timeTracker.isOnBreak = true;
     timeTracker.breakStart = new Date().toISOString();
     timeTracker.breakElapsedTime = 0;
+    // Persist break start so we can resume after refresh
+    try { persistSession(); } catch(e) {}
     
     // Timer continues running but doesn't increment work time during break
     alert('☕ Break Time!\n\n⏸️ Timer is now paused. Your work time tracking has stopped.\n\n🔄 Click "Resume" when you\'re ready to continue working!');
@@ -503,6 +612,7 @@
       const breakDuration = Math.floor((new Date() - new Date(timeTracker.breakStart)) / 1000);
       timeTracker.totalBreakTime += breakDuration;
     }
+    try { persistSession(); } catch(e) {}
     
     // Resume timer (work time calculation resumes)
     alert('🔄 Work Resumed!\n\n▶️ Timer is now active again. Your work time tracking has resumed.\n\n💪 Let\'s get back to being productive!');
@@ -578,6 +688,8 @@
         displayTime: '00:00:00',
         totalBreakTime: 0
       };
+      // Clear persisted session state
+      try { clearPersistedSession(); } catch(e) {}
       
       alert(`✅ Work Session Completed!${taskInfo}\n\n⏱️ Total work time: ${workTimeDisplay}\n📊 Session logged and task updated.\n\n🎉 Great job! Your progress has been saved.`);
       
@@ -720,6 +832,9 @@
               <div class="text-4xl font-mono font-black text-green-300 tracking-wider drop-shadow-lg">
                 {timeTracker.displayTime}
               </div>
+              {#if sessionRestored}
+                <div class="text-sm text-green-200 mt-1">⤴️ Restored active session</div>
+              {/if}
               <div class="text-green-400/80 text-sm font-medium mt-1">
                 {#if timeTracker.isOnBreak}
                   ☕ BREAK TIME - Timer Paused
@@ -1027,6 +1142,9 @@
                           <div class="text-3xl font-mono font-black text-green-300 tracking-wider">
                             {timeTracker.displayTime}
                           </div>
+                          {#if sessionRestored}
+                            <div class="text-xs text-green-200 mt-1">⤴️ Restored active session</div>
+                          {/if}
                           <div class="text-green-400/80 text-xs font-medium mt-1">
                             {#if timeTracker.isOnBreak}
                               ☕ ON BREAK - Timer Paused

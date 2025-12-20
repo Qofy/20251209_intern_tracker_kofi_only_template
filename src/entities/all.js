@@ -495,6 +495,50 @@ export class Application {
   }
 }
 
+export class Vacancy {
+  static async list(filters = {}) {
+    if (isDemoMode()) {
+      return JSON.parse(localStorage.getItem('demo_vacancies') || '[]');
+    }
+    return apiClient.getVacancies(filters);
+  }
+
+  static async create(data) {
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_vacancies') || '[]');
+      const v = { ...data, id: `demo_vac_${Date.now()}`, created_at: new Date().toISOString() };
+      demo.unshift(v);
+      localStorage.setItem('demo_vacancies', JSON.stringify(demo));
+      return v;
+    }
+    return apiClient.createVacancy(data);
+  }
+
+  static async update(id, data) {
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_vacancies') || '[]');
+      const idx = demo.findIndex(d => d.id === id);
+      if (idx !== -1) {
+        demo[idx] = { ...demo[idx], ...data, updated_at: new Date().toISOString() };
+        localStorage.setItem('demo_vacancies', JSON.stringify(demo));
+        return demo[idx];
+      }
+      throw new Error('Vacancy not found');
+    }
+    return apiClient.updateVacancy(id, data);
+  }
+
+  static async delete(id) {
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_vacancies') || '[]');
+      const filtered = demo.filter(d => d.id !== id);
+      localStorage.setItem('demo_vacancies', JSON.stringify(filtered));
+      return { success: true };
+    }
+    return apiClient.deleteVacancy(id);
+  }
+}
+
 export class ContractTemplate {
   static async list(params = {}) {
     return apiClient.request('/api/contract-templates', {

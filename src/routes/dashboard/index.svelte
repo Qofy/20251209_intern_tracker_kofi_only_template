@@ -19,7 +19,7 @@
   import AdminDashboard from '../../lib/pages/admin-dashboard.svelte';
   import StudentDashboard from '../../lib/pages/student-dashboard.svelte';
   import Contracts from '../../lib/pages/contracts.svelte';
-  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield, GraduationCap, Upload, TrendingUp, MessageSquare, BookOpen, FileText } from 'lucide-svelte';
+  import { Clock, Calendar, SquareCheckBig, Bug, Hammer, ChartColumnIncreasing, Users, Home, ReceiptText, Plus, User, Shield, GraduationCap, Upload, TrendingUp, MessageSquare, BookOpen, FileText, FolderOpen } from 'lucide-svelte';
   
 
   // Reactive variables that will be updated by store subscription
@@ -443,6 +443,14 @@
             <span class="font-medium">Applications</span>
           </a>
           <a
+            class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-vacancies' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
+            href="/admin/vacancies"
+            on:click|preventDefault={() => setActiveView('admin-vacancies')}
+          >
+            <FolderOpen class="w-5 h-5"/>
+            <span class="font-medium">Vacancies</span>
+          </a>
+          <a
             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'admin-profile' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
             href="/admin/profile"
             on:click|preventDefault={() => setActiveView('admin-profile')}
@@ -461,7 +469,7 @@
     <main class="flex-1 p-6 relative">
       <div class="bg-white/10 backdrop-blur-md rounded-3xl border border-white/20 shadow-2xl min-h-full">
         <!-- Render Admin Dashboard with the specific tab -->
-        {#if activeView === 'admin-users' || activeView === 'admin-assignments' || activeView === 'admin-programs' || activeView === 'admin-reports' || activeView === 'admin-settings' || activeView === 'admin-disputes' || activeView === 'admin-applications' || activeView === 'admin-profile'}
+        {#if activeView === 'admin-users' || activeView === 'admin-assignments' || activeView === 'admin-programs' || activeView === 'admin-reports' || activeView === 'admin-settings' || activeView === 'admin-disputes' || activeView === 'admin-applications' || activeView === 'admin-vacancies' || activeView === 'admin-profile'}
           <AdminDashboard initialTab={activeView.replace('admin-', '')} />
         {:else if activeView === 'admin-contracts'}
           <Contracts userRole="admin" />
