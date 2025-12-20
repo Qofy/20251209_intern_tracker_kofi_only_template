@@ -34,6 +34,8 @@
   let messages = [];
   let isLoading = false;
   let isLoadingMessages = false;
+  // Prevent repeated full reloads when navigating tabs — track which user we've loaded for
+  let _loadedForEmail = null;
 
   // Modal states
   let showSubmitWorkModal = false;
@@ -124,9 +126,16 @@
   }
 
   onMount(async () => {
-    await loadStudentData();
+    // Only load when we have a user email available
+    if (user?.email) await loadStudentData();
     await loadMessages();
   });
+
+  // Reactive: if user.email becomes available or changes, load student data once for that email
+  $: if (user?.email && user.email !== _loadedForEmail) {
+    // call without await to avoid blocking reactive updates
+    loadStudentData();
+  }
 
   onDestroy(() => {
     // Clean up timer when component is destroyed
@@ -151,6 +160,18 @@
   }
 
   async function loadStudentData() {
+    // Guard: don't load unless we have a valid logged-in user email
+    if (!user?.email) {
+      console.log('[Student Dashboard] loadStudentData skipped: no user email yet');
+      return;
+    }
+
+    // If we've already loaded data for this user email, skip to avoid resetting state
+    if (_loadedForEmail && _loadedForEmail === user.email) {
+      console.log('[Student Dashboard] Data already loaded for', user.email);
+      return;
+    }
+
     isLoading = true;
     try {
       // First, find the student record for this user
@@ -239,6 +260,8 @@
         }));
 
       console.log('[Student Dashboard] Data loaded:', stats);
+      // Mark as loaded for this user email so we don't reset on tab navigations
+      _loadedForEmail = user.email;
     } catch (error) {
       console.error('[Student Dashboard] Error loading data:', error);
     }

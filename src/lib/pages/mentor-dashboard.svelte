@@ -97,7 +97,23 @@
     await loadMentorData();
   });
 
+  // Keep track of which mentor email we've loaded data for to avoid unnecessary resets
+  let _loadedForEmail = null;
+
+  // If user becomes available later (e.g., after route change), reload data for that mentor
+  $: if (user?.email && _loadedForEmail !== user.email) {
+    _loadedForEmail = user.email;
+    // call but don't block reactive updates
+    loadMentorData();
+  }
+
   async function loadMentorData() {
+    // If user not yet set, skip loading to avoid clearing existing UI state
+    if (!user || !user.email) {
+      console.warn('[Mentor] loadMentorData skipped - user not available');
+      return;
+    }
+
     isLoading = true;
     try {
       // Load students assigned to this mentor using the filter method

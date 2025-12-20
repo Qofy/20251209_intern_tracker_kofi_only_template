@@ -34,6 +34,8 @@
   let allProjects = [];
   let isLoading = false;
   let searchQuery = '';
+  // Track which tenant/user scope we've loaded data for to avoid unnecessary reloads
+  let _loadedForScope = null;
 
   // Modal states
   let showCreateUserModal = false;
@@ -104,13 +106,47 @@
   };
 
   onMount(async () => {
-    await loadData();
+    const scopeKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id || user?.email || null;
+    if (scopeKey && _loadedForScope !== scopeKey) {
+      await loadData();
+    } else {
+      // If no user yet, still call loadData to populate public info
+      if (!scopeKey) await loadData();
+    }
   });
 
-  async function loadData() {
+  // Reactive: reload when the admin's company key or user email changes
+  $: {
+    const scopeKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id || user?.email || null;
+    if (scopeKey && scopeKey !== _loadedForScope) {
+      // don't await in reactive block
+      loadData();
+    }
+  }
+
+  async function loadData(force = false) {
+    // Determine the current load scope (companyKey preferred)
+    const scopeKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id || user?.email || null;
+
+    if (!force && scopeKey && _loadedForScope === scopeKey) {
+      console.log('[Admin Dashboard] Skipping loadData — already loaded for scope', scopeKey);
+      return;
+    }
+
     isLoading = true;
     try {
-      allUsers = await User.list();
+      // If current user is an admin and has a company key, request users scoped to that company
+      const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+      if (user && user.role === 'admin' && currentCompanyKey) {
+        try {
+          allUsers = await User.list({ companyKey: currentCompanyKey });
+        } catch (e) {
+          console.warn('[Admin Dashboard] Server-side company scoping failed, falling back to full user list', e);
+          allUsers = await User.list();
+        }
+      } else {
+        allUsers = await User.list();
+      }
       allStudents = await Student.list();
       allMentors = allUsers.filter(u => u.role === 'mentor');
       allTasks = await Task.list();
@@ -143,6 +179,8 @@
         reportsCount: adminReports.length,
         contractsCount: allContracts.length
       });
+      // Mark this scope as loaded so we don't reload unnecessarily on tab navigation
+      if (scopeKey) _loadedForScope = scopeKey;
     } catch (error) {
       console.error('[Admin Dashboard] Error loading data:', error);
     }

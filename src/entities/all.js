@@ -16,6 +16,11 @@ function getDemoRole() {
   return null;
 }
 
+// helper for demo filter compatibility
+function camelToSnake(str) {
+  return str.replace(/([A-Z])/g, '_$1').toLowerCase();
+}
+
 // Entity classes that use the API client
 export class User {
   static async me() {
@@ -31,22 +36,37 @@ export class User {
     return apiClient.request('/api/users/me');
   }
 
-  static async list() {
+  static async list(params = {}) {
     if (isDemoMode()) {
       const demoUsers = JSON.parse(localStorage.getItem('demo_users') || '[]');
       // If empty, add default users
       if (demoUsers.length === 0) {
         const defaults = [
-          { id: 'demo_1', email: 'admin@example.com', full_name: 'Admin', role: 'admin', status: 'active' },
-          { id: 'demo_2', email: 'mentor@example.com', full_name: 'Mentor', role: 'mentor', status: 'active' },
-          { id: 'demo_3', email: 'student@example.com', full_name: 'Student', role: 'student', status: 'active' }
+          { id: 'demo_1', email: 'admin@example.com', full_name: 'Admin', role: 'admin', status: 'active', companyKey: 'demo_co' },
+          { id: 'demo_2', email: 'mentor@example.com', full_name: 'Mentor', role: 'mentor', status: 'active', companyKey: 'demo_co' },
+          { id: 'demo_3', email: 'student@example.com', full_name: 'Student', role: 'student', status: 'active', companyKey: 'demo_co' }
         ];
         localStorage.setItem('demo_users', JSON.stringify(defaults));
         return defaults;
       }
+
+      // If params provided, perform a simple client-side filter in demo mode
+      if (Object.keys(params).length > 0) {
+        return demoUsers.filter(u => {
+          return Object.entries(params).every(([k, v]) => {
+            if (!u) return false;
+            // Support matching by companyKey and role and email
+            return String(u[k] || u[camelToSnake(k)] || '').toLowerCase() === String(v).toLowerCase();
+          });
+        });
+      }
+
       return demoUsers;
     }
-    return apiClient.request('/api/users');
+
+    // Build query string for non-demo mode
+    const query = new URLSearchParams(params).toString();
+    return apiClient.request(`/api/users${query ? `?${query}` : ''}`);
   }
 
   static async create(data) {

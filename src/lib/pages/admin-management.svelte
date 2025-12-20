@@ -3,6 +3,7 @@
   import { onMount, tick } from 'svelte';
   import { User, Student } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
+  $: currentUser = $userStore.user;
   import { Users, UserPlus, UserCog, FileText, Settings, Shield, CheckCircle, XCircle, Search, Edit2, Trash2, RefreshCw } from 'lucide-svelte';
 
   let activeTab = 'users'; // users, mentors, students, assignments, reports, settings
@@ -65,8 +66,18 @@
       allStudents = await Student.list();
       console.log('[Admin] Loaded students from Student.list():', allStudents.length, allStudents);
       
-      // Load all users
-      allUsers = await User.list();
+      // Load all users (prefer server-side company scoping for admins)
+      const currentCompanyKey = currentUser?.companyKey || currentUser?.company_key || currentUser?.companyId || currentUser?.company_id;
+      if (currentUser && currentUser.role === 'admin' && currentCompanyKey) {
+        try {
+          allUsers = await User.list({ companyKey: currentCompanyKey });
+        } catch (e) {
+          console.warn('[Admin] Company-scoped user fetch failed, falling back to full list', e);
+          allUsers = await User.list();
+        }
+      } else {
+        allUsers = await User.list();
+      }
       console.log('[Admin] Loaded users:', allUsers.length, allUsers);
       
       allMentors = allUsers.filter(u => u.role === 'mentor');
