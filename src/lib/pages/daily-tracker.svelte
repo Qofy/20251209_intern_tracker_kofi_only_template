@@ -20,6 +20,7 @@
   let timeEntry = null;
   let isLoading = false;
   let uploadingFiles = false;
+  let stagedFiles = []; // { file_url, name, selected }
 
   onMount(() => {
     loadTimeEntry();
@@ -92,10 +93,9 @@
       const results = await Promise.all(uploadPromises);
       const fileUrls = results.map(result => result.file_url);
 
-      timeEntry = {
-        ...timeEntry,
-        proof_files: [...(timeEntry.proof_files || []), ...fileUrls]
-      };
+      // Stage uploads for selection first
+      const newStaged = fileUrls.map((url, i) => ({ file_url: url, name: `file-${Date.now()}-${i}`, selected: true }));
+      stagedFiles = [...stagedFiles, ...newStaged];
     } catch (error) {
       console.error("Error uploading files:", error);
     }
@@ -109,6 +109,23 @@
     };
   }
 
+  function toggleStaged(index) {
+    stagedFiles = stagedFiles.map((f, i) => i === index ? { ...f, selected: !f.selected } : f);
+  }
+
+  function addSelectedStaged() {
+    const selected = stagedFiles.filter(f => f.selected).map(f => f.file_url);
+    if (selected.length === 0) {
+      alert('Please select at least one file to add');
+      return;
+    }
+    timeEntry = {
+      ...timeEntry,
+      proof_files: [...(timeEntry.proof_files || []), ...selected]
+    };
+    stagedFiles = stagedFiles.filter(f => !f.selected);
+  }
+
   async function saveTimeEntry() {
     isLoading = true;
     try {
@@ -117,6 +134,7 @@
         ...timeEntry,
         manually_inputted_hours: calculatedHours
       };
+      console.debug('[DailyTracker] Saving time entry — proof_files length:', (dataToSave.proof_files || []).length);
 
       if (timeEntry.id) {
         await TimeEntry.update(timeEntry.id, dataToSave);
@@ -257,7 +275,7 @@
         <div class="flex gap-3 flex-wrap">
           <Button
             on:click={saveTimeEntry}
-            disabled={isLoading}
+            disabled={isLoading || uploadingFiles}
             class="flex-1 bg-blue-500 hover:bg-blue-600 text-white flex h-10 items-center justify-center rounded-md"
           >
             <Save class="w-4 h-4 mr-2" />
@@ -322,6 +340,28 @@
         </div>
 
         <!-- Uploaded Files -->
+        <!-- Staged uploads (tick which to include) -->
+        {#if stagedFiles && stagedFiles.length > 0}
+          <div class="mb-6">
+            <label class="text-white/80 text-sm font-medium mb-3 block">Staged Uploads (tick to include)</label>
+            <div class="space-y-2">
+              {#each stagedFiles as sf, idx}
+                <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                  <div class="flex items-center gap-3">
+                    <input type="checkbox" checked={sf.selected} on:change={() => toggleStaged(idx)} class="accent-emerald-400" />
+                    <span class="text-white text-sm">File {idx + 1}</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <a href={sf.file_url} target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 text-sm">View</a>
+                  </div>
+                </div>
+              {/each}
+              <div class="mt-2"><Button on:click={addSelectedStaged} class="bg-emerald-500 text-white h-9 px-3">Add selected files</Button></div>
+            </div>
+          </div>
+
+        <!-- Already attached files -->
+        {/if}
         {#if timeEntry.proof_files && timeEntry.proof_files.length > 0}
           <div class="mb-6">
             <label class="text-white/80 text-sm font-medium mb-3 block">Uploaded Files</label>

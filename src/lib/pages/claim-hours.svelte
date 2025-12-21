@@ -120,17 +120,19 @@ ${scheduleText}`;
     try {
       if (submitType === 'day') {
         const updates = timeEntries.map(entry =>
-          TimeEntry.update(entry.id, {
-            claimed_status: 'submitted',
-            submitted_at: new Date().toISOString()
-          })
+          // Merge existing entry data to avoid accidentally overwriting fields like proof_files
+          (async () => {
+            const merged = { ...entry, claimed_status: 'submitted', submitted_at: new Date().toISOString() };
+            console.debug('[ClaimHours] Submitting entry for approval — id:', entry.id, 'proof_files length:', (merged.proof_files || []).length);
+            return TimeEntry.update(entry.id, merged);
+          })()
         );
         await Promise.all(updates);
       } else {
-        await TimeEntry.update(entryId, {
-          claimed_status: 'submitted',
-          submitted_at: new Date().toISOString()
-        });
+        const entry = timeEntries.find(e => e.id === entryId) || {};
+        const merged = { ...entry, claimed_status: 'submitted', submitted_at: new Date().toISOString() };
+        console.debug('[ClaimHours] Submitting entry for approval — id:', entryId, 'proof_files length:', (merged.proof_files || []).length);
+        await TimeEntry.update(entryId, merged);
       }
       loadTimeEntries();
     } catch (error) {

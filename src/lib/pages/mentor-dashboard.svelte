@@ -27,6 +27,10 @@
   let assignedStudents = [];
   let tasks = [];
   let timeEntries = [];
+  let unmatchedEntries = [];
+  let lastLoadedEntriesCount = 0;
+  let showDebugPanel = false;
+  let filterHasFiles = false;
   let messages = [];
   let selectedStudent = null;
   let selectedConversation = null;
@@ -125,9 +129,60 @@
 
       // Load time entries for assigned students
       const allEntries = await TimeEntry.list();
-      timeEntries = allEntries.filter(e => {
-        return assignedStudents.some(s => s.student_email === e.created_by);
-      });
+      lastLoadedEntriesCount = allEntries.length;
+
+      // Build matched and unmatched lists explicitly so we can debug missing matches
+      const matched = [];
+      const unmatched = [];
+
+      for (const e of allEntries) {
+        let isMatch = false;
+        for (const s of assignedStudents) {
+          // prefer direct email match
+          if (s.student_email && e.created_by && typeof e.created_by === 'string') {
+            if (e.created_by.toLowerCase() === s.student_email.toLowerCase()) {
+              isMatch = true;
+              break;
+            }
+            // sometimes created_by may contain the email as part of a path/URL
+            if (e.created_by.includes && e.created_by.includes(s.student_email)) {
+              isMatch = true;
+              break;
+            }
+          }
+
+          // numeric id match
+          if (s.id && (e.created_by_id === s.id || e.created_by === s.id || String(e.created_by) === String(s.id))) {
+            isMatch = true;
+            break;
+          }
+
+          // time entries may reference the student by `student_id` field
+          if (s.id && (e.student_id === s.id || String(e.student_id) === String(s.id))) {
+            isMatch = true;
+            break;
+          }
+
+          // created_by_email or similar alternate fields
+          if (e.created_by_email && s.student_email && e.created_by_email.toLowerCase() === s.student_email.toLowerCase()) {
+            isMatch = true;
+            break;
+          }
+        }
+
+        if (isMatch) matched.push(e);
+        else unmatched.push(e);
+      }
+
+      timeEntries = matched;
+      unmatchedEntries = unmatched;
+
+      console.log('[Mentor] Time entries loaded:', allEntries.length, 'entries total; matched', timeEntries.length);
+      if (timeEntries.length > 0) console.log('[Mentor] Sample matched entries:', timeEntries.slice(0,3));
+      if (unmatchedEntries.length > 0) {
+        console.warn('[Mentor] Unmatched entries count:', unmatchedEntries.length);
+        console.warn('[Mentor] Sample unmatched entries:', unmatchedEntries.slice(0, 6).map(e => ({ id: e.id, created_by: e.created_by, created_by_id: e.created_by_id, created_by_email: e.created_by_email, date: e.date, proof_files_len: (e.proof_files||[]).length })));
+      }
 
       // Load messages for this mentor
       await loadMessages();
@@ -383,11 +438,78 @@
 
   async function downloadFile(url, filename) {
     try {
-      const response = await fetch(url);
+      // Handle data URLs (uploaded via local UploadFile helper)
+      if (typeof url === 'string' && url.startsWith('data:')) {
+        const [meta, data] = url.split(',');
+        const isBase64 = meta.includes(';base64');
+        const mime = (meta.match(/data:([^;]+)(;|,)/) || [])[1] || 'application/octet-stream';
+
+        let byteString;
+        if (isBase64) {
+          byteString = atob(data);
+        } else {
+          byteString = decodeURIComponent(data);
+        }
+
+        const ia = new Uint8Array(byteString.length);
+        for (let i = 0; i < byteString.length; i++) {
+          ia[i] = byteString.charCodeAt(i);
+        }
+
+        const blob = new Blob([ia], { type: mime });
+
+        const extMap = {
+          'application/zip': '.zip',
+          'application/x-zip-compressed': '.zip',
+          'application/pdf': '.pdf',
+          'image/png': '.png',
+          'image/jpeg': '.jpg',
+          'image/jpg': '.jpg',
+          'text/plain': '.txt',
+        };
+
+        const ext = extMap[mime] || (mime.split('/')[1] ? `.${mime.split('/')[1]}` : '');
+        const outName = filename || `proof-file${ext}`;
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = outName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+        return;
+      }
+
+      // For regular URLs, include auth header if present
+      const token = localStorage.getItem('auth_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await fetch(url, { headers });
+      if (!response.ok) throw new Error(`Network response was not ok (${response.status})`);
+
       const blob = await response.blob();
+
+      // Try to derive filename from headers or URL when not provided
+      let outName = filename;
+      if (!outName) {
+        const cd = response.headers.get('Content-Disposition');
+        if (cd) {
+          const match = cd.match(/filename\*=UTF-8''([^;\n]+)/) || cd.match(/filename="?([^";\n]+)"?/);
+          if (match) outName = decodeURIComponent(match[1]);
+        }
+      }
+      if (!outName) {
+        try {
+          const urlParts = url.split('/');
+          outName = decodeURIComponent(urlParts[urlParts.length - 1]) || 'proof-file';
+        } catch (e) {
+          outName = 'proof-file';
+        }
+      }
+
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = filename || 'proof-file.pdf';
+      link.download = outName;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -406,9 +528,54 @@
 
     for (let i = 0; i < submission.proof_files.length; i++) {
       const file = submission.proof_files[i];
-      const filename = `${submission.created_by}-proof-${i + 1}-${submission.date}.pdf`;
+
+      // Determine extension/name when possible
+      let ext = '';
+      if (typeof file === 'string' && file.startsWith('data:')) {
+        const mime = (file.match(/data:([^;]+)(;|,)/) || [])[1];
+        if (mime) {
+          if (mime.includes('zip')) ext = '.zip';
+          else if (mime.includes('pdf')) ext = '.pdf';
+          else if (mime.includes('png')) ext = '.png';
+          else if (mime.includes('jpeg') || mime.includes('jpg')) ext = '.jpg';
+          else ext = `.${mime.split('/')[1] || 'bin'}`;
+        }
+      } else if (typeof file === 'string') {
+        try {
+          const parts = file.split('/');
+          const last = parts[parts.length - 1];
+          if (last && last.includes('.')) ext = `.${last.split('.').pop().split('?')[0]}`;
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      const filename = `${submission.created_by}-proof-${i + 1}-${submission.date}${ext}`;
       await downloadFile(file, filename);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // small delay between downloads to avoid overwhelming browser
+      await new Promise(resolve => setTimeout(resolve, 350));
+    }
+  }
+
+  // Download all files across all submissions currently loaded (mentor view)
+  async function downloadAllSubmissionsInList() {
+    const entries = (timeEntries || []).filter(e => e.proof_files && e.proof_files.length > 0);
+    if (!entries || entries.length === 0) {
+      alert('No submission files available to download');
+      return;
+    }
+
+    // Ask for confirmation when many files are about to be downloaded
+    if (entries.length > 5) {
+      const ok = confirm(`This will download files for ${entries.length} submissions. Continue?`);
+      if (!ok) return;
+    }
+
+    for (let i = 0; i < entries.length; i++) {
+      const submission = entries[i];
+      await downloadAllSubmissionFiles(submission);
+      // small pause to avoid overwhelming the browser
+      await new Promise(r => setTimeout(r, 400));
     }
   }
 
@@ -1537,9 +1704,58 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
       {:else if activeTab === 'submissions'}
         <!-- Time Entry Submissions & Approval -->
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-white">Student Submissions</h2>
-          <p class="text-white/70">{stats.pendingSubmissions} pending reviews</p>
-        </div>
+            <div class="flex items-center justify-between">
+              <div>
+                <h2 class="text-2xl font-bold text-white">Student Submissions</h2>
+                <p class="text-white/70">{stats.pendingSubmissions} pending reviews</p>
+                <div class="mt-2 flex items-center gap-2">
+                  <span class="text-sm text-white/60">Matched:</span>
+                  <span class="px-2 py-1 bg-white/5 rounded text-xs text-white">{timeEntries.length}/{lastLoadedEntriesCount}</span>
+                  <button on:click={() => showDebugPanel = !showDebugPanel} class="text-xs text-white/60 hover:text-white px-2 py-1">{showDebugPanel ? 'Hide debug' : 'Show debug'}</button>
+                  <label class="text-xs text-white/60 flex items-center gap-2 ml-3">
+                    <input type="checkbox" bind:checked={filterHasFiles} class="accent-green-400" />
+                    <span>Only show entries with files</span>
+                  </label>
+                </div>
+              </div>
+              <div>
+                {#if timeEntries && timeEntries.filter(e => e.proof_files && e.proof_files.length > 0).length > 0}
+                  <Button
+                    on:click={downloadAllSubmissionsInList}
+                    class="bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-400/30 h-9 px-3 text-sm flex items-center rounded-md"
+                  >
+                    <Download class="w-4 h-4 mr-2" />
+                    Download All Files ({timeEntries.filter(e => e.proof_files && e.proof_files.length > 0).length})
+                  </Button>
+                {/if}
+              </div>
+            </div>
+          </div>
+
+          {#if showDebugPanel}
+            <div class="bg-white/5 border border-white/10 p-3 rounded mb-4 text-sm text-white/70">
+              <div class="flex items-center justify-between mb-2">
+                <div>Unmatched entries: {unmatchedEntries.length}</div>
+                <div class="text-xs text-white/50">Showing up to 5 samples</div>
+              </div>
+              {#if unmatchedEntries.length === 0}
+                <div class="text-white/60">No unmatched entries — matching logic captured all entries.</div>
+              {:else}
+                <div class="space-y-2 max-h-48 overflow-y-auto">
+                  {#each unmatchedEntries.slice(0,5) as ue}
+                    <div class="p-2 bg-white/5 rounded flex justify-between items-center">
+                      <div class="flex-1 text-xs">
+                        <div><strong>ID:</strong> {ue.id} • <strong>created_by:</strong> {ue.created_by}</div>
+                        <div><strong>created_by_id:</strong> {ue.created_by_id} • <strong>created_by_email:</strong> {ue.created_by_email}</div>
+                        <div><strong>date:</strong> {ue.date} • <strong>files:</strong> {(ue.proof_files||[]).length}</div>
+                      </div>
+                      <div class="ml-3 text-xs"><Button on:click={() => viewSubmissionDetails(ue)} class="h-8 px-2">View</Button></div>
+                    </div>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
 
         {#if timeEntries.length === 0}
           <div class="text-center py-12 bg-white/5 rounded-xl">
@@ -1548,7 +1764,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
           </div>
         {:else}
           <div class="space-y-4">
-            {#each timeEntries.filter(e => e.status === 'draft') as entry}
+            {#each timeEntries.filter(e => e.status === 'draft' && (!filterHasFiles || (e.proof_files && e.proof_files.length > 0))) as entry}
               <div class="bg-white/5 rounded-xl border border-white/20 p-6">
                 <div class="flex items-start justify-between mb-4">
                   <div class="flex-1">
@@ -1588,6 +1804,7 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
                       <Eye class="w-4 h-4 mr-2" />
                       View Details
                     </Button>
+                    <div class="text-xs text-white/50 mt-2">Files: <span class="font-semibold text-white">{(entry.proof_files||[]).length}</span></div>
                     {#if entry.proof_files && entry.proof_files.length > 0}
                       <Button
                         on:click={() => downloadAllSubmissionFiles(entry)}
