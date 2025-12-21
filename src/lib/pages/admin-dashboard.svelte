@@ -68,6 +68,26 @@
     mentorEmail: ''
   };
 
+  // Unassigned candidates cache (falls back to unscoped fetch if company scoping hides students)
+  let unassignedCandidates = null;
+
+  async function openAssignModal() {
+    // Prepare unassigned student candidates before showing modal
+    try {
+      if (allStudents && allStudents.length > 0) {
+        unassignedCandidates = allStudents.filter(s => !s.mentor_email || s.mentor_email === '');
+      } else {
+        // If no students were loaded (company scoping might have filtered them), fetch without scope
+        const all = await Student.list();
+        unassignedCandidates = all.filter(s => !s.mentor_email || s.mentor_email === '');
+      }
+    } catch (e) {
+      console.error('[Admin] Failed to prepare unassigned students:', e);
+      unassignedCandidates = [];
+    }
+    showAssignModal = true;
+  }
+
   let newProject = {
     name: '',
     description: '',
@@ -231,11 +251,29 @@
   // Helper function to check if entity belongs to current admin's company
   function belongsToMyCompany(entity) {
     if (!user) return false;
-    const myCompanyKey = user.companyKey || user.company_key || user.companyId || user.company_id;
-    if (!myCompanyKey) return true; // If no company key, show all (backward compatibility)
 
-    const entityCompanyKey = entity.companyKey || entity.company_key || entity.companyId || entity.company_id;
-    return entityCompanyKey && String(entityCompanyKey) === String(myCompanyKey);
+    // Get both numeric ID and string key from user
+    const myCompanyId = user.company_id || user.companyId;
+    const myCompanyKey = user.companyKey || user.company_key;
+
+    // Get both numeric ID and string key from entity
+    const entityCompanyId = entity.company_id || entity.companyId;
+    const entityCompanyKey = entity.companyKey || entity.company_key;
+
+    // If user has no company identifiers, show all (backward compatibility)
+    if (!myCompanyId && !myCompanyKey) return true;
+
+    // Match on numeric ID if both have it
+    if (myCompanyId && entityCompanyId) {
+      if (String(myCompanyId) === String(entityCompanyId)) return true;
+    }
+
+    // Match on string key if both have it
+    if (myCompanyKey && entityCompanyKey) {
+      if (String(myCompanyKey) === String(entityCompanyKey)) return true;
+    }
+
+    return false;
   }
 
   async function loadData(force = false) {
@@ -603,7 +641,11 @@
 
   async function assignStudentToMentor() {
     try {
-      const student = allStudents.find(s => s.id === assignmentData.studentId);
+      // Try to find student in the current allStudents list first, then fallback to unassignedCandidates
+      let student = allStudents.find(s => s.id === assignmentData.studentId);
+      if (!student && unassignedCandidates) {
+        student = unassignedCandidates.find(s => s.id === assignmentData.studentId);
+      }
       if (!student) return;
 
       await Student.update(student.id, {
@@ -613,6 +655,8 @@
       alert('Student assigned to mentor successfully!');
       showAssignModal = false;
       assignmentData = { studentId: null, mentorEmail: '' };
+      // Clear cached candidates so next open will re-query scoped/unscoped lists
+      unassignedCandidates = null;
       await loadData();
     } catch (error) {
       console.error('Error assigning student:', error);
@@ -1140,7 +1184,7 @@ Status: ${contract.status}
             {isLoading ? 'Loading...' : 'Reload Data'}
           </Button>
           <Button
-            on:click={() => showAssignModal = true}
+            on:click={openAssignModal}
             class="bg-purple-500 hover:bg-purple-600 text-white flex h-10 px-2 rounded-md items-center"
           >
             <UserCog class="w-4 h-4 mr-2" />
@@ -2210,23 +2254,26 @@ Status: ${contract.status}
         <div class="space-y-4">
           <div>
             <label class="text-white/70 text-sm block mb-2">Select Student</label>
-            {#if allStudents.length === 0}
+            {#if !unassignedCandidates || unassignedCandidates.length === 0}
               <div class="bg-yellow-500/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
                 <p class="text-yellow-200 text-sm">
-                  ⚠️ No students found. You need to create student records first using "Create Contract" button.
+                  ⚠️ No students available to assign. You may need to create student records first, or check company scoping.
                 </p>
+                {#if unassignedCandidates === null}
+                  <p class="text-white/60 text-xs mt-2">Tip: the dashboard tried scoped students first — click "Reload Data" to refresh or check <code>/admin-debug</code> for diagnostics.</p>
+                {/if}
               </div>
             {/if}
             <select
               bind:value={assignmentData.studentId}
               class="w-full bg-white/5 border border-white/20 rounded-lg p-2 text-white"
-              disabled={allStudents.length === 0}
+              disabled={!unassignedCandidates || unassignedCandidates.length === 0}
             >
               <option value={null}>
-                {allStudents.length === 0 ? 'No students available' : 'Choose a student...'}
+                {!unassignedCandidates || unassignedCandidates.length === 0 ? 'No students available' : 'Choose a student...'}
               </option>
-              {#each allStudents as student}
-                <option value={student.id}>{student.full_name} ({student.student_email})</option>
+              {#each (unassignedCandidates || []) as student}
+                <option value={student.id}>{student.full_name} ({student.student_email || student.email})</option>
               {/each}
             </select>
           </div>
@@ -2264,7 +2311,7 @@ Status: ${contract.status}
             Assign Student
           </Button>
           <Button
-            on:click={() => { showAssignModal = false; assignmentData = { studentId: null, mentorEmail: '' }; }}
+            on:click={() => { showAssignModal = false; assignmentData = { studentId: null, mentorEmail: '' }; unassignedCandidates = null; }}
             variant="ghost"
             class="text-white/70 hover:text-white"
           >
