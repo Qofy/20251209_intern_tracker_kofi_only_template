@@ -102,13 +102,22 @@ export class User {
 }
 
 export class Student {
-  static async list() {
+  static async list(params = {}) {
     if (isDemoMode()) {
       // Return demo students from localStorage
       const demoStudents = JSON.parse(localStorage.getItem('demo_students') || '[]');
+      // If params provided, perform client-side filter in demo mode
+      if (Object.keys(params).length > 0) {
+        return demoStudents.filter(s => {
+          return Object.entries(params).every(([k, v]) => {
+            if (!s) return false;
+            return String(s[k] || s[camelToSnake(k)] || '').toLowerCase() === String(v).toLowerCase();
+          });
+        });
+      }
       return demoStudents;
     }
-    return apiClient.getStudents();
+    return apiClient.getStudents(params);
   }
 
   static async filter(params) {

@@ -77,8 +77,17 @@ function createUserStore() {
         let allStudents = [], myStudents = [], selectedStudent = null;
 
         if (userRole === 'admin') {
-          console.log('loadUserAndRole: Admin - fetching all students');
-          allStudents = await Student.list();
+          console.log('loadUserAndRole: Admin - fetching students for company');
+          const companyKey = currentUser.companyKey || currentUser.company_key || currentUser.companyId || currentUser.company_id;
+          if (companyKey) {
+            // Filter students by company for data isolation
+            allStudents = await Student.list({ companyKey: companyKey });
+            console.log('loadUserAndRole: Loaded students filtered by company:', companyKey, 'count:', allStudents.length);
+          } else {
+            // Fallback to all students if no company key
+            allStudents = await Student.list();
+            console.log('loadUserAndRole: No company key, loaded all students');
+          }
           myStudents = allStudents;
           selectedStudent = allStudents[0] || null;
         } else if (userRole === 'mentor') {

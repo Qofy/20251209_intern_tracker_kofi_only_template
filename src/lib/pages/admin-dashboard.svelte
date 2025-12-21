@@ -116,11 +116,23 @@
       // Try to load from backend (scoped to company via server)
       const list = await Vacancy.list();
       vacancies = Array.isArray(list) ? list : [];
+
+      // Filter vacancies by company
+      const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+      if (currentCompanyKey) {
+        vacancies = vacancies.filter(belongsToMyCompany);
+      }
     } catch (e) {
       console.warn('[Admin Dashboard] Failed to load vacancies from API, falling back to localStorage:', e);
       try {
         const raw = localStorage.getItem('admin_vacancies');
         vacancies = raw ? JSON.parse(raw) : [];
+
+        // Filter local vacancies by company too
+        const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+        if (currentCompanyKey) {
+          vacancies = vacancies.filter(belongsToMyCompany);
+        }
       } catch (err) {
         console.warn('[Admin Dashboard] Failed to parse local vacancies:', err);
         vacancies = [];
@@ -134,12 +146,15 @@
       return;
     }
 
+    // Include company key for data isolation
+    const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
     const payload = {
       title: newVacancy.title,
       description: newVacancy.description,
       location: newVacancy.location,
       type: newVacancy.type,
-      remote: newVacancy.remote
+      remote: newVacancy.remote,
+      companyKey: currentCompanyKey
     };
 
     try {
@@ -213,6 +228,16 @@
     }
   }
 
+  // Helper function to check if entity belongs to current admin's company
+  function belongsToMyCompany(entity) {
+    if (!user) return false;
+    const myCompanyKey = user.companyKey || user.company_key || user.companyId || user.company_id;
+    if (!myCompanyKey) return true; // If no company key, show all (backward compatibility)
+
+    const entityCompanyKey = entity.companyKey || entity.company_key || entity.companyId || entity.company_id;
+    return entityCompanyKey && String(entityCompanyKey) === String(myCompanyKey);
+  }
+
   async function loadData(force = false) {
     // Determine the current load scope (companyKey preferred)
     const scopeKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id || user?.email || null;
@@ -226,9 +251,11 @@
     try {
       // If current user is an admin and has a company key, request users scoped to that company
       const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+      const companyFilter = currentCompanyKey ? { companyKey: currentCompanyKey } : {};
+
       if (user && user.role === 'admin' && currentCompanyKey) {
         try {
-          allUsers = await User.list({ companyKey: currentCompanyKey });
+          allUsers = await User.list(companyFilter);
         } catch (e) {
           console.warn('[Admin Dashboard] Server-side company scoping failed, falling back to full user list', e);
           allUsers = await User.list();
@@ -236,12 +263,78 @@
       } else {
         allUsers = await User.list();
       }
-      allStudents = await Student.list();
+
+      // Apply company filtering to all entities for company isolation
+      allStudents = currentCompanyKey ? await Student.list(companyFilter) : await Student.list();
       allMentors = allUsers.filter(u => u.role === 'mentor');
-      allTasks = await Task.list();
-      allTimeEntries = await TimeEntry.list();
-      allProjects = await Project.list();
-      allContracts = await Contract.list();
+      allTasks = currentCompanyKey ? await Task.list(companyFilter) : await Task.list();
+      allTimeEntries = currentCompanyKey ? await TimeEntry.list(companyFilter) : await TimeEntry.list();
+      allProjects = currentCompanyKey ? await Project.list(companyFilter) : await Project.list();
+      allContracts = currentCompanyKey ? await Contract.list(companyFilter) : await Contract.list();
+
+      // CLIENT-SIDE FILTERING: Ensure only company data is shown (backend may not filter)
+      if (currentCompanyKey) {
+        console.log('[Admin Dashboard] Applying client-side company filtering for:', currentCompanyKey);
+
+        const beforeFilter = {
+          users: allUsers.length,
+          students: allStudents.length,
+          tasks: allTasks.length,
+          timeEntries: allTimeEntries.length,
+          projects: allProjects.length,
+          contracts: allContracts.length
+        };
+
+        allUsers = allUsers.filter(belongsToMyCompany);
+        allStudents = allStudents.filter(belongsToMyCompany);
+        allTasks = allTasks.filter(belongsToMyCompany);
+        allTimeEntries = allTimeEntries.filter(belongsToMyCompany);
+        allProjects = allProjects.filter(belongsToMyCompany);
+
+        // Enhanced contract filtering: check contract's company OR student's company
+        allContracts = allContracts.filter(contract => {
+          // First check if contract has company key directly
+          if (belongsToMyCompany(contract)) {
+            console.log('[Contract Filter] Contract belongs to company (direct):', contract.id || contract.student_name);
+            return true;
+          }
+
+          // If not, check if the student email in the contract belongs to our company students
+          if (contract.student_email) {
+            const student = allStudents.find(s => s.student_email === contract.student_email || s.email === contract.student_email);
+            if (student && belongsToMyCompany(student)) {
+              console.log('[Contract Filter] Contract belongs to company (via student):', contract.id || contract.student_name, 'student:', contract.student_email);
+              return true;
+            }
+          }
+
+          // Check if created_by (user who created contract) belongs to our company
+          if (contract.created_by) {
+            const creator = allUsers.find(u => u.email === contract.created_by);
+            if (creator && belongsToMyCompany(creator)) {
+              console.log('[Contract Filter] Contract belongs to company (via creator):', contract.id || contract.student_name, 'creator:', contract.created_by);
+              return true;
+            }
+          }
+
+          console.log('[Contract Filter] Contract EXCLUDED:', contract.id || contract.student_name, 'student:', contract.student_email, 'company:', contract.companyKey || contract.company_key);
+          return false;
+        });
+
+        allMentors = allUsers.filter(u => u.role === 'mentor');
+
+        console.log('[Admin Dashboard] Filtered results:', {
+          before: beforeFilter,
+          after: {
+            users: allUsers.length,
+            students: allStudents.length,
+            tasks: allTasks.length,
+            timeEntries: allTimeEntries.length,
+            projects: allProjects.length,
+            contracts: allContracts.length
+          }
+        });
+      }
 
       // Load admin messages and reports
       await loadAdminMessages();
@@ -249,8 +342,13 @@
       // Sync student records for registered users who don't have student records
       await syncStudentRecords();
 
-      // Reload students after sync
-      allStudents = await Student.list();
+      // Reload students after sync with company filtering
+      allStudents = currentCompanyKey ? await Student.list(companyFilter) : await Student.list();
+
+      // Apply client-side filtering again after sync
+      if (currentCompanyKey) {
+        allStudents = allStudents.filter(belongsToMyCompany);
+      }
 
       // Calculate stats
       stats.totalUsers = allUsers.length;
@@ -282,6 +380,14 @@
     try {
       adminMessages = await Message.getAdminMessages();
       adminReports = await Message.getAdminReports();
+
+      // Filter messages and reports by company
+      const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+      if (currentCompanyKey) {
+        adminMessages = adminMessages.filter(belongsToMyCompany);
+        adminReports = adminReports.filter(belongsToMyCompany);
+      }
+
       console.log('[Admin Dashboard] Loaded admin messages:', adminMessages.length);
       console.log('[Admin Dashboard] Loaded admin reports:', adminReports.length);
       console.log('[Admin Dashboard] Current user email:', user?.email);
@@ -427,7 +533,7 @@
       // Find users with role 'student' who don't have student records
       const studentUsers = allUsers.filter(u => u.role === 'student');
       const existingStudentEmails = allStudents.map(s => s.student_email || s.email);
-      
+
       for (const studentUser of studentUsers) {
         if (!existingStudentEmails.includes(studentUser.email)) {
           console.log('[Admin Dashboard] Creating student record for:', studentUser.email);
@@ -436,6 +542,7 @@
               student_email: studentUser.email,
               full_name: studentUser.full_name,
               company_id: studentUser.company_id,
+              companyKey: studentUser.companyKey || studentUser.company_key || studentUser.companyId || studentUser.company_id,
               status: 'active'
             });
           } catch (error) {
@@ -579,8 +686,13 @@
         admin_reviewed_at: new Date().toISOString()
       });
 
-      // Get the updated contract for messaging
-      const contracts = await Contract.list();
+      // Get the updated contract for messaging (filter by company for security)
+      let contracts = await Contract.list();
+      const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+      if (currentCompanyKey) {
+        contracts = contracts.filter(c => belongsToMyCompany(c) ||
+          allStudents.some(s => (s.student_email === c.student_email || s.email === c.student_email)));
+      }
       const contract = contracts.find(c => c.id === contractId);
 
       console.log('[Admin] Contract after update:', contract);
@@ -620,8 +732,13 @@
         admin_reviewed_at: new Date().toISOString()
       });
 
-      // Get the updated contract for messaging
-      const contracts = await Contract.list();
+      // Get the updated contract for messaging (filter by company for security)
+      let contracts = await Contract.list();
+      const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+      if (currentCompanyKey) {
+        contracts = contracts.filter(c => belongsToMyCompany(c) ||
+          allStudents.some(s => (s.student_email === c.student_email || s.email === c.student_email)));
+      }
       const contract = contracts.find(c => c.id === contractId);
       
       if (contract) {

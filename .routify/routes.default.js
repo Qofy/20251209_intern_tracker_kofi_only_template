@@ -18,6 +18,20 @@ export const routes = {
   "children": [
     {
       "meta": {},
+      "id": "_default_admin_debug_svelte",
+      "name": "admin-debug",
+      "file": {
+        "path": "src/routes/admin-debug.svelte",
+        "dir": "src/routes",
+        "base": "admin-debug.svelte",
+        "ext": ".svelte",
+        "name": "admin-debug"
+      },
+      "asyncModule": () => import('../src/routes/admin-debug.svelte'),
+      "children": []
+    },
+    {
+      "meta": {},
       "id": "_default_company_admin",
       "name": "company-admin",
       "module": false,
@@ -155,6 +169,20 @@ export const routes = {
           "children": []
         }
       ]
+    },
+    {
+      "meta": {},
+      "id": "_default_vacancies_svelte",
+      "name": "vacancies",
+      "file": {
+        "path": "src/routes/vacancies.svelte",
+        "dir": "src/routes",
+        "base": "vacancies.svelte",
+        "ext": ".svelte",
+        "name": "vacancies"
+      },
+      "asyncModule": () => import('../src/routes/vacancies.svelte'),
+      "children": []
     },
     {
       "meta": {

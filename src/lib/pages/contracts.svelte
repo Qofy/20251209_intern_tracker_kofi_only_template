@@ -149,15 +149,57 @@
     }
   }
 
+  // Helper function to check if entity belongs to current user's company
+  function belongsToMyCompany(entity) {
+    if (!user) return false;
+    const myCompanyKey = user.companyKey || user.company_key || user.companyId || user.company_id;
+    if (!myCompanyKey) return true; // If no company key, show all (backward compatibility)
+
+    const entityCompanyKey = entity.companyKey || entity.company_key || entity.companyId || entity.company_id;
+    return entityCompanyKey && String(entityCompanyKey) === String(myCompanyKey);
+  }
+
   async function loadData() {
     isLoading = true;
     try {
       let allUserContracts = [];
 
       if (userRole === 'admin') {
+        const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+
+        // Load all data
         allUserContracts = await Contract.list();
         students = await Student.list();
         tasks = await Task.list();
+
+        // Apply company filtering for admins
+        if (currentCompanyKey) {
+          console.log('[Contracts] Applying company filter for admin:', currentCompanyKey);
+
+          // Filter students by company first
+          students = students.filter(belongsToMyCompany);
+          tasks = tasks.filter(belongsToMyCompany);
+
+          // Enhanced contract filtering: check contract's company OR student's company
+          allUserContracts = allUserContracts.filter(contract => {
+            // First check if contract has company key directly
+            if (belongsToMyCompany(contract)) return true;
+
+            // Check if the student email in the contract belongs to our company students
+            if (contract.student_email) {
+              const student = students.find(s => s.student_email === contract.student_email || s.email === contract.student_email);
+              if (student) return true;
+            }
+
+            return false;
+          });
+
+          console.log('[Contracts] Filtered for company:', {
+            contracts: allUserContracts.length,
+            students: students.length,
+            tasks: tasks.length
+          });
+        }
       } else if (userRole === 'mentor') {
         const allContracts = await Contract.list();
         allUserContracts = allContracts.filter(c => c.mentor_email === user?.email);
@@ -222,6 +264,8 @@
         status: userRole === 'admin' ? 'draft' : 'student_review',
         assigned_task_id: newContract.assigned_task_id || null,
         company_id: user?.company_id || null,
+        companyKey: user?.companyKey || user?.company_key || user?.companyId || user?.company_id || null,
+        created_by: user?.email || null,
         // Store additional fields for placeholder replacement
         work_area: newContract.work_area || '',
         work_description: newContract.work_description || '',
