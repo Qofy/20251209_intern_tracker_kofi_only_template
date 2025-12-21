@@ -10,7 +10,7 @@
     Plus, Check, X, Edit, Trash2, Send, FileText,
     Clock, Calendar, AlertCircle, CheckCircle, Target,
     User as UserIcon, Mail, Phone, Award, RefreshCw, Shield, Activity, BookCheck,
-    Download, Eye, XCircle
+    Download, Eye, XCircle, FolderOpen
   } from 'lucide-svelte';
   import { format, parseISO } from 'date-fns';
 
@@ -20,7 +20,7 @@
   export let initialTab = 'students';
 
   // State variables
-  let activeTab = initialTab; // students, tasks, submissions, messages, reports, profile
+  let activeTab = initialTab; // students, tasks, submissions, files, messages, reports, profile
 
   // Update activeTab when initialTab changes
   $: activeTab = initialTab;
@@ -1862,6 +1862,147 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
               </div>
             </div>
           </div>
+        {/if}
+
+      {:else if activeTab === 'files'}
+        <!-- Student Files -->
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <h2 class="text-2xl font-bold text-white">Student Files</h2>
+            <p class="text-white/70">View and download all files uploaded by your students</p>
+          </div>
+          <div class="flex gap-2 items-center">
+            <label class="flex items-center gap-2 text-white/70 text-sm">
+              <input
+                type="checkbox"
+                bind:checked={filterHasFiles}
+                class="w-4 h-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-2 focus:ring-blue-500"
+              />
+              Only show submissions with files
+            </label>
+            {#if timeEntries && timeEntries.filter(e => e.proof_files && e.proof_files.length > 0).length > 0}
+              <Button
+                on:click={downloadAllSubmissionsInList}
+                class="bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-400/30 h-9 px-3 text-sm flex items-center rounded-md"
+              >
+                <Download class="w-4 h-4 mr-2" />
+                Download All Files ({timeEntries.filter(e => e.proof_files && e.proof_files.length > 0).length})
+              </Button>
+            {/if}
+          </div>
+        </div>
+
+        {#if timeEntries.length === 0}
+          <div class="text-center py-12 bg-white/5 rounded-xl border border-white/20">
+            <FolderOpen class="w-16 h-16 text-white/30 mx-auto mb-4" />
+            <h3 class="text-xl font-semibold text-white mb-2">No Files Yet</h3>
+            <p class="text-white/60">Student submissions with files will appear here</p>
+          </div>
+        {:else}
+          {@const filteredEntries = filterHasFiles
+            ? timeEntries.filter(e => e.proof_files && e.proof_files.length > 0)
+            : timeEntries}
+
+          {#if filteredEntries.length === 0}
+            <div class="text-center py-12 bg-white/5 rounded-xl border border-white/20">
+              <FolderOpen class="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <h3 class="text-xl font-semibold text-white mb-2">No Files Found</h3>
+              <p class="text-white/60">No submissions have files attached</p>
+            </div>
+          {:else}
+            <div class="space-y-4">
+              {#each filteredEntries as entry}
+                {@const student = getStudentName(entry.created_by)}
+                {@const badge = getSubmissionStatusBadge(entry.status)}
+
+                {#if entry.proof_files && entry.proof_files.length > 0}
+                  <div class="bg-white/5 rounded-xl border border-white/20 p-6 hover:bg-white/10 transition-all">
+                    <div class="flex items-start justify-between mb-4">
+                      <div class="flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                          <h3 class="text-lg font-bold text-white">{student}</h3>
+                          <span class="px-3 py-1 rounded-full text-xs font-semibold {badge.class}">
+                            {badge.label}
+                          </span>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                          <div>
+                            <span class="text-white/50">Date:</span>
+                            <span class="text-white ml-2">{entry.date}</span>
+                          </div>
+                          <div>
+                            <span class="text-white/50">Hours:</span>
+                            <span class="text-white ml-2">{entry.manually_inputted_hours?.toFixed(2) || 0}</span>
+                          </div>
+                          <div>
+                            <span class="text-white/50">Files:</span>
+                            <span class="text-white ml-2">{entry.proof_files.length}</span>
+                          </div>
+                          <div>
+                            <span class="text-white/50">Start:</span>
+                            <span class="text-white ml-2">{entry.start_time || 'N/A'}</span>
+                          </div>
+                        </div>
+                        {#if entry.description}
+                          <p class="text-white/70 text-sm mt-2">{entry.description}</p>
+                        {/if}
+                      </div>
+                      <div class="flex gap-2 ml-4">
+                        <Button
+                          on:click={() => viewSubmissionDetails(entry)}
+                          class="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-400/30 h-9 px-4 flex items-center rounded-md"
+                        >
+                          <Eye class="w-4 h-4 mr-2" />
+                          View
+                        </Button>
+                        <Button
+                          on:click={() => downloadAllSubmissionFiles(entry)}
+                          class="bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-400/30 h-9 px-4 flex items-center rounded-md"
+                        >
+                          <Download class="w-4 h-4 mr-2" />
+                          Download All ({entry.proof_files.length})
+                        </Button>
+                      </div>
+                    </div>
+
+                    <!-- File Preview List -->
+                    <div class="mt-4 border-t border-white/10 pt-4">
+                      <h4 class="text-white/70 text-sm font-semibold mb-3">Uploaded Files:</h4>
+                      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {#each entry.proof_files as file, index}
+                          <div class="flex items-center gap-2 p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
+                            <FileText class="w-5 h-5 text-blue-400 flex-shrink-0" />
+                            <div class="flex-1 min-w-0">
+                              <p class="text-white text-sm font-medium truncate">Proof File {index + 1}</p>
+                              <p class="text-white/50 text-xs">PDF Document</p>
+                            </div>
+                            <div class="flex gap-1 flex-shrink-0">
+                              <button
+                                on:click={() => downloadFile(file, `${student}-proof-${index + 1}.pdf`)}
+                                class="p-2 bg-blue-500/20 rounded border border-blue-400/30 text-blue-300 hover:bg-blue-500/30 transition-colors"
+                                title="Download"
+                              >
+                                <Download class="w-4 h-4" />
+                              </button>
+                              <a
+                                href={file}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="p-2 bg-purple-500/20 rounded border border-purple-400/30 text-purple-300 hover:bg-purple-500/30 transition-colors"
+                                title="View in new tab"
+                              >
+                                <Eye class="w-4 h-4" />
+                              </a>
+                            </div>
+                          </div>
+                        {/each}
+                      </div>
+                    </div>
+                  </div>
+                {/if}
+              {/each}
+            </div>
+          {/if}
         {/if}
 
       {:else if activeTab === 'reports'}

@@ -218,6 +218,7 @@
               type="time"
               bind:value={timeEntry.start_time}
               class="bg-white/10 border-white/20 text-white"
+              disabled={timeEntry.tracking_ended}
             />
           </div>
           <div>
@@ -226,6 +227,7 @@
               type="time"
               bind:value={timeEntry.end_time}
               class="bg-white/10 border-white/20 text-white"
+              disabled={timeEntry.tracking_ended}
             />
           </div>
           <div>
@@ -234,6 +236,7 @@
               type="time"
               bind:value={timeEntry.break_start}
               class="bg-white/10 border-white/20 text-white"
+              disabled={timeEntry.tracking_ended}
             />
           </div>
           <div>
@@ -242,6 +245,7 @@
               type="time"
               bind:value={timeEntry.break_end}
               class="bg-white/10 border-white/20 text-white"
+              disabled={timeEntry.tracking_ended}
             />
           </div>
         </div>
@@ -258,6 +262,7 @@
           <Select
             value={timeEntry.proof_type}
             onValueChange={(value) => handleInputChange('proof_type', value)}
+            disabled={timeEntry.tracking_ended}
           >
             <SelectTrigger class="bg-white/10 border-white/20 text-white">
               <SelectValue placeholder="Select proof type" />
@@ -275,7 +280,7 @@
         <div class="flex gap-3 flex-wrap">
           <Button
             on:click={saveTimeEntry}
-            disabled={isLoading || uploadingFiles}
+            disabled={isLoading || uploadingFiles || timeEntry.tracking_ended}
             class="flex-1 bg-blue-500 hover:bg-blue-600 text-white flex h-10 items-center justify-center rounded-md"
           >
             <Save class="w-4 h-4 mr-2" />
@@ -325,12 +330,12 @@
               accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
               on:change={handleFileUpload}
               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              disabled={uploadingFiles}
+              disabled={uploadingFiles || timeEntry.tracking_ended}
             />
-            <div class="bg-white/5 border-2 border-dashed border-white/20 rounded-xl p-8 text-center hover:bg-white/10 transition-colors">
+            <div class="bg-white/5 border-2 border-dashed border-white/20 rounded-xl p-8 text-center transition-colors {timeEntry.tracking_ended ? 'opacity-50 cursor-not-allowed' : 'hover:bg-white/10'}">
               <Upload class="w-12 h-12 text-white/50 mx-auto mb-4" />
               <p class="text-white/80 font-medium">
-                {uploadingFiles ? "Uploading..." : "Click to upload proof files"}
+                {uploadingFiles ? "Uploading..." : timeEntry.tracking_ended ? "Upload disabled (day ended)" : "Click to upload proof files"}
               </p>
               <p class="text-white/50 text-sm mt-1">
                 PDF, images, documents accepted
@@ -348,7 +353,7 @@
               {#each stagedFiles as sf, idx}
                 <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
                   <div class="flex items-center gap-3">
-                    <input type="checkbox" checked={sf.selected} on:change={() => toggleStaged(idx)} class="accent-emerald-400" />
+                    <input type="checkbox" checked={sf.selected} on:change={() => toggleStaged(idx)} class="accent-emerald-400" disabled={timeEntry.tracking_ended} />
                     <span class="text-white text-sm">File {idx + 1}</span>
                   </div>
                   <div class="flex items-center gap-2">
@@ -356,7 +361,7 @@
                   </div>
                 </div>
               {/each}
-              <div class="mt-2"><Button on:click={addSelectedStaged} class="bg-emerald-500 text-white h-9 px-3">Add selected files</Button></div>
+              <div class="mt-2"><Button on:click={addSelectedStaged} class="bg-emerald-500 text-white h-9 px-3" disabled={timeEntry.tracking_ended}>Add selected files</Button></div>
             </div>
           </div>
 
@@ -381,6 +386,7 @@
                     <button
                       on:click={() => removeFile(index)}
                       class="text-red-400 hover:text-red-300 text-sm"
+                      disabled={timeEntry.tracking_ended}
                     >
                       Remove
                     </button>
