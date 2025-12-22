@@ -5,6 +5,10 @@
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
   import Dialog from '$lib/components/ui/dialog.svelte';
+  import DialogContent from '$lib/components/ui/DialogContent.svelte';
+  import DialogHeader from '$lib/components/ui/DialogHeader.svelte';
+  import DialogTitle from '$lib/components/ui/DialogTitle.svelte';
+  import DialogFooter from '$lib/components/ui/DialogFooter.svelte';
   import { UploadFile } from '$lib/integrations/Core.js';
 
   let vacancies = [];
@@ -148,29 +152,31 @@
     {/if}
   </div>
 
-  {#if showApplyModal}
-    <Dialog on:close={() => (showApplyModal = false)} open={showApplyModal}>
-      <h2 slot="title">Apply for: {selectedVacancy?.title}</h2>
-      <div slot="body">
-        <div class="space-y-3">
-          <Input bind:value={form.full_name} placeholder="Full name" />
-          <Input bind:value={form.email} placeholder="Email" />
-          <textarea bind:value={form.cover_letter} placeholder="Cover letter" class="w-full p-2 rounded h-28"></textarea>
+  <Dialog let:open let:onOpenChange>
+    <DialogContent open={showApplyModal} onOpenChange={(value) => showApplyModal = value} className="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white border border-white/20">
+      <DialogHeader>
+        <DialogTitle className="text-white text-xl">Apply for: {selectedVacancy?.title}</DialogTitle>
+      </DialogHeader>
 
-          <div>
-            <label class="text-sm mr-2">Upload CV</label>
-            <input type="file" accept="application/pdf,application/msword" on:change={handleFileChange} />
-            {#if isUploading}<div class="text-sm">Uploading…</div>{/if}
-            {#if form.documents.cv}
-              <div class="text-sm mt-1">Uploaded</div>
-            {/if}
-          </div>
+      <div class="space-y-3 my-4">
+        <Input bind:value={form.full_name} placeholder="Full name" class="bg-white/10 border-white/20 text-white placeholder-white/50" />
+        <Input bind:value={form.email} placeholder="Email" class="bg-white/10 border-white/20 text-white placeholder-white/50" />
+        <textarea bind:value={form.cover_letter} placeholder="Cover letter" class="w-full p-2 rounded h-28 bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:border-white/40"></textarea>
+
+        <div>
+          <label class="text-sm text-white/80 mr-2 block mb-1">Upload CV</label>
+          <input type="file" accept="application/pdf,application/msword" on:change={handleFileChange} class="text-white/80 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-white/20 file:text-white hover:file:bg-white/30" />
+          {#if isUploading}<div class="text-sm text-white/70 mt-1">Uploading…</div>{/if}
+          {#if form.documents.cv}
+            <div class="text-sm mt-1 text-green-400">Uploaded ✓</div>
+          {/if}
         </div>
       </div>
-      <div slot="footer" class="flex gap-2">
-        <Button variant="ghost" on:click={() => (showApplyModal = false)}>Cancel</Button>
-        <Button on:click={submitApplication} disabled={isSubmitting || isUploading} class="bg-green-500">{isSubmitting ? 'Submitting…' : 'Submit Application'}</Button>
-      </div>
-    </Dialog>
-  {/if}
+
+      <DialogFooter>
+        <Button variant="ghost" on:click={() => (showApplyModal = false)} class="text-white border-white/20 hover:bg-white/10">Cancel</Button>
+        <Button on:click={submitApplication} disabled={isSubmitting || isUploading} class="bg-green-500 hover:bg-green-600 text-white">{isSubmitting ? 'Submitting…' : 'Submit Application'}</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </div>
