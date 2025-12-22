@@ -123,10 +123,22 @@
   let newVacancy = {
     id: null,
     title: '',
+    company_name: '',
     description: '',
     location: '',
     type: 'Full-Time',
     remote: false,
+    salary_min: null,
+    salary_max: null,
+    experience_level: 'Mid-Level',
+    skills_required: '',
+    responsibilities: '',
+    requirements: '',
+    benefits: '',
+    application_deadline: '',
+    positions_available: 1,
+    department: '',
+    contact_email: '',
     posted_by: user?.email || '',
     status: 'open',
     created_at: null
@@ -171,28 +183,38 @@
     const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
     const payload = {
       title: newVacancy.title,
+      company_name: newVacancy.company_name,
       description: newVacancy.description,
       location: newVacancy.location,
       type: newVacancy.type,
       remote: newVacancy.remote,
+      salary_min: newVacancy.salary_min || null,
+      salary_max: newVacancy.salary_max || null,
+      experience_level: newVacancy.experience_level,
+      skills_required: newVacancy.skills_required,
+      responsibilities: newVacancy.responsibilities,
+      requirements: newVacancy.requirements,
+      benefits: newVacancy.benefits,
+      application_deadline: newVacancy.application_deadline || null,
+      positions_available: newVacancy.positions_available || 1,
+      department: newVacancy.department,
+      contact_email: newVacancy.contact_email,
       companyKey: currentCompanyKey
     };
 
     try {
       const created = await Vacancy.create(payload);
-      // API returns created object with id and timestamps
       vacancies = [created, ...vacancies];
-      newVacancy = { id: null, title: '', description: '', location: '', type: 'Full-Time', remote: false, posted_by: user?.email || '', status: 'open', created_at: null };
+      resetVacancyForm();
       showVacancyForm = false;
       alert('Vacancy posted successfully');
     } catch (e) {
       console.error('[Admin Dashboard] Failed to create vacancy via API, saving locally as fallback:', e);
-      // Fallback to localStorage persistence
       try {
         const vacancy = { ...payload, id: `vac_${Date.now()}`, posted_by: user?.email || '', created_at: new Date().toISOString() };
         vacancies = [vacancy, ...vacancies];
         localStorage.setItem('admin_vacancies', JSON.stringify(vacancies));
-        newVacancy = { id: null, title: '', description: '', location: '', type: 'Full-Time', remote: false, posted_by: user?.email || '', status: 'open', created_at: null };
+        resetVacancyForm();
         showVacancyForm = false;
         alert('Vacancy saved locally (offline mode)');
       } catch (err) {
@@ -200,6 +222,32 @@
         alert('Failed to post vacancy');
       }
     }
+  }
+
+  function resetVacancyForm() {
+    newVacancy = {
+      id: null,
+      title: '',
+      company_name: '',
+      description: '',
+      location: '',
+      type: 'Full-Time',
+      remote: false,
+      salary_min: null,
+      salary_max: null,
+      experience_level: 'Mid-Level',
+      skills_required: '',
+      responsibilities: '',
+      requirements: '',
+      benefits: '',
+      application_deadline: '',
+      positions_available: 1,
+      department: '',
+      contact_email: '',
+      posted_by: user?.email || '',
+      status: 'open',
+      created_at: null
+    };
   }
 
   async function deleteVacancy(id) {
@@ -2277,16 +2325,95 @@ Status: ${contract.status}
           </div>
 
           {#if showVacancyForm}
-            <div class="bg-white/5 rounded-xl border border-white/20 p-4 mb-4">
-              <div class="grid grid-cols-1 gap-2">
-                <Input bind:value={newVacancy.title} placeholder="Job title" class="bg-white/5 text-white h-9" />
-                <Input bind:value={newVacancy.location} placeholder="Location" class="bg-white/5 text-white h-9" />
-                <Input bind:value={newVacancy.type} placeholder="Type (e.g. Full-Time)" class="bg-white/5 text-white h-9" />
-                <textarea bind:value={newVacancy.description} placeholder="Short description" class="w-full bg-white/5 text-white p-2 rounded h-24"></textarea>
-                <div class="flex gap-2 justify-end">
-                  <Button variant="ghost" on:click={() => { showVacancyForm = false; }} class="text-white/70">Cancel</Button>
-                  <Button on:click={createVacancy} class="bg-blue-500 text-white">Post Vacancy</Button>
+            <div class="bg-white/5 rounded-xl border border-white/20 p-6 mb-4">
+              <h4 class="text-white font-semibold mb-4 text-lg">Post New Job Opening</h4>
+
+              <!-- Basic Information -->
+              <div class="mb-6">
+                <h5 class="text-white/80 font-medium mb-3 text-sm">Basic Information</h5>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input bind:value={newVacancy.title} placeholder="Job Title *" class="bg-white/10 text-white placeholder-white/50 h-10" />
+                  <Input bind:value={newVacancy.company_name} placeholder="Company Name" class="bg-white/10 text-white placeholder-white/50 h-10" />
+                  <Input bind:value={newVacancy.department} placeholder="Department" class="bg-white/10 text-white placeholder-white/50 h-10" />
+                  <Input bind:value={newVacancy.location} placeholder="Location" class="bg-white/10 text-white placeholder-white/50 h-10" />
+                  <div>
+                    <select bind:value={newVacancy.type} class="w-full bg-white/10 text-white border border-white/20 rounded-lg px-3 h-10">
+                      <option value="Full-Time">Full-Time</option>
+                      <option value="Part-Time">Part-Time</option>
+                      <option value="Contract">Contract</option>
+                      <option value="Internship">Internship</option>
+                      <option value="Temporary">Temporary</option>
+                    </select>
+                  </div>
+                  <div>
+                    <select bind:value={newVacancy.experience_level} class="w-full bg-white/10 text-white border border-white/20 rounded-lg px-3 h-10">
+                      <option value="Entry-Level">Entry-Level</option>
+                      <option value="Mid-Level">Mid-Level</option>
+                      <option value="Senior">Senior</option>
+                      <option value="Lead">Lead</option>
+                      <option value="Executive">Executive</option>
+                    </select>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" bind:checked={newVacancy.remote} id="remote-checkbox" class="w-4 h-4" />
+                    <label for="remote-checkbox" class="text-white/80 text-sm">Remote Position</label>
+                  </div>
+                  <Input type="number" bind:value={newVacancy.positions_available} placeholder="Positions Available" class="bg-white/10 text-white placeholder-white/50 h-10" />
                 </div>
+              </div>
+
+              <!-- Compensation -->
+              <div class="mb-6">
+                <h5 class="text-white/80 font-medium mb-3 text-sm">Compensation</h5>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input type="number" bind:value={newVacancy.salary_min} placeholder="Minimum Salary ($/year)" class="bg-white/10 text-white placeholder-white/50 h-10" />
+                  <Input type="number" bind:value={newVacancy.salary_max} placeholder="Maximum Salary ($/year)" class="bg-white/10 text-white placeholder-white/50 h-10" />
+                </div>
+              </div>
+
+              <!-- Job Description -->
+              <div class="mb-6">
+                <h5 class="text-white/80 font-medium mb-3 text-sm">Job Description</h5>
+                <textarea bind:value={newVacancy.description} placeholder="Brief job overview and summary..." class="w-full bg-white/10 text-white placeholder-white/50 border border-white/20 p-3 rounded-lg h-24 focus:outline-none focus:border-white/40"></textarea>
+              </div>
+
+              <!-- Responsibilities -->
+              <div class="mb-6">
+                <h5 class="text-white/80 font-medium mb-3 text-sm">Key Responsibilities</h5>
+                <textarea bind:value={newVacancy.responsibilities} placeholder="• List main responsibilities&#10;• One per line&#10;• Be specific and clear" class="w-full bg-white/10 text-white placeholder-white/50 border border-white/20 p-3 rounded-lg h-32 focus:outline-none focus:border-white/40"></textarea>
+              </div>
+
+              <!-- Requirements -->
+              <div class="mb-6">
+                <h5 class="text-white/80 font-medium mb-3 text-sm">Qualifications & Requirements</h5>
+                <textarea bind:value={newVacancy.requirements} placeholder="• Required education level&#10;• Years of experience&#10;• Certifications&#10;• Other qualifications" class="w-full bg-white/10 text-white placeholder-white/50 border border-white/20 p-3 rounded-lg h-32 focus:outline-none focus:border-white/40"></textarea>
+              </div>
+
+              <!-- Skills -->
+              <div class="mb-6">
+                <h5 class="text-white/80 font-medium mb-3 text-sm">Required Skills</h5>
+                <textarea bind:value={newVacancy.skills_required} placeholder="List technical and soft skills required (e.g., JavaScript, React, Communication, Problem-solving)" class="w-full bg-white/10 text-white placeholder-white/50 border border-white/20 p-3 rounded-lg h-24 focus:outline-none focus:border-white/40"></textarea>
+              </div>
+
+              <!-- Benefits -->
+              <div class="mb-6">
+                <h5 class="text-white/80 font-medium mb-3 text-sm">Benefits & Perks</h5>
+                <textarea bind:value={newVacancy.benefits} placeholder="• Health insurance&#10;• 401(k) matching&#10;• Flexible schedule&#10;• Professional development" class="w-full bg-white/10 text-white placeholder-white/50 border border-white/20 p-3 rounded-lg h-28 focus:outline-none focus:border-white/40"></textarea>
+              </div>
+
+              <!-- Additional Information -->
+              <div class="mb-6">
+                <h5 class="text-white/80 font-medium mb-3 text-sm">Additional Information</h5>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <Input type="email" bind:value={newVacancy.contact_email} placeholder="Contact Email" class="bg-white/10 text-white placeholder-white/50 h-10" />
+                  <Input type="date" bind:value={newVacancy.application_deadline} placeholder="Application Deadline" class="bg-white/10 text-white placeholder-white/50 h-10" />
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex gap-3 justify-end pt-4 border-t border-white/10">
+                <Button variant="ghost" on:click={() => { showVacancyForm = false; resetVacancyForm(); }} class="text-white/70 hover:text-white h-10 px-6">Cancel</Button>
+                <Button on:click={createVacancy} class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-6">Post Vacancy</Button>
               </div>
             </div>
           {/if}
