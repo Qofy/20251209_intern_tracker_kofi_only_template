@@ -8,13 +8,18 @@
   import { UploadFile } from '$lib/integrations/Core.js';
 
   let vacancies = [];
-  let loading = false;
+  let loading = true;
   let showApplyModal = false;
   let selectedVacancy = null;
   let isSubmitting = false;
   let isUploading = false;
 
-  $: user = $userStore.user;
+  let user = null;
+
+  // Subscribe to userStore
+  userStore.subscribe(state => {
+    user = state?.user || null;
+  });
 
   let form = {
     full_name: '',
@@ -23,16 +28,21 @@
     documents: { cv: '' }
   };
 
+  // Load vacancies immediately when script runs
+  loadVacancies();
+
   onMount(async () => {
+    // Refresh data when component mounts
     await loadVacancies();
   });
 
   async function loadVacancies() {
     loading = true;
     try {
-      vacancies = await Vacancy.list();
+      const result = await Vacancy.list();
+      vacancies = result || [];
     } catch (e) {
-      console.error('Failed to load vacancies:', e);
+      console.error('Error loading vacancies:', e);
       vacancies = [];
     } finally {
       loading = false;
@@ -98,35 +108,45 @@
   .vacancy-card { @apply bg-white/5 p-4 rounded-lg; }
 </style>
 
-<div class="container mx-auto p-6 min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 w-full text-white">
-  <h1 class="text-3xl font-bold mb-4">Available Jobs</h1>
+<div class="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 text-white">
+  <div class="container mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center">Available Jobs</h1>
 
-  {#if loading}
-    <div>Loading vacancies…</div>
-  {:else}
-    {#if vacancies && vacancies.length}
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {#each vacancies as v}
-          <div class="vacancy-card">
-            <div class="flex justify-between items-start">
-              <div>
-                <h3 class="text-xl font-semibold">{v.title}</h3>
-                <div class="text-sm text-white/70">{v.location} • {v.type}</div>
-              </div>
-              <div class="text-sm text-white/60">{v.posted_by}</div>
-            </div>
-            <p class="mt-2 text-sm text-white/80">{v.description}</p>
-            <div class="mt-3 flex gap-2">
-              <Button on:click={() => openApply(v)} class="bg-blue-500">Apply</Button>
-              <a href={`/vacancies/${v.id}`} class="text-white/80 underline ml-2">Details</a>
-            </div>
-          </div>
-        {/each}
+    {#if loading}
+      <div class="flex items-center justify-center min-h-[400px]">
+        <div class="text-center">
+          <div class="text-lg">Loading vacancies…</div>
+        </div>
       </div>
     {:else}
-      <div>No vacancies posted yet.</div>
+      {#if vacancies && vacancies.length}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {#each vacancies as v}
+            <div class="vacancy-card">
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="text-xl font-semibold">{v.title}</h3>
+                  <div class="text-sm text-white/70">{v.location} • {v.type}</div>
+                </div>
+                <div class="text-sm text-white/60">{v.posted_by}</div>
+              </div>
+              <p class="mt-2 text-sm text-white/80">{v.description}</p>
+              <div class="mt-3 flex gap-2">
+                <Button on:click={() => openApply(v)} class="bg-blue-500">Apply</Button>
+                <a href={`/vacancies/${v.id}`} class="text-white/80 underline ml-2">Details</a>
+              </div>
+            </div>
+          {/each}
+        </div>
+      {:else}
+        <div class="flex items-center justify-center min-h-[400px]">
+          <div class="text-center">
+            <div class="text-lg text-white/70">No vacancies posted yet.</div>
+          </div>
+        </div>
+      {/if}
     {/if}
-  {/if}
+  </div>
 
   {#if showApplyModal}
     <Dialog on:close={() => (showApplyModal = false)} open={showApplyModal}>

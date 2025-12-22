@@ -17,9 +17,21 @@ export class VacanciesService {
 
   async findAll(companyId?: number): Promise<Vacancy[]> {
     if (companyId) {
-      return this.vacanciesRepository.find({ where: { company_id: companyId }, order: { created_at: 'DESC' } });
+      // Company-scoped: show all vacancies for the company
+      const companyVacancies = await this.vacanciesRepository.find({
+        where: { company_id: companyId },
+        order: { created_at: 'DESC' }
+      });
+      console.log(`[Vacancies] Found ${companyVacancies.length} vacancies for company ${companyId}`);
+      return companyVacancies;
     }
-    return this.vacanciesRepository.find({ order: { created_at: 'DESC' } });
+    // Public access: show only open vacancies
+    const openVacancies = await this.vacanciesRepository.find({
+      where: { status: 'open' },
+      order: { created_at: 'DESC' }
+    });
+    console.log(`[Vacancies] PUBLIC ACCESS - Found ${openVacancies.length} open vacancies`);
+    return openVacancies;
   }
 
   async findOne(id: number): Promise<Vacancy> {
