@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { Task, TimeEntry, Student, Schedule, Message, User, Contract } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
+  import { UploadFile } from '$lib/integrations/Core';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
   import Dialog from '$lib/components/ui/dialog.svelte';
@@ -35,6 +36,8 @@
   let myContract = null;
   let isLoading = false;
   let isLoadingMessages = false;
+  let uploadingFiles = false;
+  let uploadedFileUrls = [];
   // Prevent repeated full reloads when navigating tabs — track which user we've loaded for
   let _loadedForEmail = null;
 
@@ -124,13 +127,19 @@
     stats.approvedHours = mySubmissions
       .filter(e => e.status === 'approved')
       .reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || parseFloat(e.approved_hours) || 0), 0);
-    stats.totalHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
+
+    // Calculate total hours from all submitted + approved entries (not drafts)
+    stats.totalHours = mySubmissions
+      .filter(e => e.status === 'submitted' || e.status === 'approved')
+      .reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
   }
 
   $: if (selectedStudent || myContract) {
     // Use contract hours from the actual contract if available, otherwise from student record
     stats.contractHours = myContract?.contract_hours || selectedStudent?.contract_hours || 600;
-    stats.completionPercentage = Math.min(100, Math.round((stats.approvedHours / stats.contractHours) * 100));
+    // Use totalHours (submitted + approved) for completion percentage, not just approved
+    // This shows progress immediately after submitting work
+    stats.completionPercentage = Math.min(100, Math.round((stats.totalHours / stats.contractHours) * 100));
   }
 
   onMount(async () => {
@@ -262,6 +271,9 @@
       // Load time entries (submissions)
       const allEntries = await TimeEntry.list();
       mySubmissions = allEntries.filter(e => e.created_by === user?.email);
+      console.log('[Student Dashboard] My submissions:', mySubmissions.length);
+      console.log('[Student Dashboard] Submissions with mentor_comments:',
+        mySubmissions.filter(e => e.mentor_comments && e.mentor_comments.trim() !== '').length);
 
       // Load schedule
       const allSchedule = await Schedule.list();
@@ -270,7 +282,7 @@
         s.assigned_to === user?.email
       );
 
-      // Mock feedback data (since we don't have a feedback entity yet)
+      // Load feedback from time entries that have mentor comments
       myFeedback = mySubmissions
         .filter(e => e.mentor_comments && e.mentor_comments.trim() !== '')
         .map(e => ({
@@ -280,6 +292,11 @@
           comments: e.mentor_comments,
           status: e.status
         }));
+
+      console.log('[Student Dashboard] Feedback loaded:', myFeedback.length);
+      if (myFeedback.length > 0) {
+        console.log('[Student Dashboard] Sample feedback:', myFeedback[0]);
+      }
 
       console.log('[Student Dashboard] Data loaded:', stats);
       // Mark as loaded for this user email so we don't reset on tab navigations
@@ -712,12 +729,35 @@
     }
   }
 
+  async function handleFileUpload(event) {
+    const files = Array.from(event.target.files);
+    if (files.length === 0) return;
+
+    uploadingFiles = true;
+    try {
+      const uploadPromises = files.map(file => UploadFile({ file }));
+      const results = await Promise.all(uploadPromises);
+      const fileUrls = results.map(result => result.file_url);
+
+      uploadedFileUrls = [...uploadedFileUrls, ...fileUrls];
+      console.log('[Student Dashboard] Files uploaded:', fileUrls);
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      alert('Failed to upload files. Please try again.');
+    }
+    uploadingFiles = false;
+  }
+
+  function removeUploadedFile(index) {
+    uploadedFileUrls = uploadedFileUrls.filter((_, i) => i !== index);
+  }
+
   async function submitWork() {
     try {
       // First, find the student record for this user
       const allStudents = await Student.list();
       const studentRecord = allStudents.find(s => s.student_email === user?.email);
-      
+
       if (!studentRecord) {
         alert('Student record not found. Please contact your administrator.');
         return;
@@ -728,6 +768,8 @@
         student_id: studentRecord.id,
         date: format(new Date(), 'yyyy-MM-dd'),
         description: submitWorkForm.description,
+        manually_inputted_hours: submitWorkForm.hoursWorked || 1,
+        proof_files: uploadedFileUrls,
         status: 'submitted',
         created_by: user?.email,
         created_at: new Date().toISOString()
@@ -758,6 +800,7 @@
         hoursWorked: 1,
         submittedAt: new Date().toISOString()
       };
+      uploadedFileUrls = [];
     } catch (error) {
       console.error('Error submitting work:', error);
       alert('Failed to submit work');
@@ -1018,6 +1061,8 @@
       {:else}
         <div class="space-y-4">
           {#each myTasks as task}
+            {@const hoursWorked = parseFloat(task.hours_worked) || 0}
+            {@const estimatedHours = task.estimated_hours != null ? parseFloat(task.estimated_hours) : 8}
             <div class="bg-white/5 rounded-xl border border-white/20 p-6">
               <div class="flex items-start justify-between mb-4">
                 <div class="flex-1">
@@ -1041,21 +1086,22 @@
                       Assigned by: {task.created_by || 'Mentor'}
                     </span>
                   </div>
-                  
+
                   <!-- Enhanced Progress Information -->
                   <div class="bg-white/5 rounded-lg p-3 mb-3">
+
                     <div class="flex items-center justify-between mb-2">
                       <span class="text-white/70 text-sm">Hours Progress</span>
                       <span class="text-white font-semibold text-sm">
-                        {(parseFloat(task.hours_worked) || 0).toFixed(1)}h / {(parseFloat(task.estimated_hours) || 8).toFixed(1)}h
+                        {hoursWorked.toFixed(1)}h / {estimatedHours.toFixed(1)}h
                       </span>
                     </div>
-                    
+
                     <!-- Hours Progress Bar -->
                     <div class="w-full bg-white/10 rounded-full h-2 mb-2">
-                      <div 
+                      <div
                         class="bg-gradient-to-r from-blue-500 to-cyan-500 h-2 rounded-full transition-all duration-300"
-                        style="width: {Math.min(100, ((parseFloat(task.hours_worked) || 0) / (parseFloat(task.estimated_hours) || 8)) * 100)}%"
+                        style="width: {Math.min(100, (hoursWorked / estimatedHours) * 100)}%"
                       ></div>
                     </div>
                     
@@ -1073,20 +1119,20 @@
                     </div>
                     
                     <!-- Progress Status Indicator -->
-                    {#if (parseFloat(task.hours_worked) || 0) > (parseFloat(task.estimated_hours) || 8)}
+                    {#if hoursWorked > estimatedHours}
                       <p class="text-orange-400 text-xs mt-2 flex items-center gap-1">
                         <AlertCircle class="w-3 h-3" />
-                        Over estimated time by {((parseFloat(task.hours_worked) || 0) - (parseFloat(task.estimated_hours) || 8)).toFixed(1)}h
+                        Over estimated time by {(hoursWorked - estimatedHours).toFixed(1)}h
                       </p>
                     {:else if (parseInt(task.progress_percentage) || 0) >= 100}
                       <p class="text-green-400 text-xs mt-2 flex items-center gap-1">
                         <CheckCircle class="w-3 h-3" />
                         Task completed! Awaiting submission or review
                       </p>
-                    {:else if (parseFloat(task.hours_worked) || 0) >= (parseFloat(task.estimated_hours) || 8) * 0.8}
+                    {:else if hoursWorked >= estimatedHours * 0.8}
                       <p class="text-yellow-400 text-xs mt-2 flex items-center gap-1">
                         <Clock class="w-3 h-3" />
-                        Approaching time limit - {((parseFloat(task.estimated_hours) || 8) - (parseFloat(task.hours_worked) || 0)).toFixed(1)}h remaining
+                        Approaching time limit - {(estimatedHours - hoursWorked).toFixed(1)}h remaining
                       </p>
                     {/if}
                   </div>
@@ -1370,7 +1416,7 @@
               </div>
             </div>
             <p class="text-white/70 text-sm">Contract</p>
-            <p class="text-white text-xs">{stats.approvedHours.toFixed(1)}h approved</p>
+            <p class="text-white text-xs">{stats.totalHours.toFixed(1)}h logged</p>
           </div>
 
           <!-- Task Completion Progress -->
@@ -1445,8 +1491,8 @@
             <!-- Main progress bar -->
             <div>
               <div class="flex items-center justify-between mb-2">
-                <span class="text-white/70 text-sm">Approved Hours</span>
-                <span class="text-white font-semibold">{stats.approvedHours.toFixed(1)} / {stats.contractHours}h</span>
+                <span class="text-white/70 text-sm">Total Hours Logged</span>
+                <span class="text-white font-semibold">{stats.totalHours.toFixed(1)} / {stats.contractHours}h</span>
               </div>
               <div class="w-full bg-white/10 rounded-full h-3">
                 <div
@@ -1460,13 +1506,13 @@
             <!-- Additional progress details -->
             <div class="grid grid-cols-2 gap-4 pt-4 border-t border-white/10">
               <div>
-                <p class="text-white/70 text-sm">Total Logged</p>
-                <p class="text-xl font-bold text-blue-400">{stats.totalHours.toFixed(1)}h</p>
-                <p class="text-white/50 text-xs">All entries</p>
+                <p class="text-white/70 text-sm">Approved</p>
+                <p class="text-xl font-bold text-green-400">{stats.approvedHours.toFixed(1)}h</p>
+                <p class="text-white/50 text-xs">By mentor</p>
               </div>
               <div>
                 <p class="text-white/70 text-sm">Remaining</p>
-                <p class="text-xl font-bold text-white">{Math.max(0, stats.contractHours - stats.approvedHours).toFixed(1)}h</p>
+                <p class="text-xl font-bold text-white">{Math.max(0, stats.contractHours - stats.totalHours).toFixed(1)}h</p>
                 <p class="text-white/50 text-xs">To complete</p>
               </div>
             </div>
@@ -2226,12 +2272,42 @@
           </div>
 
           <div>
-            <label class="text-white/70 text-sm block mb-2">Upload File (Optional)</label>
+            <label class="text-white/70 text-sm block mb-2">Upload Files (Optional)</label>
             <Input
               type="file"
+              multiple
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.zip,.tar,.tar.gz,.rar"
+              on:change={handleFileUpload}
+              disabled={uploadingFiles}
               class="bg-white/5 border-white/20 text-white"
             />
+            {#if uploadingFiles}
+              <p class="text-white/60 text-sm mt-2">Uploading files...</p>
+            {:else}
+              <p class="text-white/50 text-xs mt-1">PDF, images, documents, zip, tar files accepted</p>
+            {/if}
           </div>
+
+          <!-- Display uploaded files -->
+          {#if uploadedFileUrls.length > 0}
+            <div>
+              <label class="text-white/70 text-sm block mb-2">Uploaded Files ({uploadedFileUrls.length})</label>
+              <div class="space-y-2">
+                {#each uploadedFileUrls as fileUrl, index}
+                  <div class="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
+                    <div class="flex items-center gap-2">
+                      <FileText class="w-4 h-4 text-blue-400" />
+                      <span class="text-white text-sm">File {index + 1}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <a href={fileUrl} target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 text-sm">View</a>
+                      <button on:click={() => removeUploadedFile(index)} class="text-red-400 hover:text-red-300 text-sm">Remove</button>
+                    </div>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
         </div>
 
         <div class="flex gap-3 mt-6">

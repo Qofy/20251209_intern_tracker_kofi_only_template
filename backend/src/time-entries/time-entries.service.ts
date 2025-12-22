@@ -35,8 +35,11 @@ export class TimeEntriesService {
         throw new Error(`Time entry with id ${id} not found`);
       }
 
+      console.log('[TimeEntries] Updating entry:', id, 'with data:', timeEntryData);
       await this.timeEntriesRepository.update(id, timeEntryData);
-      return this.findOne(id);
+      const updated = await this.findOne(id);
+      console.log('[TimeEntries] Entry updated, mentor_comments:', updated.mentor_comments);
+      return updated;
     } catch (error) {
       console.error('Error updating time entry:', error);
       throw error;

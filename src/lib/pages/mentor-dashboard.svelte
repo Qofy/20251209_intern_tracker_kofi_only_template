@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { Student, Task, TimeEntry, User, Message } from '../../entities/all';
+  import { Student, Task, TimeEntry, User, Message, Contract } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
@@ -31,7 +31,9 @@
   let lastLoadedEntriesCount = 0;
   let showDebugPanel = false;
   let filterHasFiles = false;
+  let submissionsFilter = 'all'; // 'all', 'pending', 'reviewed'
   let messages = [];
+  let contracts = [];
   let selectedStudent = null;
   let selectedConversation = null;
   let isLoading = false;
@@ -123,7 +125,11 @@
       // Load students assigned to this mentor using the filter method
       assignedStudents = await Student.filter({ mentor_email: user?.email });
       console.log('[Mentor Dashboard] Loaded students for mentor:', user?.email, assignedStudents);
-      
+
+      // Load all contracts
+      contracts = await Contract.list();
+      console.log('[Mentor Dashboard] Loaded contracts:', contracts.length);
+
       // Load tasks assigned to this mentor using mentor_email filter
       tasks = await Task.list({ mentor_email: user?.email });
 
@@ -309,6 +315,7 @@
         due_date: taskForm.due_date,
         priority: taskForm.priority,
         status: taskForm.status,
+        estimated_hours: taskForm.estimated_hours,
         assigned_by: user?.email,
         mentor_email: user?.email,
         created_at: new Date().toISOString()
@@ -354,14 +361,29 @@
         return;
       }
 
-      // Only update fields that exist in the database
-      await TimeEntry.update(entry.id, {
+      console.log('[Mentor] Providing feedback:', {
+        entry_id: entry.id,
         status: feedbackForm.status,
-        mentor_comments: feedbackForm.comments
+        comments: feedbackForm.comments,
+        comments_length: feedbackForm.comments?.length
       });
 
-      timeEntries = timeEntries.map(e => 
-        e.id === entry.id 
+      if (!feedbackForm.comments || feedbackForm.comments.trim() === '') {
+        alert('Please provide feedback comments before submitting');
+        return;
+      }
+
+      // Only update fields that exist in the database
+      const updateData = {
+        status: feedbackForm.status,
+        mentor_comments: feedbackForm.comments
+      };
+
+      console.log('[Mentor] Updating entry with:', updateData);
+      await TimeEntry.update(entry.id, updateData);
+
+      timeEntries = timeEntries.map(e =>
+        e.id === entry.id
           ? { ...e, status: feedbackForm.status, mentor_comments: feedbackForm.comments }
           : e
       );
@@ -1009,7 +1031,13 @@ ${reportForm.content}`,
   function getStudentProgress(student) {
     const approvedEntries = getEntriesByStudent(student.student_email).filter(e => e.status === 'approved');
     const approvedHours = approvedEntries.reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
-    const contractHours = student.contract_hours || 600;
+
+    // Find the student's approved contract
+    const studentContract = contracts.find(c =>
+      c.student_email === student.student_email &&
+      (c.status === 'admin_approved' || c.status === 'mentor_approved')
+    );
+    const contractHours = studentContract?.contract_hours || student.contract_hours || 600;
     const completionPercentage = Math.min(100, Math.round((approvedHours / contractHours) * 100));
     
     const studentTasks = getTasksByStudent(student.student_email);
@@ -1763,15 +1791,50 @@ ${stats.team.averageProgress >= 75 ? '🎉 **Team Performing Well:** Average pro
             <p class="text-white/70">No submissions yet</p>
           </div>
         {:else}
+          {@const filteredEntries = timeEntries.filter(e => {
+            // Apply status filter
+            if (submissionsFilter === 'pending') {
+              if (e.status !== 'submitted' && e.status !== 'draft') return false;
+            } else if (submissionsFilter === 'reviewed') {
+              if (e.status !== 'approved' && e.status !== 'rejected') return false;
+            }
+            // Apply files filter
+            if (filterHasFiles && (!e.proof_files || e.proof_files.length === 0)) return false;
+            return true;
+          })}
+
+          <!-- Filter Tabs -->
+          <div class="flex gap-2 mb-4">
+            <button
+              on:click={() => submissionsFilter = 'all'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all {submissionsFilter === 'all' ? 'bg-blue-500 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}"
+            >
+              All Submissions ({timeEntries.length})
+            </button>
+            <button
+              on:click={() => submissionsFilter = 'pending'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all {submissionsFilter === 'pending' ? 'bg-yellow-500 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}"
+            >
+              Pending Review ({timeEntries.filter(e => e.status === 'submitted' || e.status === 'draft').length})
+            </button>
+            <button
+              on:click={() => submissionsFilter = 'reviewed'}
+              class="px-4 py-2 rounded-lg text-sm font-medium transition-all {submissionsFilter === 'reviewed' ? 'bg-green-500 text-white' : 'bg-white/5 text-white/70 hover:bg-white/10'}"
+            >
+              Reviewed ({timeEntries.filter(e => e.status === 'approved' || e.status === 'rejected').length})
+            </button>
+          </div>
+
           <div class="space-y-4">
-            {#each timeEntries.filter(e => e.status === 'draft' && (!filterHasFiles || (e.proof_files && e.proof_files.length > 0))) as entry}
+            {#each filteredEntries as entry}
+              {@const statusBadge = getSubmissionStatusBadge(entry.status)}
               <div class="bg-white/5 rounded-xl border border-white/20 p-6">
                 <div class="flex items-start justify-between mb-4">
                   <div class="flex-1">
                     <div class="flex items-center gap-3 mb-2">
                       <h3 class="text-lg font-bold text-white">{getStudentName(entry.created_by)}</h3>
-                      <span class="px-3 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-400">
-                        Pending Review
+                      <span class="px-3 py-1 rounded-full text-xs {statusBadge.class}">
+                        {statusBadge.label}
                       </span>
                     </div>
                     <div class="grid grid-cols-2 gap-4 text-sm">

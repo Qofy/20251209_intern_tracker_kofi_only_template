@@ -477,30 +477,45 @@ export class Question {
 
 export class Application {
   static async list(params = {}) {
-    return apiClient.request('/api/applications', { 
-      method: 'GET', 
-      params 
-    });
+    if (isDemoMode()) {
+      return JSON.parse(localStorage.getItem('demo_applications') || '[]');
+    }
+    return apiClient.getApplications(params);
   }
 
   static async create(data) {
-    return apiClient.request('/api/applications', { 
-      method: 'POST', 
-      body: JSON.stringify(data) 
-    });
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_applications') || '[]');
+      const app = { ...data, id: `demo_app_${Date.now()}`, created_at: new Date().toISOString() };
+      demo.unshift(app);
+      localStorage.setItem('demo_applications', JSON.stringify(demo));
+      return app;
+    }
+    return apiClient.createApplication(data);
   }
 
   static async update(id, data) {
-    return apiClient.request(`/api/applications/${id}`, { 
-      method: 'PUT', 
-      body: JSON.stringify(data) 
-    });
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_applications') || '[]');
+      const idx = demo.findIndex(d => d.id === id);
+      if (idx !== -1) {
+        demo[idx] = { ...demo[idx], ...data, updated_at: new Date().toISOString() };
+        localStorage.setItem('demo_applications', JSON.stringify(demo));
+        return demo[idx];
+      }
+      throw new Error('Application not found');
+    }
+    return apiClient.updateApplication(id, data);
   }
 
   static async delete(id) {
-    return apiClient.request(`/api/applications/${id}`, { 
-      method: 'DELETE' 
-    });
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_applications') || '[]');
+      const filtered = demo.filter(d => d.id !== id);
+      localStorage.setItem('demo_applications', JSON.stringify(filtered));
+      return { success: true };
+    }
+    return apiClient.deleteApplication(id);
   }
 }
 

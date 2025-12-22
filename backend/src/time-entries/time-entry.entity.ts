@@ -47,6 +47,9 @@ export class TimeEntry {
   @Column({ nullable: true })
   company_id: number;
 
+  @Column({ type: 'json', nullable: true })
+  proof_files: string[];
+
   @CreateDateColumn()
   created_at: Date;
 

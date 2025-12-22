@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  import { User, Student, Task, TimeEntry, Project, Message, Contract, Vacancy } from '../../entities/all';
+  import { User, Student, Task, TimeEntry, Project, Message, Contract, Vacancy, Application } from '../../entities/all';
   import { ContractWorkflowService } from '../services/contractWorkflow.js';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
@@ -32,6 +32,7 @@
   let allTasks = [];
   let allTimeEntries = [];
   let allProjects = [];
+  let allApplications = [];
   let isLoading = false;
   let searchQuery = '';
   // Track which tenant/user scope we've loaded data for to avoid unnecessary reloads
@@ -309,6 +310,7 @@
       allTimeEntries = currentCompanyKey ? await TimeEntry.list(companyFilter) : await TimeEntry.list();
       allProjects = currentCompanyKey ? await Project.list(companyFilter) : await Project.list();
       allContracts = currentCompanyKey ? await Contract.list(companyFilter) : await Contract.list();
+      allApplications = currentCompanyKey ? await Application.list(companyFilter) : await Application.list();
 
       // CLIENT-SIDE FILTERING: Ensure only company data is shown (backend may not filter)
       if (currentCompanyKey) {
@@ -328,6 +330,7 @@
         allTasks = allTasks.filter(belongsToMyCompany);
         allTimeEntries = allTimeEntries.filter(belongsToMyCompany);
         allProjects = allProjects.filter(belongsToMyCompany);
+        allApplications = allApplications.filter(belongsToMyCompany);
 
         // Enhanced contract filtering: check contract's company OR student's company
         allContracts = allContracts.filter(contract => {
@@ -819,6 +822,72 @@
     } catch (error) {
       console.error('Error rejecting contract:', error);
       alert('Failed to reject contract: ' + error.message);
+    }
+  }
+
+  // Application management functions
+  async function approveApplication(applicationId, mentorEmail) {
+    if (!mentorEmail) {
+      alert('Please assign a mentor before approving the application.');
+      return;
+    }
+
+    try {
+      const application = allApplications.find(a => a.id === applicationId);
+      if (!application) {
+        alert('Application not found');
+        return;
+      }
+
+      // Create student record from application
+      const studentData = {
+        student_email: application.applicant_email,
+        full_name: application.student_data?.full_name || application.applicant_email,
+        mentor_email: mentorEmail,
+        contract_hours: 600,
+        start_date: new Date().toISOString().split('T')[0],
+        status: 'active',
+        company_id: user?.companyId || user?.company_id,
+        companyKey: user?.companyKey || user?.company_key
+      };
+
+      const newStudent = await Student.create(studentData);
+      console.log('[Admin] Created student from application:', newStudent);
+
+      // Update application status
+      await Application.update(applicationId, {
+        status: 'approved',
+        assigned_mentor_email: mentorEmail,
+        approved_by: user?.email,
+        approval_notes: `Approved and assigned to ${mentorEmail}`
+      });
+
+      alert(`Application approved! Student ${application.applicant_email} has been created and assigned to ${mentorEmail}.`);
+      await loadData();
+    } catch (error) {
+      console.error('[Admin] Error approving application:', error);
+      alert('Failed to approve application: ' + error.message);
+    }
+  }
+
+  async function rejectApplication(applicationId, reason) {
+    if (!reason) {
+      reason = prompt('Please provide a reason for rejecting this application:');
+      if (!reason) return;
+    }
+
+    try {
+      await Application.update(applicationId, {
+        status: 'rejected',
+        approved_by: user?.email,
+        approval_notes: reason
+      });
+
+      alert('Application rejected successfully.');
+      await loadData();
+    } catch (error) {
+      console.error('[Admin] Error rejecting application:', error);
+      alert('Failed to reject application: ' + error.message);
     }
   }
 
@@ -1894,20 +1963,101 @@ Status: ${contract.status}
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">Applications & Contract Approvals</h2>
         <div class="flex gap-2">
-          <span class="px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-400 font-semibold">
-            {allContracts.filter(c => c.status === 'pending_approval').length} Pending Applications
+          <span class="px-4 py-2 rounded-lg bg-blue-500/20 text-blue-400 font-semibold">
+            {allApplications.filter(a => a.status === 'submitted').length} Job Applications
           </span>
-          <span class="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-400 font-semibold">
-            {allContracts.filter(c => c.status === 'pending_approval').length} To Review
+          <span class="px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-400 font-semibold">
+            {allContracts.filter(c => c.status === 'pending_approval').length} Pending Contracts
           </span>
           <span class="px-4 py-2 rounded-lg bg-green-500/20 text-green-400 font-semibold">
             {allContracts.filter(c => c.status === 'admin_approved').length} Approved
           </span>
-          <span class="px-4 py-2 rounded-lg bg-red-500/20 text-red-400 font-semibold">
-            {allContracts.filter(c => c.status === 'admin_rejected').length} Rejected
-          </span>
         </div>
       </div>
+
+      <!-- Job Applications Section -->
+      {#if allApplications.filter(a => a.status === 'submitted').length > 0}
+        <div class="mb-8">
+          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <Users class="w-5 h-5 text-blue-400" />
+            Job Applications
+          </h3>
+          <div class="space-y-4">
+            {#each allApplications.filter(a => a.status === 'submitted') as application}
+              <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
+                <div class="flex items-start justify-between mb-4">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-2">
+                      <h4 class="text-white font-bold text-lg">{application.student_data?.full_name || application.applicant_email}</h4>
+                      <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400">
+                        New Application
+                      </span>
+                    </div>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                      <div>
+                        <p class="text-white/60">Email</p>
+                        <p class="text-white font-medium">{application.applicant_email}</p>
+                      </div>
+                      <div>
+                        <p class="text-white/60">Applied For</p>
+                        <p class="text-white font-medium">{application.vacancy_title || 'Position'}</p>
+                      </div>
+                      <div>
+                        <p class="text-white/60">Applied On</p>
+                        <p class="text-white font-medium">{new Date(application.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+
+                    {#if application.documents?.cv}
+                      <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                        <p class="text-white/70 text-sm">CV Attached</p>
+                        <a href={application.documents.cv} target="_blank" class="text-blue-400 hover:text-blue-300 text-sm underline">View CV</a>
+                      </div>
+                    {/if}
+                  </div>
+                </div>
+
+                <!-- Mentor Assignment & Approval -->
+                <div class="border-t border-blue-500/30 pt-4">
+                  <h5 class="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+                    <UserCheck class="w-4 h-4" />
+                    Approve & Assign Mentor
+                  </h5>
+                  <div class="mb-4">
+                    <label class="text-white/70 text-sm block mb-2">Assign Mentor</label>
+                    <select
+                      bind:value={application.selectedMentor}
+                      class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
+                    >
+                      <option value="">-- Select Mentor --</option>
+                      {#each allMentors as mentor}
+                        <option value={mentor.email}>{mentor.full_name || mentor.name || mentor.email}</option>
+                      {/each}
+                    </select>
+                  </div>
+                  <div class="flex gap-3">
+                    <Button
+                      on:click={() => approveApplication(application.id, application.selectedMentor)}
+                      disabled={!application.selectedMentor}
+                      class="bg-green-500 hover:bg-green-600 text-white h-10 px-4 flex items-center rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <CheckCircle class="w-4 h-4 mr-2" />
+                      Approve & Create Student
+                    </Button>
+                    <Button
+                      on:click={() => rejectApplication(application.id, null)}
+                      class="bg-red-500 hover:bg-red-600 text-white h-10 px-4 flex items-center rounded-md"
+                    >
+                      <XCircle class="w-4 h-4 mr-2" />
+                      Reject
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
 
       <!-- Contract Approvals Section -->
       {#if allContracts.filter(c => c.status === 'pending_approval').length > 0}

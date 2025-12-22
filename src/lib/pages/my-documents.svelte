@@ -109,7 +109,8 @@
           </div>
           <div>
             <label class="text-white/80 mb-2 block">File</label>
-            <Input type="file" on:change={handleFileChange} class="bg-white/10 border-white/20 text-white file:text-white/70" />
+            <Input type="file" accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.zip,.tar,.tar.gz,.rar" on:change={handleFileChange} class="bg-white/10 border-white/20 text-white file:text-white/70" />
+            <p class="text-white/50 text-xs mt-1">PDF, images, documents, zip, tar files accepted</p>
           </div>
           <Button on:click={handleUpload} disabled={isUploading} class="w-full bg-emerald-500 hover:bg-emerald-600">
             <Upload class="w-4 h-4 mr-2" />

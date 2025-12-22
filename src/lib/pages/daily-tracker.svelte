@@ -327,7 +327,7 @@
             <input
               type="file"
               multiple
-              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+              accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.zip,.tar,.tar.gz,.rar"
               on:change={handleFileUpload}
               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               disabled={uploadingFiles || timeEntry.tracking_ended}
@@ -338,7 +338,7 @@
                 {uploadingFiles ? "Uploading..." : timeEntry.tracking_ended ? "Upload disabled (day ended)" : "Click to upload proof files"}
               </p>
               <p class="text-white/50 text-sm mt-1">
-                PDF, images, documents accepted
+                PDF, images, documents, zip, tar files accepted
               </p>
             </div>
           </div>

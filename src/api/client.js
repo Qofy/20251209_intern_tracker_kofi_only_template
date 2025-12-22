@@ -421,6 +421,36 @@ class ApiClient {
     });
   }
 
+  // Application methods
+  async getApplications(filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/api/applications${query ? `?${query}` : ''}`);
+  }
+
+  async getApplication(id) {
+    return this.request(`/api/applications/${id}`);
+  }
+
+  async createApplication(applicationData) {
+    return this.request('/api/applications', {
+      method: 'POST',
+      body: JSON.stringify(applicationData),
+    });
+  }
+
+  async updateApplication(id, applicationData) {
+    return this.request(`/api/applications/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(applicationData),
+    });
+  }
+
+  async deleteApplication(id) {
+    return this.request(`/api/applications/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Message methods
   async sendMessage(messageData) {
     return this.request('/api/messages', {
