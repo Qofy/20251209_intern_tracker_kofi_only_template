@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { Task, TimeEntry, Student, Schedule, Message, User } from '../../entities/all';
+  import { Task, TimeEntry, Student, Schedule, Message, User, Contract } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
@@ -32,6 +32,7 @@
   let myFeedback = [];
   let mentorInfo = null;
   let messages = [];
+  let myContract = null;
   let isLoading = false;
   let isLoadingMessages = false;
   // Prevent repeated full reloads when navigating tabs — track which user we've loaded for
@@ -119,12 +120,16 @@
 
   $: if (mySubmissions) {
     stats.pendingSubmissions = mySubmissions.filter(s => s.status === 'draft').length;
-    stats.approvedHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.approved_hours) || 0), 0);
+    // Calculate approved hours from entries with status 'approved' using their manually_inputted_hours
+    stats.approvedHours = mySubmissions
+      .filter(e => e.status === 'approved')
+      .reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || parseFloat(e.approved_hours) || 0), 0);
     stats.totalHours = mySubmissions.reduce((sum, e) => sum + (parseFloat(e.manually_inputted_hours) || 0), 0);
   }
 
-  $: if (selectedStudent) {
-    stats.contractHours = selectedStudent?.contract_hours || 600;
+  $: if (selectedStudent || myContract) {
+    // Use contract hours from the actual contract if available, otherwise from student record
+    stats.contractHours = myContract?.contract_hours || selectedStudent?.contract_hours || 600;
     stats.completionPercentage = Math.min(100, Math.round((stats.approvedHours / stats.contractHours) * 100));
   }
 
@@ -231,10 +236,18 @@
           ...studentRecord,
           mentor_email: mentorInfo.email
         };
-        
+
         // Update the userStore using the proper method
         userStore.setSelectedStudent(selectedStudent);
       }
+
+      // Load the student's contract to get actual contract hours
+      const allContracts = await Contract.list();
+      myContract = allContracts.find(c =>
+        c.student_email === user?.email &&
+        (c.status === 'admin_approved' || c.status === 'mentor_approved')
+      );
+      console.log('[Student Dashboard] Contract found:', myContract);
 
       // Load tasks assigned to this student using student_id
       const allTasks = await Task.list();

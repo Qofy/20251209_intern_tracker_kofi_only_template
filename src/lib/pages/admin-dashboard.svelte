@@ -419,11 +419,35 @@
       adminMessages = await Message.getAdminMessages();
       adminReports = await Message.getAdminReports();
 
+      console.log('[Admin Dashboard] Raw admin messages before filter:', adminMessages.length);
+      console.log('[Admin Dashboard] Raw admin reports before filter:', adminReports.length);
+      console.log('[Admin Dashboard] All raw reports:', adminReports);
+
       // Filter messages and reports by company
       const currentCompanyKey = user?.companyKey || user?.company_key || user?.companyId || user?.company_id;
+      console.log('[Admin Dashboard] Current company key for filtering:', currentCompanyKey);
+      console.log('[Admin Dashboard] User object:', user);
+
       if (currentCompanyKey) {
-        adminMessages = adminMessages.filter(belongsToMyCompany);
-        adminReports = adminReports.filter(belongsToMyCompany);
+        console.log('[Admin Dashboard] Filtering messages and reports by company...');
+        // For messages: include if belongs to company OR is to/from current user
+        adminMessages = adminMessages.filter((msg, idx) => {
+          const belongs = belongsToMyCompany(msg);
+          const isDirectMessage = msg.to_email === user?.email || msg.from_email === user?.email;
+          if (!belongs && !isDirectMessage && idx < 5) {
+            console.log('[Admin Dashboard] Message filtered out:', msg, 'company_id:', msg.company_id || msg.companyId, 'companyKey:', msg.companyKey || msg.company_key);
+          }
+          return belongs || isDirectMessage;
+        });
+        // For reports: include if belongs to company OR is to/from current user
+        adminReports = adminReports.filter((report, idx) => {
+          const belongs = belongsToMyCompany(report);
+          const isDirectReport = report.to_email === user?.email || report.from_email === user?.email;
+          if (!belongs && !isDirectReport) {
+            console.log('[Admin Dashboard] Report filtered out:', report, 'company_id:', report.company_id || report.companyId, 'companyKey:', report.companyKey || report.company_key);
+          }
+          return belongs || isDirectReport;
+        });
       }
 
       console.log('[Admin Dashboard] Loaded admin messages:', adminMessages.length);
@@ -1082,7 +1106,7 @@ Status: ${contract.status}
     <div class="bg-white/10 backdrop-blur-md rounded-xl border border-white/20 p-6">
       <div class="flex items-center justify-between mb-2">
         <Clock class="w-8 h-8 text-yellow-400" />
-        <span class="text-3xl font-bold text-white">{stats.pendingApprovals}</span>
+        <span class="text-3xl font-bold text-white">{allContracts.filter(c => c.status === 'pending_approval').length}</span>
       </div>
       <p class="text-white/70 text-sm">Pending Approvals</p>
     </div>
@@ -1368,7 +1392,7 @@ Status: ${contract.status}
     {:else if activeTab === 'reports'}
       <!-- Reports & Analytics -->
       <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-white">Reports & Analytics</h2>
+        <h2 class="text-2xl font-bold text-white">Report & Analytics</h2>
         <Button class="bg-blue-500 hover:bg-blue-600 text-white flex h-10 items-center rounded-md px-2">
           <FileText class="w-4 h-4 mr-2" />
           Generate Report
@@ -1395,6 +1419,39 @@ Status: ${contract.status}
             Based on {allStudents.filter(s => s.contract_hours > 0).length} active interns
           </p>
         </div>
+      </div>
+
+      <!-- Messages from Mentors Section -->
+      <div class="bg-white/5 rounded-xl border border-white/20 p-6 mb-6">
+        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
+          <Mail class="w-5 h-5" />
+          Messages ({adminMessages.filter(m => m.message_type !== 'report').length})
+        </h3>
+        {#if adminMessages.filter(m => m.message_type !== 'report').length > 0}
+          <div class="space-y-3 max-h-96 overflow-y-auto">
+            {#each adminMessages.filter(m => m.message_type !== 'report') as message}
+              <div class="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all">
+                <div class="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 class="text-white font-semibold">{message.subject}</h4>
+                    <p class="text-white/60 text-sm">
+                      From: {message.from_email} ({message.from_role}) •
+                      {new Date(message.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div class="flex gap-2">
+                    {#if !message.is_read}
+                      <span class="bg-blue-500 text-white text-xs px-2 py-1 rounded">New</span>
+                    {/if}
+                  </div>
+                </div>
+                <p class="text-white/70 text-sm whitespace-pre-wrap">{message.content}</p>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="text-white/60 text-center py-8">No messages received yet.</p>
+        {/if}
       </div>
 
       <!-- Mentor Reports Section -->
@@ -1838,7 +1895,7 @@ Status: ${contract.status}
         <h2 class="text-2xl font-bold text-white">Applications & Contract Approvals</h2>
         <div class="flex gap-2">
           <span class="px-4 py-2 rounded-lg bg-yellow-500/20 text-yellow-400 font-semibold">
-            5 Pending Applications
+            {allContracts.filter(c => c.status === 'pending_approval').length} Pending Applications
           </span>
           <span class="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-400 font-semibold">
             {allContracts.filter(c => c.status === 'pending_approval').length} To Review
