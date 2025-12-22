@@ -98,7 +98,7 @@
   .vacancy-card { @apply bg-white/5 p-4 rounded-lg; }
 </style>
 
-<div class="container mx-auto p-6">
+<div class="container mx-auto p-6 min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 w-full text-white">
   <h1 class="text-3xl font-bold mb-4">Available Jobs</h1>
 
   {#if loading}
