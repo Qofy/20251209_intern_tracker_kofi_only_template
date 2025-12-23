@@ -359,6 +359,8 @@
       allProjects = currentCompanyKey ? await Project.list(companyFilter) : await Project.list();
       allContracts = currentCompanyKey ? await Contract.list(companyFilter) : await Contract.list();
       allApplications = currentCompanyKey ? await Application.list(companyFilter) : await Application.list();
+      console.log('[Admin Dashboard] Loaded applications:', allApplications.length);
+      console.log('[Admin Dashboard] Application details:', allApplications);
 
       // CLIENT-SIDE FILTERING: Ensure only company data is shown (backend may not filter)
       if (currentCompanyKey) {
@@ -2024,12 +2026,16 @@ Status: ${contract.status}
       </div>
 
       <!-- Job Applications Section -->
-      {#if allApplications.filter(a => a.status === 'submitted').length > 0}
-        <div class="mb-8">
-          <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <Users class="w-5 h-5 text-blue-400" />
-            Job Applications
-          </h3>
+      <div class="mb-8">
+        <h3 class="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Users class="w-5 h-5 text-blue-400" />
+          Job Applications
+          <span class="ml-2 px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400">
+            {allApplications.filter(a => a.status === 'submitted').length} Pending
+          </span>
+        </h3>
+
+        {#if allApplications.filter(a => a.status === 'submitted').length > 0}
           <div class="space-y-4">
             {#each allApplications.filter(a => a.status === 'submitted') as application}
               <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
@@ -2104,8 +2110,14 @@ Status: ${contract.status}
               </div>
             {/each}
           </div>
-        </div>
-      {/if}
+        {:else}
+          <div class="bg-white/5 rounded-xl border border-white/20 p-8 text-center">
+            <Users class="w-12 h-12 text-white/30 mx-auto mb-3" />
+            <p class="text-white/60 text-lg mb-2">No Pending Applications</p>
+            <p class="text-white/40 text-sm">Job applications will appear here when candidates apply through the public vacancies page.</p>
+          </div>
+        {/if}
+      </div>
 
       <!-- Contract Approvals Section -->
       {#if allContracts.filter(c => c.status === 'pending_approval').length > 0}

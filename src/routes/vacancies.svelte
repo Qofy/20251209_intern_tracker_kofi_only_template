@@ -100,12 +100,22 @@
         student_data: { full_name: form.full_name, email: form.email },
         documents: { cv: form.documents.cv },
         vacancy_id: selectedVacancy.id,
-        vacancy_title: selectedVacancy.title || selectedVacancy.name
+        vacancy_title: selectedVacancy.title || selectedVacancy.name,
+        cover_letter: form.cover_letter,
+        company_id: selectedVacancy.company_id
       };
 
+      console.log('[Vacancies] Submitting application:', payload);
       await Application.create(payload);
-      alert('Application submitted. Thank you!');
+      alert('Application submitted successfully! You will be notified once reviewed.');
       showApplyModal = false;
+      // Reset form
+      form = {
+        full_name: '',
+        email: '',
+        cover_letter: '',
+        documents: { cv: '' }
+      };
     } catch (err) {
       console.error('Failed to submit application:', err);
       alert('Failed to submit application. Please try again.');
