@@ -35,6 +35,7 @@
   let allApplications = [];
   let isLoading = false;
   let searchQuery = '';
+  let applicationsFilter = 'all'; // 'all', 'pending', 'approved', 'rejected'
   // Track which tenant/user scope we've loaded data for to avoid unnecessary reloads
   let _loadedForScope = null;
 
@@ -876,12 +877,7 @@
   }
 
   // Application management functions
-  async function approveApplication(applicationId, mentorEmail) {
-    if (!mentorEmail) {
-      alert('Please assign a mentor before approving the application.');
-      return;
-    }
-
+  async function approveApplication(applicationId) {
     try {
       const application = allApplications.find(a => a.id === applicationId);
       if (!application) {
@@ -889,30 +885,40 @@
         return;
       }
 
-      // Create student record from application
-      const studentData = {
-        student_email: application.applicant_email,
-        full_name: application.student_data?.full_name || application.applicant_email,
-        mentor_email: mentorEmail,
-        contract_hours: 600,
-        start_date: new Date().toISOString().split('T')[0],
-        status: 'active',
-        company_id: user?.companyId || user?.company_id,
-        companyKey: user?.companyKey || user?.company_key
-      };
-
-      const newStudent = await Student.create(studentData);
-      console.log('[Admin] Created student from application:', newStudent);
+      const companyKey = user?.companyKey || user?.company_key;
+      if (!companyKey) {
+        alert('Company key not found. Cannot approve application.');
+        return;
+      }
 
       // Update application status
       await Application.update(applicationId, {
         status: 'approved',
-        assigned_mentor_email: mentorEmail,
         approved_by: user?.email,
-        approval_notes: `Approved and assigned to ${mentorEmail}`
+        approval_notes: `Application approved. Company key sent to applicant.`
       });
 
-      alert(`Application approved! Student ${application.applicant_email} has been created and assigned to ${mentorEmail}.`);
+      // Display the message that should be sent to applicant
+      const congratsMessage = `
+Congratulations ${application.student_data?.full_name || application.applicant_email}!
+
+Your application for ${application.vacancy_title} has been approved!
+
+To complete your onboarding, please register using the following company key:
+Company Key: ${companyKey}
+
+Please visit the registration page and use this company key to create your account.
+
+Welcome aboard!
+      `.trim();
+
+      alert(`Application approved!\n\nPlease send the following message to ${application.applicant_email}:\n\n${congratsMessage}`);
+
+      console.log('[Admin] Application approved. Send this message to applicant:', {
+        email: application.applicant_email,
+        message: congratsMessage
+      });
+
       await loadData();
     } catch (error) {
       console.error('[Admin] Error approving application:', error);
@@ -2035,87 +2041,376 @@ Status: ${contract.status}
           </span>
         </h3>
 
-        {#if allApplications.filter(a => a.status === 'submitted').length > 0}
-          <div class="space-y-4">
-            {#each allApplications.filter(a => a.status === 'submitted') as application}
-              <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
-                <div class="flex items-start justify-between mb-4">
-                  <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                      <h4 class="text-white font-bold text-lg">{application.student_data?.full_name || application.applicant_email}</h4>
-                      <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400">
-                        New Application
-                      </span>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
-                      <div>
-                        <p class="text-white/60">Email</p>
-                        <p class="text-white font-medium">{application.applicant_email}</p>
-                      </div>
-                      <div>
-                        <p class="text-white/60">Applied For</p>
-                        <p class="text-white font-medium">{application.vacancy_title || 'Position'}</p>
-                      </div>
-                      <div>
-                        <p class="text-white/60">Applied On</p>
-                        <p class="text-white font-medium">{new Date(application.created_at).toLocaleDateString()}</p>
-                      </div>
-                    </div>
+        <!-- Filter Tabs -->
+        <div class="flex gap-2 mb-4">
+          <button
+            on:click={() => applicationsFilter = 'all'}
+            class="px-4 py-2 rounded-lg font-medium transition-all {applicationsFilter === 'all' ? 'bg-blue-500 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}"
+          >
+            All ({allApplications.length})
+          </button>
+          <button
+            on:click={() => applicationsFilter = 'pending'}
+            class="px-4 py-2 rounded-lg font-medium transition-all {applicationsFilter === 'pending' ? 'bg-orange-500 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}"
+          >
+            Pending ({allApplications.filter(a => a.status === 'submitted').length})
+          </button>
+          <button
+            on:click={() => applicationsFilter = 'approved'}
+            class="px-4 py-2 rounded-lg font-medium transition-all {applicationsFilter === 'approved' ? 'bg-green-500 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}"
+          >
+            Approved ({allApplications.filter(a => a.status === 'approved').length})
+          </button>
+          <button
+            on:click={() => applicationsFilter = 'rejected'}
+            class="px-4 py-2 rounded-lg font-medium transition-all {applicationsFilter === 'rejected' ? 'bg-red-500 text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}"
+          >
+            Rejected ({allApplications.filter(a => a.status === 'rejected').length})
+          </button>
+        </div>
 
-                    {#if application.documents?.cv}
-                      <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
-                        <p class="text-white/70 text-sm">CV Attached</p>
-                        <a href={application.documents.cv} target="_blank" class="text-blue-400 hover:text-blue-300 text-sm underline">View CV</a>
+        {#if applicationsFilter === 'all'}
+          {@const filteredApplications = allApplications}
+          {#if filteredApplications.length > 0}
+            <div class="space-y-4">
+              {#each filteredApplications as application}
+                <div class="rounded-xl p-6 {application.status === 'approved' ? 'bg-green-500/10 border border-green-500/30' : application.status === 'rejected' ? 'bg-red-500/10 border border-red-500/30' : 'bg-blue-500/10 border border-blue-500/30'}">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <h4 class="text-white font-bold text-lg">{application.student_data?.full_name || application.applicant_email}</h4>
+                        {#if application.status === 'approved'}
+                          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
+                            Approved
+                          </span>
+                        {:else if application.status === 'rejected'}
+                          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">
+                            Rejected
+                          </span>
+                        {:else}
+                          <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400">
+                            New Application
+                          </span>
+                        {/if}
+                      </div>
+                      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                        <div>
+                          <p class="text-white/60">Email</p>
+                          <p class="text-white font-medium">{application.applicant_email}</p>
+                        </div>
+                        <div>
+                          <p class="text-white/60">Applied For</p>
+                          <p class="text-white font-medium">{application.vacancy_title || 'Position'}</p>
+                        </div>
+                        <div>
+                          <p class="text-white/60">Applied On</p>
+                          <p class="text-white font-medium">{new Date(application.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+
+                      {#if application.documents?.cv}
+                        <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                          <p class="text-white/70 text-sm">CV Attached</p>
+                          <a href={application.documents.cv} target="_blank" class="text-blue-400 hover:text-blue-300 text-sm underline">View CV</a>
+                        </div>
+                      {/if}
+
+                      {#if application.cover_letter}
+                        <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                          <p class="text-white/70 text-sm mb-2">Cover Letter</p>
+                          <p class="text-white/90 text-sm whitespace-pre-wrap">{application.cover_letter}</p>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+
+                  {#if application.status === 'submitted'}
+                    <!-- Application Approval (Only for Pending) -->
+                    <div class="border-t border-blue-500/30 pt-4">
+                      <h5 class="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+                        <UserCheck class="w-4 h-4" />
+                        Application Decision
+                      </h5>
+                      <p class="text-white/70 text-sm mb-4">
+                        Approving will send a congratulatory message with the company key to the applicant's email, allowing them to register.
+                      </p>
+                      <div class="flex gap-3">
+                        <Button
+                          on:click={() => approveApplication(application.id)}
+                          class="bg-green-500 hover:bg-green-600 text-white h-10 px-4 flex items-center rounded-md"
+                        >
+                          <CheckCircle class="w-4 h-4 mr-2" />
+                          Approve & Send Company Key
+                        </Button>
+                        <Button
+                          on:click={() => rejectApplication(application.id, null)}
+                          class="bg-red-500 hover:bg-red-600 text-white h-10 px-4 flex items-center rounded-md"
+                        >
+                          <XCircle class="w-4 h-4 mr-2" />
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  {:else}
+                    <!-- Application Outcome (For Approved/Rejected) -->
+                    <div class="border-t {application.status === 'approved' ? 'border-green-500/30' : 'border-red-500/30'} pt-4">
+                      <div class="grid grid-cols-2 gap-4 text-sm">
+                        {#if application.approved_by}
+                          <div>
+                            <p class="text-white/60">{application.status === 'approved' ? 'Approved By' : 'Rejected By'}</p>
+                            <p class="text-white font-medium">{application.approved_by}</p>
+                          </div>
+                        {/if}
+                        {#if application.updated_at}
+                          <div>
+                            <p class="text-white/60">Decision Date</p>
+                            <p class="text-white font-medium">{new Date(application.updated_at).toLocaleDateString()}</p>
+                          </div>
+                        {/if}
+                      </div>
+                      {#if application.approval_notes}
+                        <div class="mt-3 p-3 bg-white/5 border border-white/20 rounded-lg">
+                          <p class="text-white/70 text-sm mb-1">Notes</p>
+                          <p class="text-white/90 text-sm">{application.approval_notes}</p>
+                        </div>
+                      {/if}
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <div class="bg-white/5 rounded-xl border border-white/20 p-8 text-center">
+              <Users class="w-12 h-12 text-white/30 mx-auto mb-3" />
+              <p class="text-white/60 text-lg mb-2">No Applications Yet</p>
+              <p class="text-white/40 text-sm">Job applications will appear here when candidates apply through the public vacancies page.</p>
+            </div>
+          {/if}
+        {:else if applicationsFilter === 'pending'}
+          {@const filteredApplications = allApplications.filter(a => a.status === 'submitted')}
+          {#if filteredApplications.length > 0}
+            <div class="space-y-4">
+              {#each filteredApplications as application}
+                <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <h4 class="text-white font-bold text-lg">{application.student_data?.full_name || application.applicant_email}</h4>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-blue-500/20 text-blue-400">
+                          New Application
+                        </span>
+                      </div>
+                      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                        <div>
+                          <p class="text-white/60">Email</p>
+                          <p class="text-white font-medium">{application.applicant_email}</p>
+                        </div>
+                        <div>
+                          <p class="text-white/60">Applied For</p>
+                          <p class="text-white font-medium">{application.vacancy_title || 'Position'}</p>
+                        </div>
+                        <div>
+                          <p class="text-white/60">Applied On</p>
+                          <p class="text-white font-medium">{new Date(application.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      {#if application.documents?.cv}
+                        <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                          <p class="text-white/70 text-sm">CV Attached</p>
+                          <a href={application.documents.cv} target="_blank" class="text-blue-400 hover:text-blue-300 text-sm underline">View CV</a>
+                        </div>
+                      {/if}
+                      {#if application.cover_letter}
+                        <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                          <p class="text-white/70 text-sm mb-2">Cover Letter</p>
+                          <p class="text-white/90 text-sm whitespace-pre-wrap">{application.cover_letter}</p>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+                  <div class="border-t border-blue-500/30 pt-4">
+                    <h5 class="text-blue-400 font-semibold mb-3 flex items-center gap-2">
+                      <UserCheck class="w-4 h-4" />
+                      Application Decision
+                    </h5>
+                    <p class="text-white/70 text-sm mb-4">
+                      Approving will send a congratulatory message with the company key to the applicant's email, allowing them to register.
+                    </p>
+                    <div class="flex gap-3">
+                      <Button
+                        on:click={() => approveApplication(application.id)}
+                        class="bg-green-500 hover:bg-green-600 text-white h-10 px-4 flex items-center rounded-md"
+                      >
+                        <CheckCircle class="w-4 h-4 mr-2" />
+                        Approve & Send Company Key
+                      </Button>
+                      <Button
+                        on:click={() => rejectApplication(application.id, null)}
+                        class="bg-red-500 hover:bg-red-600 text-white h-10 px-4 flex items-center rounded-md"
+                      >
+                        <XCircle class="w-4 h-4 mr-2" />
+                        Reject
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <div class="bg-white/5 rounded-xl border border-white/20 p-8 text-center">
+              <Users class="w-12 h-12 text-white/30 mx-auto mb-3" />
+              <p class="text-white/60 text-lg mb-2">No Pending Applications</p>
+              <p class="text-white/40 text-sm">Job applications will appear here when candidates apply through the public vacancies page.</p>
+            </div>
+          {/if}
+        {:else if applicationsFilter === 'approved'}
+          {@const filteredApplications = allApplications.filter(a => a.status === 'approved')}
+          {#if filteredApplications.length > 0}
+            <div class="space-y-4">
+              {#each filteredApplications as application}
+                <div class="bg-green-500/10 border border-green-500/30 rounded-xl p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <h4 class="text-white font-bold text-lg">{application.student_data?.full_name || application.applicant_email}</h4>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
+                          Approved
+                        </span>
+                      </div>
+                      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                        <div>
+                          <p class="text-white/60">Email</p>
+                          <p class="text-white font-medium">{application.applicant_email}</p>
+                        </div>
+                        <div>
+                          <p class="text-white/60">Applied For</p>
+                          <p class="text-white font-medium">{application.vacancy_title || 'Position'}</p>
+                        </div>
+                        <div>
+                          <p class="text-white/60">Applied On</p>
+                          <p class="text-white font-medium">{new Date(application.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      {#if application.documents?.cv}
+                        <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                          <p class="text-white/70 text-sm">CV Attached</p>
+                          <a href={application.documents.cv} target="_blank" class="text-blue-400 hover:text-blue-300 text-sm underline">View CV</a>
+                        </div>
+                      {/if}
+                      {#if application.cover_letter}
+                        <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                          <p class="text-white/70 text-sm mb-2">Cover Letter</p>
+                          <p class="text-white/90 text-sm whitespace-pre-wrap">{application.cover_letter}</p>
+                        </div>
+                      {/if}
+                    </div>
+                  </div>
+                  <div class="border-t border-green-500/30 pt-4">
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                      {#if application.approved_by}
+                        <div>
+                          <p class="text-white/60">Approved By</p>
+                          <p class="text-white font-medium">{application.approved_by}</p>
+                        </div>
+                      {/if}
+                      {#if application.updated_at}
+                        <div>
+                          <p class="text-white/60">Decision Date</p>
+                          <p class="text-white font-medium">{new Date(application.updated_at).toLocaleDateString()}</p>
+                        </div>
+                      {/if}
+                    </div>
+                    {#if application.approval_notes}
+                      <div class="mt-3 p-3 bg-white/5 border border-white/20 rounded-lg">
+                        <p class="text-white/70 text-sm mb-1">Notes</p>
+                        <p class="text-white/90 text-sm">{application.approval_notes}</p>
                       </div>
                     {/if}
                   </div>
                 </div>
-
-                <!-- Mentor Assignment & Approval -->
-                <div class="border-t border-blue-500/30 pt-4">
-                  <h5 class="text-blue-400 font-semibold mb-3 flex items-center gap-2">
-                    <UserCheck class="w-4 h-4" />
-                    Approve & Assign Mentor
-                  </h5>
-                  <div class="mb-4">
-                    <label class="text-white/70 text-sm block mb-2">Assign Mentor</label>
-                    <select
-                      bind:value={application.selectedMentor}
-                      class="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white"
-                    >
-                      <option value="">-- Select Mentor --</option>
-                      {#each allMentors as mentor}
-                        <option value={mentor.email}>{mentor.full_name || mentor.name || mentor.email}</option>
-                      {/each}
-                    </select>
+              {/each}
+            </div>
+          {:else}
+            <div class="bg-white/5 rounded-xl border border-white/20 p-8 text-center">
+              <Users class="w-12 h-12 text-white/30 mx-auto mb-3" />
+              <p class="text-white/60 text-lg mb-2">No Approved Applications</p>
+              <p class="text-white/40 text-sm">Approved applications will appear here for future reference.</p>
+            </div>
+          {/if}
+        {:else}
+          {@const filteredApplications = allApplications.filter(a => a.status === 'rejected')}
+          {#if filteredApplications.length > 0}
+            <div class="space-y-4">
+              {#each filteredApplications as application}
+                <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-3 mb-2">
+                        <h4 class="text-white font-bold text-lg">{application.student_data?.full_name || application.applicant_email}</h4>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-red-500/20 text-red-400">
+                          Rejected
+                        </span>
+                      </div>
+                      <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+                        <div>
+                          <p class="text-white/60">Email</p>
+                          <p class="text-white font-medium">{application.applicant_email}</p>
+                        </div>
+                        <div>
+                          <p class="text-white/60">Applied For</p>
+                          <p class="text-white font-medium">{application.vacancy_title || 'Position'}</p>
+                        </div>
+                        <div>
+                          <p class="text-white/60">Applied On</p>
+                          <p class="text-white font-medium">{new Date(application.created_at).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      {#if application.documents?.cv}
+                        <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                          <p class="text-white/70 text-sm">CV Attached</p>
+                          <a href={application.documents.cv} target="_blank" class="text-blue-400 hover:text-blue-300 text-sm underline">View CV</a>
+                        </div>
+                      {/if}
+                      {#if application.cover_letter}
+                        <div class="p-3 bg-white/5 border border-white/20 rounded-lg mb-3">
+                          <p class="text-white/70 text-sm mb-2">Cover Letter</p>
+                          <p class="text-white/90 text-sm whitespace-pre-wrap">{application.cover_letter}</p>
+                        </div>
+                      {/if}
+                    </div>
                   </div>
-                  <div class="flex gap-3">
-                    <Button
-                      on:click={() => approveApplication(application.id, application.selectedMentor)}
-                      disabled={!application.selectedMentor}
-                      class="bg-green-500 hover:bg-green-600 text-white h-10 px-4 flex items-center rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <CheckCircle class="w-4 h-4 mr-2" />
-                      Approve & Create Student
-                    </Button>
-                    <Button
-                      on:click={() => rejectApplication(application.id, null)}
-                      class="bg-red-500 hover:bg-red-600 text-white h-10 px-4 flex items-center rounded-md"
-                    >
-                      <XCircle class="w-4 h-4 mr-2" />
-                      Reject
-                    </Button>
+                  <div class="border-t border-red-500/30 pt-4">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                      {#if application.approved_by}
+                        <div>
+                          <p class="text-white/60">Rejected By</p>
+                          <p class="text-white font-medium">{application.approved_by}</p>
+                        </div>
+                      {/if}
+                      {#if application.updated_at}
+                        <div>
+                          <p class="text-white/60">Decision Date</p>
+                          <p class="text-white font-medium">{new Date(application.updated_at).toLocaleDateString()}</p>
+                        </div>
+                      {/if}
+                    </div>
+                    {#if application.approval_notes}
+                      <div class="mt-3 p-3 bg-white/5 border border-white/20 rounded-lg">
+                        <p class="text-white/70 text-sm mb-1">Rejection Reason</p>
+                        <p class="text-white/90 text-sm">{application.approval_notes}</p>
+                      </div>
+                    {/if}
                   </div>
                 </div>
-              </div>
-            {/each}
-          </div>
-        {:else}
-          <div class="bg-white/5 rounded-xl border border-white/20 p-8 text-center">
-            <Users class="w-12 h-12 text-white/30 mx-auto mb-3" />
-            <p class="text-white/60 text-lg mb-2">No Pending Applications</p>
-            <p class="text-white/40 text-sm">Job applications will appear here when candidates apply through the public vacancies page.</p>
-          </div>
+              {/each}
+            </div>
+          {:else}
+            <div class="bg-white/5 rounded-xl border border-white/20 p-8 text-center">
+              <Users class="w-12 h-12 text-white/30 mx-auto mb-3" />
+              <p class="text-white/60 text-lg mb-2">No Rejected Applications</p>
+              <p class="text-white/40 text-sm">Rejected applications will appear here for future reference.</p>
+            </div>
+          {/if}
         {/if}
       </div>
 
@@ -2330,7 +2625,7 @@ Status: ${contract.status}
           <div class="flex items-center justify-between mb-3">
             <p class="text-white/70 text-sm">Manage public job postings for internships and roles.</p>
             <div class="flex gap-2">
-              <Button on:click={() => { showVacancyForm = !showVacancyForm; }} class="bg-green-500 hover:bg-green-600 text-white h-9 px-3">
+              <Button on:click={() => { showVacancyForm = !showVacancyForm; }} class="bg-green-500 hover:bg-green-600 text-white h-9 px-3 flex items-center rounded-md">
                 {showVacancyForm ? 'Close' : 'Post Vacancy'}
               </Button>
             </div>
@@ -2425,7 +2720,7 @@ Status: ${contract.status}
               <!-- Action Buttons -->
               <div class="flex gap-3 justify-end pt-4 border-t border-white/10">
                 <Button variant="ghost" on:click={() => { showVacancyForm = false; resetVacancyForm(); }} class="text-white/70 hover:text-white h-10 px-6">Cancel</Button>
-                <Button on:click={createVacancy} class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-6">Post Vacancy</Button>
+                <Button on:click={createVacancy} class="bg-blue-500 hover:bg-blue-600 text-white h-10 px-6 flex items-center rounded-md">Post Vacancy</Button>
               </div>
             </div>
           {/if}
