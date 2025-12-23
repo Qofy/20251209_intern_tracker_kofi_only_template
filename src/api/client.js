@@ -421,6 +421,36 @@ class ApiClient {
     });
   }
 
+  // Portfolio methods
+  async getPortfolios(filters = {}) {
+    const query = new URLSearchParams(filters).toString();
+    return this.request(`/api/portfolios${query ? `?${query}` : ''}`);
+  }
+
+  async getPortfolio(id) {
+    return this.request(`/api/portfolios/${id}`);
+  }
+
+  async createPortfolio(portfolioData) {
+    return this.request('/api/portfolios', {
+      method: 'POST',
+      body: JSON.stringify(portfolioData),
+    });
+  }
+
+  async updatePortfolio(id, portfolioData) {
+    return this.request(`/api/portfolios/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(portfolioData),
+    });
+  }
+
+  async deletePortfolio(id) {
+    return this.request(`/api/portfolios/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
   // Application methods
   async getApplications(filters = {}) {
     const query = new URLSearchParams(filters).toString();

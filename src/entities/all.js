@@ -563,6 +563,50 @@ export class Vacancy {
   }
 }
 
+export class Portfolio {
+  static async list(filters = {}) {
+    if (isDemoMode()) {
+      return JSON.parse(localStorage.getItem('demo_portfolios') || '[]');
+    }
+    return apiClient.getPortfolios(filters);
+  }
+
+  static async create(data) {
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_portfolios') || '[]');
+      const p = { ...data, id: `demo_port_${Date.now()}`, created_at: new Date().toISOString() };
+      demo.unshift(p);
+      localStorage.setItem('demo_portfolios', JSON.stringify(demo));
+      return p;
+    }
+    return apiClient.createPortfolio(data);
+  }
+
+  static async update(id, data) {
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_portfolios') || '[]');
+      const idx = demo.findIndex(d => d.id === id);
+      if (idx !== -1) {
+        demo[idx] = { ...demo[idx], ...data, updated_at: new Date().toISOString() };
+        localStorage.setItem('demo_portfolios', JSON.stringify(demo));
+        return demo[idx];
+      }
+      throw new Error('Portfolio not found');
+    }
+    return apiClient.updatePortfolio(id, data);
+  }
+
+  static async delete(id) {
+    if (isDemoMode()) {
+      const demo = JSON.parse(localStorage.getItem('demo_portfolios') || '[]');
+      const filtered = demo.filter(d => d.id !== id);
+      localStorage.setItem('demo_portfolios', JSON.stringify(filtered));
+      return { success: true };
+    }
+    return apiClient.deletePortfolio(id);
+  }
+}
+
 export class ContractTemplate {
   static async list(params = {}) {
     return apiClient.request('/api/contract-templates', {

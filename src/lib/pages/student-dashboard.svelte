@@ -1,6 +1,6 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { Task, TimeEntry, Student, Schedule, Message, User, Contract } from '../../entities/all';
+  import { Task, TimeEntry, Student, Schedule, Message, User, Contract, Portfolio } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import { UploadFile } from '$lib/integrations/Core';
   import Button from '$lib/components/ui/button.svelte';
@@ -33,11 +33,16 @@
   let myFeedback = [];
   let mentorInfo = null;
   let messages = [];
+  let portfolios = [];
   let myContract = null;
   let isLoading = false;
   let isLoadingMessages = false;
   let uploadingFiles = false;
   let uploadedFileUrls = [];
+  let showPortfolioModal = false;
+  let portfolioForm = { id: null, title: '', description: '', file_url: '' };
+  let isUploadingPortfolio = false;
+  let isSubmittingPortfolio = false;
   // Prevent repeated full reloads when navigating tabs — track which user we've loaded for
   let _loadedForEmail = null;
 
@@ -281,6 +286,16 @@
         s.student_email === user?.email ||
         s.assigned_to === user?.email
       );
+
+      // Load portfolio items for this student
+      try {
+        const allPortfolios = await Portfolio.list({ student_email: user?.email });
+        portfolios = Array.isArray(allPortfolios) ? allPortfolios : [];
+        console.log('[Student Dashboard] Portfolios loaded:', portfolios.length);
+      } catch (err) {
+        console.error('[Student Dashboard] Error loading portfolios:', err);
+        portfolios = [];
+      }
 
       // Load feedback from time entries that have mentor comments
       myFeedback = mySubmissions
@@ -858,6 +873,73 @@
       default: return 'bg-gray-500/20 text-gray-400';
     }
   }
+
+    // Portfolio helpers
+    function openPortfolioModal(item = null) {
+      if (item) {
+        portfolioForm = { id: item.id, title: item.title || '', description: item.description || '', file_url: item.file_url || '' };
+      } else {
+        portfolioForm = { id: null, title: '', description: '', file_url: '' };
+      }
+      showPortfolioModal = true;
+    }
+
+    async function handlePortfolioFileChange(e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      isUploadingPortfolio = true;
+      try {
+        const uploaded = await UploadFile({ file: f });
+        portfolioForm.file_url = uploaded.file_url;
+      } catch (err) {
+        console.error('Portfolio file upload failed', err);
+        alert('File upload failed');
+      } finally {
+        isUploadingPortfolio = false;
+      }
+    }
+
+    async function submitPortfolioItem() {
+      if (!portfolioForm.title || !portfolioForm.title.trim()) {
+        alert('Please provide a title for the portfolio item');
+        return;
+      }
+      isSubmittingPortfolio = true;
+      try {
+        const payload = {
+          title: portfolioForm.title,
+          description: portfolioForm.description,
+          file_url: portfolioForm.file_url,
+        };
+
+        if (portfolioForm.id) {
+          const updated = await Portfolio.update(portfolioForm.id, payload);
+          portfolios = portfolios.map(p => p.id === updated.id ? updated : p);
+        } else {
+          payload.student_email = user?.email;
+          const created = await Portfolio.create(payload);
+          portfolios = [created, ...portfolios];
+        }
+
+        showPortfolioModal = false;
+        portfolioForm = { id: null, title: '', description: '', file_url: '' };
+      } catch (err) {
+        console.error('Failed to save portfolio item:', err);
+        alert('Failed to save portfolio item');
+      }
+      isSubmittingPortfolio = false;
+    }
+
+    async function deletePortfolioItem(id) {
+      if (!confirm('Delete this portfolio item?')) return;
+      try {
+        await Portfolio.delete(id);
+        portfolios = portfolios.filter(p => p.id !== id);
+      } catch (err) {
+        console.error('Failed to delete portfolio item:', err);
+        alert('Failed to delete item');
+      }
+    }
 </script>
 
 <!-- Student Dashboard Content (embedded version) -->
@@ -1860,17 +1942,44 @@
 
       <!-- Portfolio Section -->
       <div class="mt-6 bg-white/5 rounded-xl border border-white/20 p-6">
-        <h3 class="text-white font-bold mb-4 flex items-center gap-2">
-          <Briefcase class="w-5 h-5 text-purple-400" />
-          My Portfolio
-        </h3>
-        <p class="text-white/70 text-sm mb-4">
-          Showcase your work, projects, and achievements during your internship.
-        </p>
-        <Button class="bg-purple-500 hover:bg-purple-600 text-white h-10 rounded-md px-2 flex items-center">
-          <Upload class="w-4 h-4 mr-2" />
-          Upload Portfolio Item
-        </Button>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <Briefcase class="w-5 h-5 text-purple-400" />
+            <h3 class="text-white font-bold">My Portfolio</h3>
+          </div>
+          <div>
+            <Button on:click={() => openPortfolioModal()} class="bg-purple-500 hover:bg-purple-600 text-white h-10 rounded-md px-2 flex items-center">
+              <Upload class="w-4 h-4 mr-2" />
+              Upload Portfolio Item
+            </Button>
+          </div>
+        </div>
+        <p class="text-white/70 text-sm mb-4">Showcase your work, projects, and achievements during your internship.</p>
+
+        {#if portfolios && portfolios.length}
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {#each portfolios as p}
+              <div class="bg-white/3 p-4 rounded">
+                <div class="flex justify-between items-start">
+                  <div>
+                    <h4 class="text-white font-semibold">{p.title}</h4>
+                    <p class="text-white/70 text-sm">{p.description}</p>
+                    {#if p.file_url}
+                      <a class="text-sm text-blue-300 underline mt-2 block" href={p.file_url} target="_blank" rel="noreferrer">View File</a>
+                    {/if}
+                    <div class="text-xs text-white/50 mt-2">{new Date(p.created_at).toLocaleString()}</div>
+                  </div>
+                  <div class="flex flex-col gap-2 ml-4">
+                    <Button on:click={() => openPortfolioModal(p)} class="bg-white/10 text-white h-8 px-2">Edit</Button>
+                    <Button on:click={() => deletePortfolioItem(p.id)} class="bg-red-600 text-white h-8 px-2">Delete</Button>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <div class="text-white/70">You have no portfolio items yet. Click <span class="font-semibold">Upload Portfolio Item</span> to add one.</div>
+        {/if}
       </div>
 <!-- 
     {:else if activeTab === 'resources'}
@@ -2325,6 +2434,47 @@
           >
             Cancel
           </Button>
+        </div>
+      </div>
+    </div>
+  </Dialog>
+{/if}
+
+<!-- Portfolio Modal -->
+{#if showPortfolioModal}
+  <Dialog bind:open={showPortfolioModal}>
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-2xl w-full">
+        <h2 class="text-2xl font-bold text-white mb-6">{portfolioForm.id ? 'Edit' : 'Upload'} Portfolio Item</h2>
+
+        <div class="space-y-4">
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Title</label>
+            <Input bind:value={portfolioForm.title} placeholder="Project title" class="w-full bg-white/5 border-white/20 text-white" />
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Description</label>
+            <textarea bind:value={portfolioForm.description} placeholder="Short description" class="w-full bg-white/5 border-white/20 rounded p-2 text-white min-h-[120px]"></textarea>
+          </div>
+
+          <div>
+            <label class="text-white/70 text-sm block mb-2">Attach File (optional)</label>
+            <input type="file" accept="application/pdf,image/*" on:change={handlePortfolioFileChange} class="text-white" />
+            {#if isUploadingPortfolio}
+              <p class="text-white/60 text-sm mt-2">Uploading file...</p>
+            {/if}
+            {#if portfolioForm.file_url}
+              <div class="mt-2 text-sm text-blue-300">Attached: <a href={portfolioForm.file_url} target="_blank" rel="noreferrer" class="underline">View</a></div>
+            {/if}
+          </div>
+        </div>
+
+        <div class="flex gap-3 mt-6">
+          <Button on:click={submitPortfolioItem} class="flex-1 bg-green-500 hover:bg-green-600 text-white h-10 rounded-md px-2 flex items-center justify-center">
+            {isSubmittingPortfolio ? 'Saving…' : 'Save'}
+          </Button>
+          <Button on:click={() => { showPortfolioModal = false; }} variant="ghost" class="text-white/70 hover:text-white">Cancel</Button>
         </div>
       </div>
     </div>

@@ -14,6 +14,7 @@ import { ProjectsModule } from './projects/projects.module';
 import { ContractsModule } from './contracts/contracts.module';
 import { VacanciesModule } from './vacancies/vacancies.module';
 import { ApplicationsModule } from './applications/applications.module';
+import { PortfoliosModule } from './portfolios/portfolios.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ApplicationsModule } from './applications/applications.module';
     ProjectsModule,
     ContractsModule,
     VacanciesModule,
+    PortfoliosModule,
     ApplicationsModule,
   ],
 })
