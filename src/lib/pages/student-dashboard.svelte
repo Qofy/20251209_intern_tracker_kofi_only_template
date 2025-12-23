@@ -1872,9 +1872,9 @@
           Upload Portfolio Item
         </Button>
       </div>
-
+<!-- 
     {:else if activeTab === 'resources'}
-      <!-- Learning Resources & Materials -->
+      <!-- Learning Resources & Materials --
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-2xl font-bold text-white">Learning Resources & Materials</h2>
       </div>
@@ -1909,7 +1909,7 @@
         </div>
       </div>
 
-      <!-- Resource Library -->
+      <!-- Resource Library --
       <div class="bg-white/5 rounded-xl border border-white/20 p-6">
         <h3 class="text-white font-bold mb-4">Resource Library</h3>
         <div class="space-y-3">
@@ -1946,7 +1946,7 @@
             <Download class="w-5 h-5 text-white/50" />
           </div>
         </div>
-      </div>
+      </div> -->
 
     {:else if activeTab === 'schedule'}
       <!-- Schedule & Milestones -->

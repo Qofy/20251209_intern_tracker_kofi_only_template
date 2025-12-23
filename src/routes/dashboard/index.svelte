@@ -582,14 +582,16 @@
             <User class="w-5 h-5"/>
             <span class="font-medium">My Profile</span>
           </a>
-          <a
+          
+          <!-- ###################it will be for an update version #############-->
+          <!-- <a
             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-resources' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
             href="/student/resources"
             on:click|preventDefault={() => setActiveView('student-resources')}
           >
             <BookOpen class="w-5 h-5"/>
             <span class="font-medium">Resources</span>
-          </a>
+          </a> -->
           <a
             class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 {activeView === 'student-schedule' ? 'bg-white/20 text-white border border-white/30 shadow-lg' : 'text-white/80 hover:bg-white/10 hover:text-white'}"
             href="/student/schedule"
