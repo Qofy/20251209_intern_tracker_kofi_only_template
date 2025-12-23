@@ -165,6 +165,19 @@
     loadStudentData();
   }
 
+  // Profile fields prefer contract values, then student record, then user
+  $: profileFullName = myContract?.student_name || selectedStudent?.full_name || user?.full_name || user?.name || '';
+  $: profileEmail = selectedStudent?.student_email || myContract?.student_email || user?.email || '';
+  $: profileDepartment = selectedStudent?.department || myContract?.work_area || 'Not specified';
+  $: profilePosition = selectedStudent?.position || (myContract?.work_description ? myContract.work_description : 'Intern');
+
+  // Internship details from contract when available
+  $: profileStartDate = myContract?.start_date || selectedStudent?.start_date || 'Not set';
+  $: profileEndDate = myContract?.end_date || selectedStudent?.end_date || 'Not set';
+  $: profileContractHours = myContract?.contract_hours || stats.contractHours || 600;
+  $: profileCompletedHours = stats.approvedHours || 0;
+  $: profileRemainingHours = Math.max(0, profileContractHours - profileCompletedHours);
+
   onDestroy(() => {
     // Clean up timer when component is destroyed
     stopTimer();
@@ -1881,7 +1894,7 @@
             <div>
               <label class="text-white/70 text-sm">Full Name</label>
               <Input
-                value={selectedStudent?.full_name || ''}
+                value={profileFullName}
                 disabled
                 class="bg-white/5 border-white/20 text-white mt-1"
               />
@@ -1889,7 +1902,7 @@
             <div>
               <label class="text-white/70 text-sm">Email</label>
               <Input
-                value={selectedStudent?.student_email || user?.email}
+                value={profileEmail}
                 disabled
                 class="bg-white/5 border-white/20 text-white mt-1"
               />
@@ -1897,7 +1910,7 @@
             <div>
               <label class="text-white/70 text-sm">Department</label>
               <Input
-                value={selectedStudent?.department || 'Not specified'}
+                value={profileDepartment}
                 disabled
                 class="bg-white/5 border-white/20 text-white mt-1"
               />
@@ -1905,7 +1918,7 @@
             <div>
               <label class="text-white/70 text-sm">Position</label>
               <Input
-                value={selectedStudent?.position || 'Intern'}
+                value={profilePosition}
                 disabled
                 class="bg-white/5 border-white/20 text-white mt-1"
               />
@@ -1918,23 +1931,23 @@
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <span class="text-white/70">Start Date:</span>
-              <span class="text-white font-medium">{selectedStudent?.start_date || 'Not set'}</span>
+              <span class="text-white font-medium">{profileStartDate}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-white/70">End Date:</span>
-              <span class="text-white font-medium">{selectedStudent?.end_date || 'Not set'}</span>
+              <span class="text-white font-medium">{profileEndDate}</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-white/70">Contract Hours:</span>
-              <span class="text-white font-bold text-xl">{stats.contractHours}h</span>
+              <span class="text-white font-bold text-xl">{profileContractHours}h</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-white/70">Completed Hours:</span>
-              <span class="text-green-400 font-bold text-xl">{stats.approvedHours}h</span>
+              <span class="text-green-400 font-bold text-xl">{profileCompletedHours}h</span>
             </div>
             <div class="flex items-center justify-between">
               <span class="text-white/70">Remaining:</span>
-              <span class="text-blue-400 font-bold text-xl">{stats.contractHours - stats.approvedHours}h</span>
+              <span class="text-blue-400 font-bold text-xl">{profileRemainingHours}h</span>
             </div>
           </div>
         </div>
