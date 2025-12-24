@@ -43,6 +43,7 @@
   let portfolioForm = { id: null, title: '', description: '', file_url: '' };
   let isUploadingPortfolio = false;
   let isSubmittingPortfolio = false;
+  let disableStartButtons = false;
   // Prevent repeated full reloads when navigating tabs — track which user we've loaded for
   let _loadedForEmail = null;
 
@@ -177,6 +178,49 @@
   $: profileContractHours = myContract?.contract_hours || stats.contractHours || 600;
   $: profileCompletedHours = stats.approvedHours || 0;
   $: profileRemainingHours = Math.max(0, profileContractHours - profileCompletedHours);
+
+  // Timeline computed values
+  $: timelineStartStr = myContract?.start_date || selectedStudent?.start_date || null;
+  $: timelineEndStr = myContract?.end_date || selectedStudent?.end_date || null;
+  $: timelineHasDates = !!(timelineStartStr && timelineEndStr);
+  $: timelineStart = timelineHasDates ? parseISO(timelineStartStr) : null;
+  $: timelineEnd = timelineHasDates ? parseISO(timelineEndStr) : null;
+
+  // Duration in weeks: prefer contract dates; else derive from contract_hours and weekly_hours or fallback to 15
+  $: durationWeeks = (() => {
+    if (timelineHasDates) {
+      const ms = timelineEnd - timelineStart;
+      const weeks = Math.ceil(ms / (7 * 24 * 60 * 60 * 1000));
+      return Math.max(1, weeks);
+    }
+    if (myContract?.contract_hours && myContract?.weekly_hours) {
+      const wh = parseFloat(myContract.weekly_hours) || 40;
+      return Math.max(1, Math.ceil((myContract.contract_hours || profileContractHours) / wh));
+    }
+    // fallback default
+    return 15;
+  })();
+
+  // Weekly target: prefer contract.weekly_hours, else compute from contract_hours/durationWeeks, else 40
+  $: weeklyTarget = (() => {
+    if (myContract?.weekly_hours) {
+      const parsed = parseFloat(myContract.weekly_hours);
+      if (!isNaN(parsed)) return parsed;
+    }
+    if (profileContractHours && durationWeeks) {
+      return Math.max(1, Math.round(profileContractHours / durationWeeks));
+    }
+    return 40;
+  })();
+
+  // Timeline progress percentage when dates available
+  $: timelineProgress = (() => {
+    if (!timelineHasDates) return null;
+    const now = new Date();
+    const total = timelineEnd - timelineStart;
+    const elapsed = now - timelineStart;
+    return Math.min(100, Math.max(0, (elapsed / total) * 100));
+  })();
 
   onDestroy(() => {
     // Clean up timer when component is destroyed
@@ -731,6 +775,10 @@
         '\n📝 General work session';
       
       // Reset tracker
+      // Temporarily disable start buttons to prevent immediate restarts
+      disableStartButtons = true;
+      setTimeout(() => { disableStartButtons = false; }, 3000);
+
       timeTracker = {
         isWorking: false,
         startTime: null,
@@ -1040,7 +1088,9 @@
         <div class="text-right">
           <Button 
             on:click={() => startWork()}
+            disabled={(myTasks && myTasks.length > 0) || disableStartButtons}
             class="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 hover:from-pink-800 hover:to-blue-600 text-white px-8 py-4 flex items-center gap-3 font-bold text-lg rounded-xl shadow-2xl transform hover:scale-105 transition-all duration-200 animate-bounce"
+            title={(myTasks && myTasks.length > 0) ? 'You have assigned tasks — start tracking from the task card instead' : (disableStartButtons ? 'Starting is temporarily disabled after ending a session' : 'Start a general work session')}
           >
             <Clock class="w-6 h-6" />
             <Rocket color="red"/> Start Tracking Time
@@ -1261,6 +1311,8 @@
                     {#if !timeTracker.isWorking && !hasEndedSession(task.id)}
                       <Button
                         on:click={() => startWork(task.id)}
+                        disabled={disableStartButtons}
+                        title={disableStartButtons ? 'Starting disabled right after ending a session' : 'Start tracking time for this task'}
                         class="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white px-6 py-3 flex items-center gap-3 text-sm font-bold rounded-xl shadow-lg transform hover:scale-105 transition-all duration-200 animate-pulse"
                       >
                         <Clock class="w-5 h-5" />
@@ -2142,19 +2194,19 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div>
             <p class="text-white/70 text-sm mb-1">Start Date</p>
-            <p class="text-white font-bold text-lg">{selectedStudent?.start_date ? format(parseISO(selectedStudent.start_date), 'MMM dd, yyyy') : 'Not set'}</p>
+            <p class="text-white font-bold text-lg">{timelineStartStr ? format(parseISO(timelineStartStr), 'MMM dd, yyyy') : 'Not set'}</p>
           </div>
           <div>
             <p class="text-white/70 text-sm mb-1">End Date</p>
-            <p class="text-white font-bold text-lg">{selectedStudent?.end_date ? format(parseISO(selectedStudent.end_date), 'MMM dd, yyyy') : 'Not set'}</p>
+            <p class="text-white font-bold text-lg">{timelineEndStr ? format(parseISO(timelineEndStr), 'MMM dd, yyyy') : 'Not set'}</p>
           </div>
           <div>
             <p class="text-white/70 text-sm mb-1">Duration</p>
-            <p class="text-white font-bold text-lg">{Math.ceil(stats.contractHours / 40)} weeks</p>
+            <p class="text-white font-bold text-lg">{durationWeeks} weeks</p>
           </div>
           <div>
             <p class="text-white/70 text-sm mb-1">Weekly Target</p>
-            <p class="text-white font-bold text-lg">40 hours</p>
+            <p class="text-white font-bold text-lg">{weeklyTarget} hours</p>
           </div>
         </div>
         
@@ -2290,7 +2342,7 @@
       <div class="bg-white/5 rounded-xl border border-white/20 p-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-white font-bold">Upcoming Events & Deadlines</h3>
-          <Button variant="ghost" size="sm" class="text-white/60 hover:text-white">
+          <Button variant="ghost" size="sm" class="text-white/60 hover:text-white h-10 justify-center items-center flex">
             <Calendar class="w-4 h-4 mr-2" />
             View Calendar
           </Button>
@@ -2339,7 +2391,7 @@
             <Calendar class="w-16 h-16 text-white/20 mx-auto mb-4" />
             <p class="text-white/50 text-lg mb-2">No upcoming events scheduled</p>
             <p class="text-white/30 text-sm mb-6">Your mentor will schedule check-ins and milestones</p>
-            <Button variant="ghost" class="text-white/60 hover:text-white">
+            <Button variant="ghost" class="text-white/60 hover:text-white flex px-2 justify-center items-center mx-auto ">
               <MessageSquare class="w-4 h-4 mr-2" />
               Request Meeting
             </Button>
