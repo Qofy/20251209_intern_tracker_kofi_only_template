@@ -569,6 +569,36 @@ class ApiClient {
       body: JSON.stringify({ approved, feedback }),
     });
   }
+
+  // Certificate methods
+  async getCertificates(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/api/certificates${query ? `?${query}` : ''}`);
+  }
+
+  async getCertificate(id) {
+    return this.request(`/api/certificates/${id}`);
+  }
+
+  async createCertificate(certificateData) {
+    return this.request('/api/certificates', {
+      method: 'POST',
+      body: JSON.stringify(certificateData),
+    });
+  }
+
+  async updateCertificate(id, certificateData) {
+    return this.request(`/api/certificates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(certificateData),
+    });
+  }
+
+  async deleteCertificate(id) {
+    return this.request(`/api/certificates/${id}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 // Create singleton instance

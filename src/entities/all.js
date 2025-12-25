@@ -993,7 +993,7 @@ export class Message {
       const demoMessages = JSON.parse(localStorage.getItem('demo_messages') || '[]');
       const report = demoMessages.find(m => m.id === reportId);
       if (!report) throw new Error('Report not found');
-      
+
       const reportData = JSON.parse(report.report_data || '{}');
       const newMessage = {
         id: Date.now(),
@@ -1015,5 +1015,77 @@ export class Message {
       return newMessage;
     }
     return apiClient.replyToReport(reportId, replyContent);
+  }
+}
+
+export class InternCertificate {
+  static async list(orderBy = '-created_date') {
+    if (isDemoMode()) {
+      const demoCertificates = JSON.parse(localStorage.getItem('demo_certificates') || '[]');
+      // Simple sorting by created_date
+      if (orderBy.startsWith('-')) {
+        const field = orderBy.substring(1);
+        return demoCertificates.sort((a, b) => new Date(b[field]) - new Date(a[field]));
+      }
+      return demoCertificates;
+    }
+    const params = orderBy ? { order_by: orderBy } : {};
+    return apiClient.getCertificates(params);
+  }
+
+  static async filter(params = {}) {
+    if (isDemoMode()) {
+      const demoCertificates = JSON.parse(localStorage.getItem('demo_certificates') || '[]');
+      if (Object.keys(params).length === 0) return demoCertificates;
+      return demoCertificates.filter(cert => {
+        return Object.entries(params).every(([key, value]) => cert[key] === value);
+      });
+    }
+    return apiClient.getCertificates(params);
+  }
+
+  static async create(data) {
+    if (isDemoMode()) {
+      const demoCertificates = JSON.parse(localStorage.getItem('demo_certificates') || '[]');
+      const newCertificate = {
+        ...data,
+        id: `demo_cert_${Date.now()}`,
+        certificate_number: `CERT-${Date.now().toString().slice(-6)}`,
+        created_date: new Date().toISOString(),
+        updated_date: new Date().toISOString()
+      };
+      demoCertificates.push(newCertificate);
+      localStorage.setItem('demo_certificates', JSON.stringify(demoCertificates));
+      return newCertificate;
+    }
+    return apiClient.createCertificate(data);
+  }
+
+  static async update(id, data) {
+    if (isDemoMode()) {
+      const demoCertificates = JSON.parse(localStorage.getItem('demo_certificates') || '[]');
+      const index = demoCertificates.findIndex(c => c.id === id);
+      if (index !== -1) {
+        demoCertificates[index] = {
+          ...demoCertificates[index],
+          ...data,
+          updated_date: new Date().toISOString()
+        };
+        localStorage.setItem('demo_certificates', JSON.stringify(demoCertificates));
+        return demoCertificates[index];
+      }
+      throw new Error('Certificate not found');
+    }
+    return apiClient.updateCertificate(id, data);
+  }
+
+  static async delete(id) {
+    if (isDemoMode()) {
+      const demoCertificates = JSON.parse(localStorage.getItem('demo_certificates') || '[]');
+      const filtered = demoCertificates.filter(c => c.id !== id);
+      localStorage.setItem('demo_certificates', JSON.stringify(filtered));
+      return { success: true };
+    }
+    return apiClient.deleteCertificate(id);
   }
 }
