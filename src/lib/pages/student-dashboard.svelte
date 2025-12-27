@@ -1,11 +1,12 @@
 <script>
   import { onMount, onDestroy } from 'svelte';
-  import { Task, TimeEntry, Student, Schedule, Message, User, Contract, Portfolio } from '../../entities/all';
+  import { Task, TimeEntry, Student, Schedule, Message, User, Contract, Portfolio, InternCertificate } from '../../entities/all';
   import { userStore } from '../../stores/userStore';
   import { UploadFile } from '$lib/integrations/Core';
   import Button from '$lib/components/ui/button.svelte';
   import Input from '$lib/components/ui/input.svelte';
   import Dialog from '$lib/components/ui/dialog.svelte';
+  import CertificateDocument from '$lib/components/certificates/CertificateDocument.svelte';
   import {
     ClipboardList, Upload, TrendingUp, MessageSquare,
     Mail, User as UserIcon, BookOpen, Calendar,
@@ -34,6 +35,7 @@
   let mentorInfo = null;
   let messages = [];
   let portfolios = [];
+  let certificates = [];
   let myContract = null;
   let isLoading = false;
   let isLoadingMessages = false;
@@ -43,6 +45,8 @@
   let portfolioForm = { id: null, title: '', description: '', file_url: '' };
   let isUploadingPortfolio = false;
   let isSubmittingPortfolio = false;
+  let showCertificateModal = false;
+  let selectedCertificate = null;
   let disableStartButtons = false;
   // Prevent repeated full reloads when navigating tabs — track which user we've loaded for
   let _loadedForEmail = null;
@@ -222,6 +226,10 @@
     return Math.min(100, Math.max(0, (elapsed / total) * 100));
   })();
 
+  // Latest issued certificate for the student (most recent by created_date)
+  $: latestCertificate = (certificates && certificates.length) ?
+    certificates.slice().sort((a, b) => new Date(b.created_date) - new Date(a.created_date))[0] : null;
+
   onDestroy(() => {
     // Clean up timer when component is destroyed
     stopTimer();
@@ -352,6 +360,16 @@
       } catch (err) {
         console.error('[Student Dashboard] Error loading portfolios:', err);
         portfolios = [];
+      }
+
+      // Load certificates issued for this student (if any)
+      try {
+        const allCertificates = await InternCertificate.list({ student_email: user?.email });
+        certificates = Array.isArray(allCertificates) ? allCertificates : [];
+        console.log('[Student Dashboard] Certificates loaded:', certificates.length);
+      } catch (err) {
+        console.error('[Student Dashboard] Error loading certificates:', err);
+        certificates = [];
       }
 
       // Load feedback from time entries that have mentor comments
@@ -2402,6 +2420,35 @@
   </div>
 </div>
 
+<!-- Floating certificate aside (shows student's latest certificate) -->
+{#if latestCertificate}
+  <aside class="fixed right-6 top-1/3 w-80 bg-white/5 rounded-xl border border-white/20 p-4 shadow-2xl z-40 hidden md:block">
+    <div class="flex items-start justify-between mb-3">
+      <div class="flex items-center gap-3">
+        <Award class="w-5 h-5 text-yellow-400" />
+        <div>
+          <p class="text-white font-semibold text-sm">My Certificate</p>
+          <p class="text-white/60 text-xs">{latestCertificate.title || 'Internship Certificate'}</p>
+        </div>
+      </div>
+      <div class="text-right text-xs text-white/50">
+        {#if latestCertificate.created_date}
+          {format(parseISO(latestCertificate.created_date), 'MMM dd, yyyy')}
+        {/if}
+      </div>
+    </div>
+
+    {#if latestCertificate.description}
+      <p class="text-white/70 text-sm mb-3">{latestCertificate.description}</p>
+    {/if}
+
+    <div class="flex gap-2">
+      <Button on:click={() => { selectedCertificate = latestCertificate; showCertificateModal = true; }} class="bg-blue-500 text-white h-8 px-3 text-sm">View</Button>
+      <Button on:click={() => { if (latestCertificate.file_url) window.open(latestCertificate.file_url, '_blank'); }} class="bg-green-500 text-white h-8 px-3 text-sm">Download</Button>
+    </div>
+  </aside>
+{/if}
+
 <!-- Submit Work Modal -->
 {#if showSubmitWorkModal}
   <Dialog bind:open={showSubmitWorkModal}>
@@ -2500,6 +2547,86 @@
             Cancel
           </Button>
         </div>
+      </div>
+    </div>
+      
+      <!-- My Certificate -->
+      <div class="mt-6 bg-white/5 rounded-xl border border-white/20 p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <Award class="w-5 h-5 text-yellow-400" />
+            <h3 class="text-white font-bold">My Certificate</h3>
+          </div>
+        </div>
+        <p class="text-white/70 text-sm mb-4">Download your internship completion certificate issued by the admin.</p>
+
+        {#if latestCertificate}
+          <div class="bg-white/3 p-4 rounded flex items-center justify-between">
+            <div>
+              <h4 class="text-white font-semibold">{latestCertificate.certificate_number} — {latestCertificate.company_name}</h4>
+              <p class="text-white/70">{latestCertificate.student_name} • {format(new Date(latestCertificate.issued_date || latestCertificate.created_date), 'MMM d, yyyy')}</p>
+            </div>
+            <div class="flex gap-2">
+              <Button on:click={() => { selectedCertificate = latestCertificate; showCertificateModal = true; }} class="bg-blue-500 text-white h-10 px-3">View</Button>
+              {#if latestCertificate.file_url}
+                <a href={latestCertificate.file_url} target="_blank" rel="noreferrer" class="inline-block">
+                  <Button class="bg-green-500 text-white h-10 px-3">Download</Button>
+                </a>
+              {/if}
+            </div>
+          </div>
+        {:else}
+          <div class="text-white/70">No certificate has been issued for you yet. Admin will upload it upon completion.</div>
+        {/if}
+      </div>
+  </Dialog>
+{/if}
+
+<!-- Floating Certificate Aside (visible on the right side) -->
+{#if latestCertificate}
+  <div class="fixed right-4 top-1/3 z-50 w-80">
+    <div class="bg-white/5 rounded-xl border border-white/20 p-4 shadow-xl backdrop-blur-md">
+      <div class="flex items-start gap-3">
+        <Award class="w-6 h-6 text-yellow-400 mt-1" />
+        <div class="flex-1">
+          <div class="text-white font-semibold text-sm truncate">{latestCertificate.certificate_number}</div>
+          <div class="text-white/70 text-xs truncate">{latestCertificate.company_name}</div>
+          <div class="text-white/60 text-xs mt-1">{latestCertificate.student_name}</div>
+        </div>
+      </div>
+      <div class="mt-3 flex gap-2 justify-end">
+        <Button on:click={() => { selectedCertificate = latestCertificate; showCertificateModal = true; }} class="bg-blue-500 text-white h-8 px-3 text-sm">View</Button>
+        {#if latestCertificate.file_url}
+          <a href={latestCertificate.file_url} target="_blank" rel="noreferrer">
+            <Button class="bg-green-500 text-white h-8 px-3 text-sm">Download</Button>
+          </a>
+        {/if}
+      </div>
+    </div>
+  </div>
+{/if}
+
+<!-- Certificate Modal -->
+{#if showCertificateModal}
+  <Dialog bind:open={showCertificateModal}>
+    <div class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+      <div class="bg-transparent rounded-xl border border-white/20 p-6 max-w-3xl w-full overflow-y-auto max-h-[85vh]">
+        <h2 class="text-2xl font-bold text-white mb-4">Certificate</h2>
+
+        {#if selectedCertificate}
+          <CertificateDocument certificate={selectedCertificate} />
+
+          <div class="mt-4 flex gap-2 justify-end">
+            {#if selectedCertificate.file_url}
+              <a href={selectedCertificate.file_url} target="_blank" rel="noreferrer">
+                <Button class="bg-green-500 text-white">Download PDF</Button>
+              </a>
+            {/if}
+            <Button variant="ghost" on:click={() => { showCertificateModal = false; selectedCertificate = null; }} class="text-white/70">Close</Button>
+          </div>
+        {:else}
+          <div class="text-white/70">No certificate selected.</div>
+        {/if}
       </div>
     </div>
   </Dialog>

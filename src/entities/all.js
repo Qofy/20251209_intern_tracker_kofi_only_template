@@ -1019,17 +1019,46 @@ export class Message {
 }
 
 export class InternCertificate {
-  static async list(orderBy = '-created_date') {
+  static async list(paramsOrOrderBy = '-created_date') {
     if (isDemoMode()) {
       const demoCertificates = JSON.parse(localStorage.getItem('demo_certificates') || '[]');
-      // Simple sorting by created_date
-      if (orderBy.startsWith('-')) {
-        const field = orderBy.substring(1);
+
+      // Handle params object (e.g., { student_email: 'email@example.com' })
+      if (typeof paramsOrOrderBy === 'object') {
+        let filtered = demoCertificates;
+
+        // Apply filters
+        if (paramsOrOrderBy.student_email) {
+          filtered = filtered.filter(c => c.student_email === paramsOrOrderBy.student_email);
+        }
+        if (paramsOrOrderBy.student_name) {
+          filtered = filtered.filter(c => c.student_name === paramsOrOrderBy.student_name);
+        }
+        if (paramsOrOrderBy.company_id) {
+          filtered = filtered.filter(c => c.company_id === paramsOrOrderBy.company_id);
+        }
+
+        // Apply sorting
+        const orderBy = paramsOrOrderBy.order_by || '-created_date';
+        if (orderBy.startsWith('-')) {
+          const field = orderBy.substring(1);
+          return filtered.sort((a, b) => new Date(b[field]) - new Date(a[field]));
+        }
+        return filtered.sort((a, b) => new Date(a[orderBy]) - new Date(b[orderBy]));
+      }
+
+      // Handle orderBy string
+      if (paramsOrOrderBy.startsWith('-')) {
+        const field = paramsOrOrderBy.substring(1);
         return demoCertificates.sort((a, b) => new Date(b[field]) - new Date(a[field]));
       }
       return demoCertificates;
     }
-    const params = orderBy ? { order_by: orderBy } : {};
+
+    // Handle API calls
+    const params = typeof paramsOrOrderBy === 'object'
+      ? paramsOrOrderBy
+      : { order_by: paramsOrOrderBy };
     return apiClient.getCertificates(params);
   }
 

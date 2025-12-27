@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
 		server: {
 			proxy: {
 				"/api": {
-					target: "http://localhost:3001",
+					target: "http://localhost:3000",
 					changeOrigin: true,
 					secure: false,
 					ws: true,
@@ -24,7 +24,7 @@ export default defineConfig(({ mode }) => {
 						proxy.on("proxyReq", (proxyReq, req, _res) => {
 							const headers = proxyReq.getHeaders();
 							console.log("[Proxy Request]", req.method, req.url);
-							console.log("[Proxy Target]", "http://localhost:3001" + req.url);
+							console.log("[Proxy Target]", "http://localhost:3000" + req.url);
 							console.log("[Authorization]", headers["authorization"] ? "Bearer ***" : "NOT SET");
 						});
 						proxy.on("proxyRes", (proxyRes, req, _res) => {

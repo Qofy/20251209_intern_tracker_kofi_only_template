@@ -11,6 +11,9 @@ export class Certificate {
   @Column()
   student_name: string;
 
+  @Column({ nullable: true })
+  student_email: string;
+
   @Column()
   company_name: string;
 

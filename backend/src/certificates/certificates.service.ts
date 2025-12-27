@@ -33,6 +33,10 @@ export class CertificatesService {
       query.student_name = filters.student_name;
     }
 
+    if (filters?.student_email) {
+      query.student_email = filters.student_email;
+    }
+
     const orderBy = filters?.order_by || 'created_date';
     const orderDirection = orderBy.startsWith('-') ? 'DESC' : 'ASC';
     const orderField = orderBy.replace('-', '');
